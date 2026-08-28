@@ -1,0 +1,45 @@
+{"id": "temporal_1", "question": "On what date (YYYY-MM-DD) was the ProjectManager instructed to lock the primary, backup, exact handoff trigger, and rollback owner in the production deployment readiness spec?", "answer": "2025-07-14", "asking_user_id": "User_7"}
+{"id": "temporal_2", "question": "By what date (YYYY-MM-DD) must the open jurisdictional rules, scenario logic, and escalation thresholds be validated?", "answer": "2025-07-17", "asking_user_id": "User_5"}
+{"id": "temporal_3", "question": "On what date (YYYY-MM-DD) is the blocking of source mismatches expected to be completed?", "answer": "2025-07-18", "asking_user_id": "User_4"}
+{"id": "temporal_4", "question": "What is the due date (YYYY-MM-DD) for assigning a revalidator and due date for every owner swap in the Define Impact Metrics phase?", "answer": "2025-07-28", "asking_user_id": "User_11"}
+{"id": "temporal_5", "question": "What is the deadline (YYYY-MM-DD) for Finance Ops and IT to confirm whether any override path needs secondary review?", "answer": "2025-07-11", "asking_user_id": "User_11"}
+{"id": "temporal_6", "question": "On what date (YYYY-MM-DD) were team members asked to send known failure modes or escalation pain points by the end of the day?", "answer": "2025-07-01", "asking_user_id": "User_3"}
+{"id": "temporal_7", "question": "What is the deadline (YYYY-MM-DD) for Finance and IT to send primary/backup owners and one evidence source per path?", "answer": "2025-07-18", "asking_user_id": "User_10"}
+{"id": "temporal_8", "question": "What is the date (YYYY-MM-DD) for the Procurement deadline mentioned in the Vendor Evaluation phase?", "answer": "2025-07-29", "asking_user_id": "User_2"}
+{"id": "temporal_9", "question": "What is the deadline for locking in owners for threshold review and data rule review (YYYY-MM-DD)?", "answer": "2025-07-25", "asking_user_id": "User_6"}
+{"id": "temporal_10", "question": "What is the date (YYYY-MM-DD) that remains clean after the last audit gap is closed?", "answer": "2025-07-18", "asking_user_id": "User_12"}
+{"id": "temporal_11", "question": "On what date (YYYY-MM-DD) is the source owner expected to mark any gaps in the stability gate?", "answer": "2025-07-15", "asking_user_id": "User_1"}
+{"id": "temporal_12", "question": "By what date (YYYY-MM-DD) must final concerns on regulatory alignment, evidencing, or exception handling be flagged?", "answer": "2025-07-28", "asking_user_id": "User_2"}
+{"id": "temporal_13", "question": "On what date (YYYY-MM-DD) was the frozen snapshot for the Internal Compliance Audit - Findings Review instructed to be posted?", "answer": "2025-07-28", "asking_user_id": "User_1"}
+{"id": "temporal_14", "question": "What is the deadline (YYYY-MM-DD) for Finance Ops and Project Manager to confirm both items in-thread?", "answer": "2025-07-14", "asking_user_id": "User_5"}
+{"id": "temporal_15", "question": "What is the date (YYYY-MM-DD) by which @Finance and @IT are expected to focus on the top three override paths and proof artifacts?", "answer": "2025-07-18", "asking_user_id": "User_9"}
+{"id": "temporal_16", "question": "On what date (YYYY-MM-DD) is Data Engineering expected to drop the diff and impact note in the spec?", "answer": "2025-07-18", "asking_user_id": "User_5"}
+{"id": "temporal_17", "question": "On what date (YYYY-MM-DD) should Treasury post the owner split and live-trail/archive-read-only path in the SharePoint link?", "answer": "2025-07-18", "asking_user_id": "User_2"}
+{"id": "temporal_18", "question": "What is the date (YYYY-MM-DD) by which Legal or Data must post any remaining gaps to avoid missing the handoff?", "answer": "2025-07-28", "asking_user_id": "User_5"}
+{"id": "temporal_19", "question": "On what date (YYYY-MM-DD) will the locked edge-row pack be treated as the final proof point?", "answer": "2025-07-28", "asking_user_id": "User_2"}
+{"id": "temporal_20", "question": "What is the date (YYYY-MM-DD) by which Finance and IT need to confirm the phase-1 forecast scope, granularity, and system-of-record?", "answer": "2025-07-25", "asking_user_id": "User_1"}
+{"id": "temporal_21", "question": "On what date (YYYY-MM-DD) were the acceptance criteria for regulatory fields and source-count parity frozen?", "answer": "2025-07-13", "asking_user_id": "User_5"}
+{"id": "temporal_22", "question": "What is the deadline (YYYY-MM-DD) for Analytics and Ops to complete the bounded impact check on alert scoring thresholds?", "answer": "2025-07-25", "asking_user_id": "User_3"}
+{"id": "temporal_23", "question": "What is the date (YYYY-MM-DD) by which Finance and Audit need to confirm the v1 retirement list?", "answer": "2025-07-25", "asking_user_id": "User_13"}
+{"id": "temporal_24", "question": "On what date (YYYY-MM-DD) should Product/Design lock the source-of-truth journey?", "answer": "2025-07-27", "asking_user_id": "User_2"}
+{"id": "temporal_25", "question": "What is the date (YYYY-MM-DD) by which Compliance is expected to confirm which updates are true regulatory deltas versus implementation noise?", "answer": "2025-07-25", "asking_user_id": "User_6"}
+{"id": "temporal_26", "question": "By what date (YYYY-MM-DD) were decisions on the open items in the spec requested to be sent?", "answer": "2025-07-28", "asking_user_id": "User_3"}
+{"id": "temporal_27", "question": "On what date (YYYY-MM-DD) must Legal/Ops post the split decision inline with owner, reason pending, and provisional/confirmed status on every disagreement?", "answer": "2025-07-26", "asking_user_id": "User_10"}
+{"id": "temporal_28", "question": "On what date (YYYY-MM-DD) was Reporting instructed to sweep live materials?", "answer": "2025-07-12", "asking_user_id": "User_10"}
+{"id": "temporal_29", "question": "What is the deadline (YYYY-MM-DD) for HR, Legal, and regional managers to complete their final review of the training materials?", "answer": "2025-07-18", "asking_user_id": "User_11"}
+{"id": "temporal_30", "question": "What is the date (YYYY-MM-DD) by which validation owners need to confirm their roles?", "answer": "2025-07-24", "asking_user_id": "User_2"}
+{"id": "temporal_31", "question": "What is the calendar date (YYYY-MM-DD) by which Ops is expected to own the field map, considering the message about splitting canonical wording from the fallback SLA in RCP?", "answer": "2025-07-17", "asking_user_id": "User_3"}
+{"id": "temporal_32", "question": "By what date (YYYY-MM-DD) should @Compliance post the threshold owner and date in-thread?", "answer": "2025-07-25", "asking_user_id": "User_10"}
+{"id": "temporal_33", "question": "On what date (YYYY-MM-DD) did the product owner request leadership review to address the high verification drop-off in the pilot?", "answer": "2025-07-24", "asking_user_id": "User_3"}
+{"id": "temporal_34", "question": "On what date (YYYY-MM-DD) did the data analyst require BI and accounting to confirm the final mappings and compliance fields to avoid a handoff delay?", "answer": "2025-07-05", "asking_user_id": "User_10"}
+{"id": "temporal_35", "question": "On what date (YYYY-MM-DD) was the named fallback owner and exact slip trigger required to be posted in the SharePoint link?", "answer": "2025-07-27", "asking_user_id": "User_5"}
+{"id": "temporal_36", "question": "What is the cutoff date (YYYY-MM-DD) for exception-log entries before the 'Develop Training Materials' phase can be marked as completed?", "answer": "2025-07-18", "asking_user_id": "User_7"}
+{"id": "temporal_37", "question": "What is the date (YYYY-MM-DD) by which a “no gaps” reply is expected?", "answer": "2025-07-18", "asking_user_id": "User_7"}
+{"id": "temporal_38", "question": "On what date (YYYY-MM-DD) did Leadership need to confirm whether to proceed under the revised thresholds or treat current mappings as provisional?", "answer": "2025-07-10", "asking_user_id": "User_10"}
+{"id": "temporal_39", "question": "On what date (YYYY-MM-DD) was Legal expected to review the provisional rows?", "answer": "2025-07-17", "asking_user_id": "User_13"}
+{"id": "temporal_40", "question": "What is the date (YYYY-MM-DD) by which the full owner-led thread must be posted?", "answer": "2025-07-20", "asking_user_id": "User_7"}
+{"id": "temporal_41", "question": "What is the date (YYYY-MM-DD) by which the exact backlog count and main bottleneck need to be confirmed?", "answer": "2025-07-25", "asking_user_id": "User_7"}
+{"id": "temporal_42", "question": "On what date (YYYY-MM-DD) was @Ops asked to post the matrix?", "answer": "2025-07-12", "asking_user_id": "User_11"}
+{"id": "temporal_43", "question": "What is the deadline (YYYY-MM-DD) for Finance and IT to confirm integration points and data ownership?", "answer": "2025-07-25", "asking_user_id": "User_5"}
+{"id": "temporal_44", "question": "On what date (YYYY-MM-DD) does Data Engineering own closure for the frozen bundle?", "answer": "2025-07-10", "asking_user_id": "User_3"}
+{"id": "temporal_45", "question": "What is the date (YYYY-MM-DD) by which the mapping of blockers against the integration testing specification is expected to be completed?", "answer": "2025-07-21", "asking_user_id": "User_11"}

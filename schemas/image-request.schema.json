@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/sanduluP/convograph/schemas/image-request.schema.json",
+  "title": "ImageRequest",
+  "description": "Input to modules/graphic-generation: an LLM-generated caption grounded in a temporal-KG subgraph, requesting a Flux Schnell image (or an incremental edit to an existing editable canvas region).",
+  "type": "object",
+  "required": ["caption", "subgraph_ref"],
+  "properties": {
+    "caption": {
+      "type": "string",
+      "description": "LLM-generated caption to condition the image generation on."
+    },
+    "subgraph_ref": {
+      "type": "object",
+      "description": "Reference to the TemporalKG subgraph this caption was derived from, for traceability/re-generation.",
+      "required": ["source_conversation_id"],
+      "properties": {
+        "source_conversation_id": { "type": "string" },
+        "node_ids": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Node ids from temporal-kg.schema.json that grounded this caption."
+        }
+      }
+    },
+    "edit_target": {
+      "type": ["object", "null"],
+      "description": "If set, this request edits an existing canvas region instead of generating a full new image (supports the editable/incremental graphic-recording goal).",
+      "properties": {
+        "canvas_id": { "type": "string" },
+        "region_id": { "type": "string" }
+      }
+    },
+    "style_refs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Optional pointers to a reusable image library, for reproducible visual style across sessions."
+    }
+  }
+}

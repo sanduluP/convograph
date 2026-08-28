@@ -1,0 +1,24 @@
+.DS_Store
+.env
+.env.local
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+
+# Eval output / caches
+results/
+stores/
+logs/
+
+# Cluster env file. No secret in it today (localhost + a dummy key), but it is
+# regenerated per environment and env files do not belong in git as a rule.
+.env.cluster
+
+# Neo4j store dumps and downloaded model weights, if they ever land here.
+*.dump
+models/

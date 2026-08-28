@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/sanduluP/convograph/schemas/temporal-kg.schema.json",
+  "title": "TemporalKG",
+  "description": "Output of modules/kg-agent-memory: a temporal knowledge graph over conversation messages, plus a per-person/time-window subgraph filter used for the domain-adaptation RQ. Message-level fields follow modules/kg-agent-memory's existing convention (see that module's README).",
+  "type": "object",
+  "required": ["source_conversation_id", "nodes", "edges"],
+  "properties": {
+    "source_conversation_id": {
+      "type": "string",
+      "description": "Matches DiarizedTranscript.conversation_id, or a batch/session id for pre-existing corpora."
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "timestamp"],
+        "properties": {
+          "id": { "type": "string", "description": "e.g. Msg_<n>, Entity_<n>." },
+          "type": { "type": "string", "enum": ["message", "entity", "decision", "topic"] },
+          "content": { "type": "string" },
+          "author": { "type": "string", "description": "Speaker/user id, e.g. User_<n>." },
+          "role": { "type": "string" },
+          "timestamp": { "type": "string", "format": "date-time" },
+          "phase_name": { "type": "string" },
+          "topic": { "type": "string" },
+          "is_noise": { "type": "boolean" },
+          "is_decision_point": { "type": "boolean" }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source", "target", "relation"],
+        "properties": {
+          "source": { "type": "string" },
+          "target": { "type": "string" },
+          "relation": { "type": "string", "description": "e.g. reply_to, mentions, precedes." },
+          "valid_from": { "type": "string", "format": "date-time" },
+          "valid_to": { "type": ["string", "null"], "format": "date-time" }
+        }
+      }
+    },
+    "subgraph_filter": {
+      "type": "object",
+      "description": "Optional: the person/time-window filter applied to derive a subgraph for agent-memory adaptation.",
+      "properties": {
+        "person": { "type": "string" },
+        "window_start": { "type": "string", "format": "date-time" },
+        "window_end": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}

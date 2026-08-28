@@ -1,0 +1,4 @@
+{"id": "user_implicit_1", "question": "What is the final step I need to complete for the Sensor Requirements Definition phase?", "answer": "gateway load validation", "asking_user_id": "User_4"}
+{"id": "user_implicit_2", "question": "What would cause me to reconsider the mitigation plan for the Risk: Sensor Calibration Drift phase?", "answer": "a fresh spike or baseline wobble", "asking_user_id": "User_8"}
+{"id": "user_implicit_3", "question": "What is the biggest risk I’m monitoring during the Sensor Requirements Definition phase?", "answer": "floor reality vs. assumed coverage", "asking_user_id": "User_3"}
+{"id": "user_implicit_4", "question": "What is my focus for the source data review in the Data Pipeline Preparation phase?", "answer": "source data gaps and timestamp consistency review", "asking_user_id": "User_2"}

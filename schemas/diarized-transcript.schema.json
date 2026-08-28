@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/sanduluP/convograph/schemas/diarized-transcript.schema.json",
+  "title": "DiarizedTranscript",
+  "description": "Output of modules/asr-diarization: a streaming, speaker-tagged transcript for up to 4 speakers. Input to modules/kg-agent-memory.",
+  "type": "object",
+  "required": ["conversation_id", "speakers", "segments"],
+  "properties": {
+    "conversation_id": {
+      "type": "string",
+      "description": "Stable id for this conversation/session."
+    },
+    "speakers": {
+      "type": "array",
+      "description": "Speaker labels present in this conversation, e.g. [\"speaker_1\", \"speaker_2\", \"speaker_3\", \"speaker_4\"].",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "maxItems": 4
+    },
+    "segments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["speaker", "text", "start_ts", "end_ts"],
+        "properties": {
+          "speaker": { "type": "string", "description": "Must be one of `speakers`." },
+          "text": { "type": "string" },
+          "start_ts": { "type": "string", "format": "date-time" },
+          "end_ts": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  }
+}

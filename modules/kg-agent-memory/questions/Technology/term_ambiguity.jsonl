@@ -1,0 +1,43 @@
+{"id": "term_ambiguity_1", "question": "What is the status of the stale-state and delayed-notification limit scenarios during the Integration Testing Plan?", "answer": "in the tiny exception list", "asking_user_id": "User_6"}
+{"id": "term_ambiguity_2", "question": "What is the deadline for QA/support to address the suppressed-vs-noisy corner scenarios during Alert Rule Engine Development?", "answer": "2025-07-28", "asking_user_id": "User_4"}
+{"id": "term_ambiguity_3", "question": "Who is responsible for confirming the broad-access boundary conditions in the Dashboard Delivery Module?", "answer": "Ops", "asking_user_id": "User_16"}
+{"id": "term_ambiguity_4", "question": "Who owns the backup behavior for the Field Communication Module under Risk: Network Reliability?", "answer": "Mobile", "asking_user_id": "User_18"}
+{"id": "term_ambiguity_5", "question": "What is the deadline for QA and Engineering to confirm the final corner scenarios during Deployment Planning?", "answer": "2025-07-27", "asking_user_id": "User_15"}
+{"id": "term_ambiguity_6", "question": "Who owns the backup behavior for the Field Communication Module in the Risk: Network Reliability phase?", "answer": "Engineering", "asking_user_id": "User_13"}
+{"id": "term_ambiguity_7", "question": "Who is responsible for reviewing the boundary conditions during the Alert Rule Engine Development phase?", "answer": "SRE", "asking_user_id": "User_13"}
+{"id": "term_ambiguity_8", "question": "Which corner scenarios did the SRE team need to review during the Alert Rule Engine Development phase?", "answer": "suppression→blocked vs warning", "asking_user_id": "User_4"}
+{"id": "term_ambiguity_9", "question": "When does IT need to confirm graceful degradation for the Risk: User Adoption Uncertainty?", "answer": "2025-07-06", "asking_user_id": "User_11"}
+{"id": "term_ambiguity_10", "question": "Who owns graceful degradation for missed acknowledgements and duplicate suppression in the Define Requirements phase?", "answer": "Ops and SafetyCompliance", "asking_user_id": "User_4"}
+{"id": "term_ambiguity_11", "question": "Who owns the branch/rebase corner scenarios in the Comment Sync Module?", "answer": "repo-integrations", "asking_user_id": "User_4"}
+{"id": "term_ambiguity_12", "question": "What is the completion status of the system architecture phase after the lower-env proofs?", "answer": "Completed", "asking_user_id": "User_1"}
+{"id": "term_ambiguity_13", "question": "What work remains for the boundary conditions in incident-response scenarios during the Define Requirements phase?", "answer": "tightening", "asking_user_id": "User_13"}
+{"id": "term_ambiguity_14", "question": "What is the baseline inclusion status of unstable boundary conditions in the context of Risk: Static Analysis Accuracy?", "answer": "excluded", "asking_user_id": "User_1"}
+{"id": "term_ambiguity_15", "question": "What are the in-scope criteria for corner scenarios under the Risk: Unclear Review Scope?", "answer": "only when they change release impact", "asking_user_id": "User_4"}
+{"id": "term_ambiguity_16", "question": "What is the deadline for analytics and operations to flag limit scenarios for Prototype Report Templates, specifically regarding the component flagged for dependency checks due to formatting drift risks?", "answer": "2025-07-18", "asking_user_id": "User_6"}
+{"id": "term_ambiguity_17", "question": "How are limit scenarios being handled in the Define Scheduling Requirements phase?", "answer": "explicit UX rules", "asking_user_id": "User_12"}
+{"id": "term_ambiguity_18", "question": "How are the corner scenarios for providers being handled in the Build Calendar Connector phase?", "answer": "short reliability pass", "asking_user_id": "User_17"}
+{"id": "term_ambiguity_19", "question": "What is the sign-off condition for the boundary conditions during the Deployment Planning phase?", "answer": "reproducible and fenced", "asking_user_id": "User_1"}
+{"id": "term_ambiguity_20", "question": "Who owns the backup behavior during the Integration Architecture Setup?", "answer": "Ops", "asking_user_id": "User_1"}
+{"id": "term_ambiguity_21", "question": "Who is responsible for the extreme cases in the Alert Dispatcher Implementation - Revision?", "answer": "ops", "asking_user_id": "User_1"}
+{"id": "term_ambiguity_22", "question": "What is the next phase for the limit scenarios after the Dashboard Delivery Module?", "answer": "hardening", "asking_user_id": "User_4"}
+{"id": "term_ambiguity_23", "question": "Who is responsible for the extreme cases in the Risk: Reporting Accuracy Issues phase?", "answer": "QA", "asking_user_id": "User_18"}
+{"id": "term_ambiguity_24", "question": "What is the next phase for the corner scenarios after the Dashboard Delivery Module?", "answer": "hardening", "asking_user_id": "User_4"}
+{"id": "term_ambiguity_25", "question": "What is the error handling strategy for freshness-sensitive fields if they are stale during the Define Reporting Requirements phase?", "answer": "flag it", "asking_user_id": "User_13"}
+{"id": "term_ambiguity_26", "question": "What phase are the escalation limit scenarios assigned to in the context of Risk: Unclear Scope?", "answer": "v2", "asking_user_id": "User_16"}
+{"id": "term_ambiguity_27", "question": "What is the validation status of the permission corner scenarios for the Comment Sync Module?", "answer": "pending clear pass/fail", "asking_user_id": "User_4"}
+{"id": "term_ambiguity_28", "question": "What is the impact scope of the permission boundary conditions during the Comment Sync Module phase?", "answer": "telemetry-only", "asking_user_id": "User_16"}
+{"id": "term_ambiguity_29", "question": "What failure states are defined for boundary conditions in the UI/logs during the Architecture Design phase?", "answer": "blocked, partial, needs retry", "asking_user_id": "User_16"}
+{"id": "term_ambiguity_30", "question": "How many boundary conditions should QA select for Testing and Validation in the context of Risk: Reporting Accuracy Issues?", "answer": "5–10", "asking_user_id": "User_15"}
+{"id": "term_ambiguity_31", "question": "What is the review status of the recurring-meeting limit scenarios during the Develop Scheduling Algorithm phase?", "answer": "stay on review", "asking_user_id": "User_12"}
+{"id": "term_ambiguity_32", "question": "What limit scenarios will be posted for the Alert Dispatcher Implementation?", "answer": "burst retries, dedup, and delayed delivery", "asking_user_id": "User_4"}
+{"id": "term_ambiguity_33", "question": "What are the remaining types of boundary conditions in the Risk: Alert Noise Overload phase?", "answer": "flapping signals, repeated low-severity pages", "asking_user_id": "User_1"}
+{"id": "term_ambiguity_34", "question": "What is the deadline for addressing status-transition boundary conditions in the Dashboard Delivery Module - Revision?", "answer": "2025-07-20", "asking_user_id": "User_9"}
+{"id": "term_ambiguity_35", "question": "How are the remaining user-flow boundary conditions categorized in the context of Risk: Metric Coverage Gaps?", "answer": "contract debt", "asking_user_id": "User_13"}
+{"id": "term_ambiguity_36", "question": "Who is responsible for flagging the limit scenarios during the Comment Sync Module phase?", "answer": "QA", "asking_user_id": "User_4"}
+{"id": "term_ambiguity_37", "question": "What is required for graceful degradation approval in the Integration Testing Plan?", "answer": "Eng written sign-off", "asking_user_id": "User_3"}
+{"id": "term_ambiguity_38", "question": "What is the status of the priority-shift corner scenarios in the Prototype Report Templates phase?", "answer": "explicitly unresolved", "asking_user_id": "User_11"}
+{"id": "term_ambiguity_39", "question": "Who is responsible for locking graceful degradation during Deployment Planning?", "answer": "Platform", "asking_user_id": "User_15"}
+{"id": "term_ambiguity_40", "question": "Who is responsible for deciding on corner scenarios during the Alert Rule Engine Development phase?", "answer": "SRE", "asking_user_id": "User_15"}
+{"id": "term_ambiguity_41", "question": "What is the deadline for posting the graceful degradation rules during the Build ETL Pipelines phase?", "answer": "2025-07-18", "asking_user_id": "User_11"}
+{"id": "term_ambiguity_42", "question": "Who owns the backup behavior as part of the Build ETL Pipelines phase?", "answer": "DataEng", "asking_user_id": "User_13"}
+{"id": "term_ambiguity_43", "question": "What is the validation target date for corner scenarios in the Risk: Cross-Timezone Calculation Errors phase?", "answer": "2025-07-27", "asking_user_id": "User_6"}

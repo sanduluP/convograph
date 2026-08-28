@@ -1,0 +1,37 @@
+{"id": "temporal_1", "question": "What is the exact datetime (YYYY-MM-DD HH:MM) by which staffing changes need to be confirmed?", "answer": "2025-08-05 12:00", "asking_user_id": "User_1"}
+{"id": "temporal_2", "question": "What is the date (YYYY-MM-DD) by which IT is expected to post the transition timing?", "answer": "2025-07-18", "asking_user_id": "User_5"}
+{"id": "temporal_3", "question": "On what date (YYYY-MM-DD) was the reporting team asked to freeze the deltas?", "answer": "2025-07-15", "asking_user_id": "User_3"}
+{"id": "temporal_4", "question": "What is the deadline (YYYY-MM-DD) for confirming HRIS credential fields alignment?", "answer": "2025-07-31", "asking_user_id": "User_4"}
+{"id": "temporal_5", "question": "On what date (YYYY-MM-DD) did the Nurse Leader ask if Facilities could confirm readiness the same day?", "answer": "2025-07-15", "asking_user_id": "User_4"}
+{"id": "temporal_6", "question": "On what date (YYYY-MM-DD) is User_2 expected to freeze the screenshots?", "answer": "2025-08-04", "asking_user_id": "User_5"}
+{"id": "temporal_7", "question": "What is the deadline (YYYY-MM-DD) for Clinical, IT Security, and Legal to approve the control set?", "answer": "2025-07-25", "asking_user_id": "User_6"}
+{"id": "temporal_8", "question": "What is the date (YYYY-MM-DD) by which the integration team needs to revalidate the mappings against the spec, considering the timestamp of the message asking for Compliance confirmation about the final wording of the audit-trail retention?", "answer": "2025-08-06", "asking_user_id": "User_1"}
+{"id": "temporal_9", "question": "On what date (YYYY-MM-DD) must hands-on reps be added as per the plan?", "answer": "2025-07-24", "asking_user_id": "User_2"}
+{"id": "temporal_10", "question": "On what date (YYYY-MM-DD) is the final EHR build gated, according to the timeline discussed?", "answer": "2025-07-03", "asking_user_id": "User_5"}
+{"id": "temporal_11", "question": "By what date and time (YYYY-MM-DD HH:MM) must the validation note be posted to close the dashboard build?", "answer": "2025-07-16 15:00", "asking_user_id": "User_2"}
+{"id": "temporal_12", "question": "On what date (YYYY-MM-DD) is feasibility confirmation expected to be completed?", "answer": "2025-08-07", "asking_user_id": "User_4"}
+{"id": "temporal_13", "question": "On what date (YYYY-MM-DD) was the ComplianceLead expected to align the scope-to-competency matrix?", "answer": "2025-07-12", "asking_user_id": "User_2"}
+{"id": "temporal_14", "question": "What is the date (YYYY-MM-DD) by which the final workflow must be confirmed to clear module approval?", "answer": "2025-08-07", "asking_user_id": "User_3"}
+{"id": "temporal_15", "question": "On what date (YYYY-MM-DD) were the crosswalk and drift checks scheduled for publication?", "answer": "2025-07-26", "asking_user_id": "User_1"}
+{"id": "temporal_16", "question": "On what date (YYYY-MM-DD) is the full routing table draft expected to be completed?", "answer": "2025-08-08", "asking_user_id": "User_1"}
+{"id": "temporal_17", "question": "What is the date (YYYY-MM-DD) by which the ITSecurity team is expected to share the storage/transmission diagram, considering the timeline implied in a message discussing the audit risk identified during the Cloud Environment Setup?", "answer": "2025-07-23", "asking_user_id": "User_6"}
+{"id": "temporal_18", "question": "What is the deadline (YYYY-MM-DD HH:MM) for ComplianceLead to lock the wording?", "answer": "2025-08-05 12:00", "asking_user_id": "User_1"}
+{"id": "temporal_19", "question": "On what date (YYYY-MM-DD) is IT expected to confirm the current nurse workflow pause points?", "answer": "2025-07-28", "asking_user_id": "User_4"}
+{"id": "temporal_20", "question": "What is the date (YYYY-MM-DD) by which the post-2019 availability needs to be confirmed?", "answer": "2025-07-11", "asking_user_id": "User_2"}
+{"id": "temporal_21", "question": "What is the date (YYYY-MM-DD) by which the HIPAA 164.312 compliance report must be completed?", "answer": "2025-07-24", "asking_user_id": "User_1"}
+{"id": "temporal_22", "question": "On what date (YYYY-MM-DD) was the buffer threshold expected to be locked?", "answer": "2025-08-06", "asking_user_id": "User_4"}
+{"id": "temporal_23", "question": "What is the deadline (YYYY-MM-DD HH:MM) for posting the EHR System Configuration outputs?", "answer": "2025-07-17 12:00", "asking_user_id": "User_4"}
+{"id": "temporal_24", "question": "On what date (YYYY-MM-DD) should reporting breaks be flagged according to the Care Coordination Workflow discussion?", "answer": "2025-07-31", "asking_user_id": "User_2"}
+{"id": "temporal_25", "question": "On what date (YYYY-MM-DD) is the confirmation of encounters, labs, and claims mapping expected?", "answer": "2025-07-28", "asking_user_id": "User_6"}
+{"id": "temporal_26", "question": "What is the date (YYYY-MM-DD) by which readiness for Sites A and B needs to be confirmed, considering the timeline mentioned in the message discussing the need for checklists and EHR usage reports to pass audits?", "answer": "2025-07-24", "asking_user_id": "User_1"}
+{"id": "temporal_27", "question": "What is the date (YYYY-MM-DD) by which the final assumptions and any reporting lag need to be confirmed?", "answer": "2025-08-07", "asking_user_id": "User_2"}
+{"id": "temporal_28", "question": "When is the assumptions review meeting scheduled? (YYYY-MM-DD HH:MM)", "answer": "2025-07-23 10:00", "asking_user_id": "User_5"}
+{"id": "temporal_29", "question": "What is the date (YYYY-MM-DD) by which @ITOps and @Comms need to verify delivery?", "answer": "2025-08-06", "asking_user_id": "User_1"}
+{"id": "temporal_30", "question": "On what date (YYYY-MM-DD) were team members asked to flag any missing downstream dependencies?", "answer": "2025-07-09", "asking_user_id": "User_2"}
+{"id": "temporal_31", "question": "What is the exact datetime (YYYY-MM-DD HH:MM) by which the wave-one 1-pager is approved to be pushed?", "answer": "2025-07-26 16:00", "asking_user_id": "User_4"}
+{"id": "temporal_32", "question": "When is the deadline for sharing the test payload (YYYY-MM-DD HH:MM)?", "answer": "2025-07-15 16:00", "asking_user_id": "User_4"}
+{"id": "temporal_33", "question": "On what date (YYYY-MM-DD) is the pipeline mapping confirmation expected to be locked?", "answer": "2025-07-30", "asking_user_id": "User_3"}
+{"id": "temporal_34", "question": "What is the date (YYYY-MM-DD) by which representatives for high-traffic wards need to be named?", "answer": "2025-08-07", "asking_user_id": "User_5"}
+{"id": "temporal_35", "question": "On what date (YYYY-MM-DD) were caps and reweighting expected to be confirmed by the data science leads?", "answer": "2025-07-18", "asking_user_id": "User_1"}
+{"id": "temporal_36", "question": "On what date (YYYY-MM-DD) do the retraining blocks for the Staff Safety Training Program begin?", "answer": "2025-08-03", "asking_user_id": "User_5"}
+{"id": "temporal_37", "question": "On what date (YYYY-MM-DD) were exceptions to be confirmed or signed off by close of business?", "answer": "2025-07-27", "asking_user_id": "User_4"}

@@ -1,0 +1,43 @@
+{"id": "temporal_1", "question": "On what date (YYYY-MM-DD) is the revised burner control module scheduled for installation?", "answer": "2025-07-28", "asking_user_id": "User_7"}
+{"id": "temporal_2", "question": "On what date (YYYY-MM-DD) was Data Engineering expected to validate the schema change and freeze the updated fields?", "answer": "2025-07-16", "asking_user_id": "User_6"}
+{"id": "temporal_3", "question": "On what date (YYYY-MM-DD) were Facilities scheduled to verify the CT ratios?", "answer": "2025-07-29", "asking_user_id": "User_9"}
+{"id": "temporal_4", "question": "What is the date (YYYY-MM-DD) by which the first diff needs to be posted?", "answer": "2025-08-05", "asking_user_id": "User_3"}
+{"id": "temporal_5", "question": "On what date (YYYY-MM-DD) must the final evidence for the Compliance Audit Preparation be confirmed?", "answer": "2025-08-06", "asking_user_id": "User_4"}
+{"id": "temporal_6", "question": "What is the deadline for confirming same-day flags in UTC (YYYY-MM-DD HH:MM)?", "answer": "2025-08-07 17:00", "asking_user_id": "User_7"}
+{"id": "temporal_7", "question": "What is the date (YYYY-MM-DD) by which the backup path update must be completed?", "answer": "2025-08-06", "asking_user_id": "User_5"}
+{"id": "temporal_8", "question": "When should QA post the RevC→RevD update according to the plan? Provide the answer in (YYYY-MM-DD HH:MM) format.", "answer": "2025-07-28 16:00", "asking_user_id": "User_1"}
+{"id": "temporal_9", "question": "On what date (YYYY-MM-DD) did Ops receive the slip trigger?", "answer": "2025-08-05", "asking_user_id": "User_3"}
+{"id": "temporal_10", "question": "On what date (YYYY-MM-DD) is the confirmation of stable signals for v1 expected?", "answer": "2025-08-06", "asking_user_id": "User_3"}
+{"id": "temporal_11", "question": "What is the deadline (YYYY-MM-DD HH:MM) for confirming the inventory hierarchy freeze?", "answer": "2025-07-26 17:30", "asking_user_id": "User_5"}
+{"id": "temporal_12", "question": "On what date (YYYY-MM-DD) was Engineering expected to lock the remaining spec details to avoid delays in tooling and test preparation?", "answer": "2025-08-05", "asking_user_id": "User_6"}
+{"id": "temporal_13", "question": "On what date (YYYY-MM-DD) were utilities expected to confirm clearance and Emma expected to confirm logic tie-ins?", "answer": "2025-07-19", "asking_user_id": "User_6"}
+{"id": "temporal_14", "question": "When is the calibration window provided by controls scheduled? (YYYY-MM-DD HH:MM)", "answer": "2025-07-27 10:00", "asking_user_id": "User_6"}
+{"id": "temporal_15", "question": "On what date (YYYY-MM-DD) was the team planning to lock intervals for the Preventive Maintenance Optimization?", "answer": "2025-07-27", "asking_user_id": "User_2"}
+{"id": "temporal_16", "question": "On what date (YYYY-MM-DD) was the 20-min sync mentioned in relation to resolving timestamp and equipment ID drift scheduled?", "answer": "2025-08-01", "asking_user_id": "User_6"}
+{"id": "temporal_17", "question": "What is the date (YYYY-MM-DD) when constraints are acceptable for review, as mentioned in the discussion?", "answer": "2025-07-30", "asking_user_id": "User_1"}
+{"id": "temporal_18", "question": "On what date (YYYY-MM-DD) is the QA sign-off package expected to be posted?", "answer": "2025-08-06", "asking_user_id": "User_3"}
+{"id": "temporal_19", "question": "On what date (YYYY-MM-DD) was the 15-minute sync to lock the sensor fallback logic scheduled?", "answer": "2025-08-04", "asking_user_id": "User_5"}
+{"id": "temporal_20", "question": "On what date (YYYY-MM-DD) is the real MTBF/MTTR expected to be swapped in, according to the plan?", "answer": "2025-08-01", "asking_user_id": "User_6"}
+{"id": "temporal_21", "question": "On what date (YYYY-MM-DD) did the Production Manager require a decision on the controls sign-off?", "answer": "2025-07-24", "asking_user_id": "User_7"}
+{"id": "temporal_22", "question": "On what date (YYYY-MM-DD) did Engineering validate the meter logs?", "answer": "2025-07-27", "asking_user_id": "User_5"}
+{"id": "temporal_23", "question": "On what date (YYYY-MM-DD) was the freeze and Reporting validation against the locked baseline scheduled to occur?", "answer": "2025-08-05", "asking_user_id": "User_8"}
+{"id": "temporal_24", "question": "What is the date (YYYY-MM-DD) by which Operations is expected to confirm the immediate containment responsibility?", "answer": "2025-07-11", "asking_user_id": "User_4"}
+{"id": "temporal_25", "question": "On what date (YYYY-MM-DD) is the pin registry snapshot scheduled to occur?", "answer": "2025-08-06", "asking_user_id": "User_1"}
+{"id": "temporal_26", "question": "What is the deadline (YYYY-MM-DD) for comparing the last three near-misses to the draft?", "answer": "2025-07-18", "asking_user_id": "User_5"}
+{"id": "temporal_27", "question": "On what date (YYYY-MM-DD) did the Production Manager plan to freeze the closure table if the maintenance checklist was confirmed, considering the Maintenance Engineer's concern about ownership of the final policy review after a specific date?", "answer": "2025-07-17", "asking_user_id": "User_3"}
+{"id": "temporal_28", "question": "On what date (YYYY-MM-DD) was the decision about the operating standard for rollout required?", "answer": "2025-07-12", "asking_user_id": "User_9"}
+{"id": "temporal_29", "question": "On what date (YYYY-MM-DD) is the review that will decide the go/no-go for the predictive model?", "answer": "2025-07-23", "asking_user_id": "User_2"}
+{"id": "temporal_30", "question": "What is the date (YYYY-MM-DD) by which Safety is expected to confirm the sign-off process?", "answer": "2025-07-18", "asking_user_id": "User_5"}
+{"id": "temporal_31", "question": "On what date (YYYY-MM-DD) did the production manager request engineering to sketch the exact Line 3 sequence?", "answer": "2025-08-04", "asking_user_id": "User_7"}
+{"id": "temporal_32", "question": "What is the exact datetime (YYYY-MM-DD HH:MM) by which quorum must be achieved?", "answer": "2025-07-31 12:00", "asking_user_id": "User_6"}
+{"id": "temporal_33", "question": "What is the date (YYYY-MM-DD) by which the handoff window confirmation is expected?", "answer": "2025-08-05", "asking_user_id": "User_5"}
+{"id": "temporal_34", "question": "On what date (YYYY-MM-DD) did Ops need to name the owner for Preventive Maintenance Optimization?", "answer": "2025-07-14", "asking_user_id": "User_2"}
+{"id": "temporal_35", "question": "What is the date (YYYY-MM-DD) by which the dependencies need to be rechecked to avoid slipping?", "answer": "2025-08-08", "asking_user_id": "User_2"}
+{"id": "temporal_36", "question": "On what date (YYYY-MM-DD) was the defect unblocking expected to be confirmed?", "answer": "2025-08-05", "asking_user_id": "User_9"}
+{"id": "temporal_37", "question": "On what date (YYYY-MM-DD) was the supervisor walkthrough requested to be scheduled?", "answer": "2025-07-28", "asking_user_id": "User_8"}
+{"id": "temporal_38", "question": "On what date (YYYY-MM-DD) does Metrology take ownership of the LIMS certs?", "answer": "2025-07-26", "asking_user_id": "User_8"}
+{"id": "temporal_39", "question": "What is the deadline (YYYY-MM-DD HH:MM) for DataEng to sign off on the intervals table?", "answer": "2025-07-26 17:00", "asking_user_id": "User_6"}
+{"id": "temporal_40", "question": "What is the exact datetime (YYYY-MM-DD HH:MM) by which Planning needs to be assigned?", "answer": "2025-08-07 12:00", "asking_user_id": "User_6"}
+{"id": "temporal_41", "question": "When is the RevC review scheduled to occur (YYYY-MM-DD HH:MM)?", "answer": "2025-08-08 15:00", "asking_user_id": "User_2"}
+{"id": "temporal_42", "question": "On what date (YYYY-MM-DD) did the Production Manager expect Engineering to address the open gaps in product requirements?", "answer": "2025-08-03", "asking_user_id": "User_8"}
+{"id": "temporal_43", "question": "What is the date (YYYY-MM-DD) by which stable terms are needed for the Supply Chain Analytics Deployment?", "answer": "2025-07-18", "asking_user_id": "User_2"}
