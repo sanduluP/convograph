@@ -2,6 +2,19 @@
 
 A pipeline for turning multi-party spoken conversation into a temporal knowledge graph and an agent memory system (AMS), with an optional path to real-time visual output (graphic recording).
 
+<p align="center">
+  <img src="docs/figures/graphic-recording-teaser.png" alt="Four people talk; the conversation becomes a transcript, then a temporal knowledge graph, then a drawn canvas">
+</p>
+
+<p align="center">
+  <sub><b>Where we are heading.</b> Four people talk. Diarization turns the audio into a
+  speaker-tagged transcript; a temporal knowledge graph accumulates what was said and
+  what has since been revised; a visual stage renders it onto a canvas that keeps
+  updating as the meeting goes on — a <i>graphic recording</i>, produced live.<br>
+  This is the target picture, not the current state: only module 2 is built today.
+  Module choices shown here (Sortformer, FLUX.1-schnell, Excalidraw) are candidates
+  under evaluation, not decisions.</sub></p>
+
 ## Research question
 
 How well can domain adaptation from agent memory be done from multi-party human conversation? Concretely: given what person X said over N weeks of conversation, filter the relevant subgraph and use it to adapt/ground an agent's memory — and quantify how well that adaptation works.
