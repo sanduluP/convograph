@@ -1,4 +1,27 @@
-openai>=1.30.0
+# Module 2 — kg-agent-memory
+#
+# Deliberately light: this module has NO torch and NO GPU dependency. It reaches
+# the LLM and the embedder over HTTP (an OpenAI-compatible endpoint, in our case
+# vLLM on the cluster) and talks to Neo4j over bolt. That is why it gets its own
+# small virtualenv rather than sharing one with the diarization or image modules,
+# whose torch pins conflict with each other.
+#
+#   python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt
+
+# ── core evaluation loop (from upstream GroupMemBench) ───────────────────────
+openai>=1.30.0            # agent + judge calls; also used against local vLLM
 numpy>=1.24
 tqdm>=4.66
-rank-bm25>=0.2.2
+rank-bm25>=0.2.2          # the BM25 baseline and the kgfacts ablation
+
+# ── temporal knowledge graph ─────────────────────────────────────────────────
+graphiti-core==0.29.2     # PINNED: prompts_override.py patches this library's
+                          # prompt objects at import time, so a version bump can
+                          # silently stop our contradiction-detection override
+                          # from being applied.
+neo4j>=5.20               # bolt driver — local Docker and hosted AuraDB alike
+
+# ── analysis / figures ───────────────────────────────────────────────────────
+matplotlib>=3.8           # figures/graph_shape.png
+networkx>=3.2             # subgraph layout for that figure
+scipy>=1.11               # required by networkx's spring_layout
