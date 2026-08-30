@@ -219,30 +219,39 @@ def build(board, out_path: str) -> None:
 
             icon = ICONS.get("superseded" if sup else "current", "")
             body = f"{icon} {f['fact']}".strip() if icon else f["fact"]
-            lines = _wrap(body, w - 26, fs)
+            # 0.68 for an ellipse: the inscribed rectangle of an ellipse is about
+            # 0.71 of its width, and a little less once several lines are stacked.
+            inner_w = (w - 26) * (1.0 if SHAPE == "rectangle" else 0.68)
+            lines = _wrap(body, inner_w, fs)
             body_h = len(lines) * fs * LH
 
             since = _short_date(f["valid_at"])
             stamp = (f"superseded {_short_date(f['invalid_at'])}" if sup
                      else (f"still true · since {since}" if since else "still true"))
-            # An ellipse needs vertical slack: its usable width narrows toward the
-            # top and bottom, so text set to the full box height would spill out.
-            pad_v = 34 if SHAPE == "rectangle" else 54
+            # An ellipse's usable area is NOT its bounding box. At the vertical
+            # centre the full width is available, but a text block spanning most
+            # of the height only has ~70 % of it — which is why the first attempt
+            # spilled words out through the curved sides. So for an ellipse the
+            # text is wrapped to 68 % of the width and the box is inflated around
+            # the text, rather than the text being fitted to the box.
+            pad_v = 34 if SHAPE == "rectangle" else int(body_h * 0.9) + 46
             card_h = body_h + pad_v
 
             els.append(_base(SHAPE, cx, y, w, card_h, spec["stroke"], spec["bg"],
                              strokeStyle=spec["style"]))
-            els.append(_text(cx + 13, y + pad_v / 2 - 6, w - 26, body_h,
-                             "\n".join(lines), fs, spec["text"]))
-            els.append(_text(cx + 13, y + pad_v / 2 - 6 + body_h + 4, w - 26, 14,
-                             stamp, max(9.5, fs * 0.72), spec["stroke"]))
+            tx = cx + (w - inner_w) / 2
+            ty = y + (card_h - body_h - 18) / 2
+            els.append(_text(tx, ty, inner_w, body_h, "\n".join(lines), fs,
+                             spec["text"], "center"))
+            els.append(_text(tx, ty + body_h + 4, inner_w, 14, stamp,
+                             max(9.5, fs * 0.72), spec["stroke"], "center"))
 
             # THE money shot: a line actually drawn through an overturned statement.
             if sup:
-                mid = y + pad_v / 2 - 6 + body_h / 2
-                els.append(_base("line", cx + 10, mid, w - 20, 0, STRIKE,
+                mid = ty + body_h / 2
+                els.append(_base("line", tx, mid, inner_w, 0, STRIKE,
                                  "transparent", strokeWidth=2,
-                                 points=[[0, 0], [w - 20, 0]],
+                                 points=[[0, 0], [inner_w, 0]],
                                  lastCommittedPoint=None, startBinding=None,
                                  endBinding=None, startArrowhead=None,
                                  endArrowhead=None))
@@ -274,12 +283,21 @@ def build(board, out_path: str) -> None:
            "appState": {"gridSize": 20, "viewBackgroundColor": "#ffffff"},
            "files": {}}
 
-    os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
-    if os.path.exists(out_path):                 # never overwrite a board in place
+    out_dir = os.path.dirname(out_path) or "."
+    os.makedirs(out_dir, exist_ok=True)
+    # A board on disk may have been hand-edited since it was generated, and that
+    # edit is invisible from here. MOVE the old one into an archive beside it
+    # before writing — never overwrite in place, never assume the previous file
+    # was ours to discard.
+    if os.path.exists(out_path):
         import shutil, datetime
-        os.makedirs("excalidraw/archive", exist_ok=True)
-        stamp = datetime.datetime.now().strftime("%Y-%m-%d-%H%M%S")
-        shutil.copy(out_path, f"excalidraw/archive/board_{stamp}.excalidraw")
+        archive = os.path.join(out_dir, "archive")
+        os.makedirs(archive, exist_ok=True)
+        stamp = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
+        base = os.path.basename(out_path).replace(".excalidraw", "")
+        dest = os.path.join(archive, f"{base}_{stamp}_{STYLE_NAME}.excalidraw")
+        shutil.move(out_path, dest)
+        print(f"🗄️  archived previous board → {dest}")
     json.dump(doc, open(out_path, "w"), indent=2, ensure_ascii=False)
 
     height = max(col_bottoms) + PAD
