@@ -17,7 +17,7 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 set -euo pipefail
 cd "$(dirname "$0")/.."
-mkdir -p logs figures
+mkdir -p logs excalidraw/board
 
 PY="./.venv/bin/python"; [[ -x "$PY" ]] || { echo "❌ no repo venv — see requirements.txt"; exit 1; }
 
@@ -28,5 +28,5 @@ PY="./.venv/bin/python"; [[ -x "$PY" ]] || { echo "❌ no repo venv — see requ
   echo ""
   PYTHONUNBUFFERED=1 "$PY" -u analysis/build_board.py
   echo ""
-  echo "✅ open figures/board.excalidraw in Excalidraw or the VS Code extension"
+  echo "✅ open excalidraw/board/board.excalidraw in Excalidraw or the VS Code extension"
 } 2>&1 | tee logs/build_board.log

@@ -40,7 +40,7 @@ being true, and the statement that replaced it sits below in solid ink. That
 single visual is the bi-temporal layer made visible. BM25 cannot represent it and
 a diffusion model cannot show it — it is the one thing only this pipeline can do.
 
-Writes: figures/board.excalidraw
+Writes: excalidraw/board/board.excalidraw
 """
 from __future__ import annotations
 
@@ -54,7 +54,7 @@ from neo4j import GraphDatabase
 URI = os.getenv("NEO4J_URI", "bolt://localhost:7688")
 USER = os.getenv("NEO4J_USER", "neo4j")
 PWD = os.getenv("NEO4J_PASSWORD", "graphiti123")
-OUT = os.getenv("BOARD_OUT", "figures/board.excalidraw")
+OUT = os.getenv("BOARD_OUT", "excalidraw/board/board.excalidraw")
 
 # ── board geometry ───────────────────────────────────────────────────────────
 CARD_W, GAP_X = 330, 46
@@ -249,9 +249,9 @@ def build(board, out_path: str) -> None:
     os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
     if os.path.exists(out_path):                 # never overwrite a board in place
         import shutil, datetime
-        os.makedirs("figures/archive", exist_ok=True)
+        os.makedirs("excalidraw/archive", exist_ok=True)
         stamp = datetime.datetime.now().strftime("%Y-%m-%d-%H%M%S")
-        shutil.copy(out_path, f"figures/archive/board_{stamp}.excalidraw")
+        shutil.copy(out_path, f"excalidraw/archive/board_{stamp}.excalidraw")
     json.dump(doc, open(out_path, "w"), indent=2, ensure_ascii=False)
 
     height = max(col_bottoms) + PAD

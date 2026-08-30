@@ -37,7 +37,7 @@ them without knowing the code.
 
 ### Extraction — building the graph
 
-<img src="excalidraw/extraction-journey-v2.png" alt="Extraction phase: one window of 5 messages becomes one episode in the graph">
+<img src="excalidraw/extraction/extraction-journey-v2.png" alt="Extraction phase: one window of 5 messages becomes one episode in the graph">
 
 <sub>**Figure 1 — Extraction.** Following a single window of 5 messages from the raw
 corpus to the finished knowledge graph. Yellow = what you have at that point,
@@ -47,7 +47,7 @@ concrete example at each checkpoint.</sub>
 
 ### Retrieval — asking the graph a question
 
-<img src="excalidraw/retrieval-journey-v2.png" alt="Retrieval phase: one question from query to correct/incorrect verdict">
+<img src="excalidraw/retrieval/retrieval-journey-v2.png" alt="Retrieval phase: one question from query to correct/incorrect verdict">
 
 <sub>**Figure 2 — Retrieval.** Following a single question from query to verdict.
 Pink = an LLM call. The orange box in row 2 is the only thing GroupMemBench asks
