@@ -16,10 +16,17 @@
 # is preserved across syncs.
 set -euo pipefail
 
-LOCAL_ROOT="/home/faris/code/DSA_HiWi/GroupMemBench-upstream"
-CLUSTER_USER="abuali"
-CLUSTER_HOST="login1.pegasus.kl.dfki.de"
-CLUSTER_ROOT="/home/abuali/projects/GroupMemBench"
+# Derived from THIS script's location, never hardcoded. The module moved into the
+# convograph monorepo on 2026-08-28 and the old absolute path silently kept
+# syncing the previous checkout: the submit script reported "No such file" on the
+# cluster while the local sync said "Done". A path relative to the script cannot
+# drift like that.
+LOCAL_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CLUSTER_USER="${CLUSTER_USER:-abuali}"
+CLUSTER_HOST="${CLUSTER_HOST:-login1.pegasus.kl.dfki.de}"
+# Kept at the historical path: the cluster venv, the Neo4j stores and every
+# submitted job already refer to it. Override if you ever want a second checkout.
+CLUSTER_ROOT="${CLUSTER_ROOT:-/home/abuali/projects/GroupMemBench}"
 
 # By default we DO ship data/ the first time; pass --no-data on later syncs to
 # skip the 152 MB re-scan once it's already on the cluster.

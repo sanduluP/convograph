@@ -120,6 +120,66 @@ def _build_windows(messages: List[dict], window: int) -> List[List[int]]:
     return windows
 
 
+# ---------------------------------------------------------------------------
+# OPTIONAL: keep SPEAKERS out of the graph's node set
+# ---------------------------------------------------------------------------
+def _speaker_exclusion():
+    """Return (entity_types, excluded_entity_types) for the speaker-free variant.
+
+    THE PROBLEM THIS ADDRESSES
+    --------------------------
+    Measured on the merged full-Finance graph: 94.1 % of 111,258 facts originate
+    at a person, and only 433 of them (0.4 %) join two domain concepts. The graph
+    is a star around the twelve speakers rather than a map of the domain. For the
+    downstream graphic-recording task that is fatal, because the lines BETWEEN
+    concepts are precisely what a graphic recording is made of — and we have
+    almost none.
+
+    WHY A HARD FILTER, AFTER A SOFT ONE FAILED
+    ------------------------------------------
+    We first tried reframing the episode text as "[said by User_5] <text>" so the
+    speaker was no longer the grammatical subject. It moved nothing: 89.6 % ->
+    90.4 % person-rooted. Qwen3-30B ignores that kind of hint, exactly as it
+    ignores `extract_message`'s explicit "NEVER extract abstract concepts" (the
+    graph is full of `drift`, `risk`, `data`).
+
+    `excluded_entity_types` is enforced in CODE, not in prose. In
+    graphiti_core/utils/maintenance/node_operations.py a node whose classified
+    type is excluded is dropped before it ever enters the graph. Edge extraction
+    then runs against the surviving ENTITIES list, and its prompt rejects any fact
+    naming an entity outside that list. So a speaker-rooted fact stops being
+    discouraged and becomes impossible to emit.
+
+    THIS IS NOT AN ONTOLOGY
+    -----------------------
+    Graphiti always offers `Entity` as type 0, the catch-all. We add exactly ONE
+    type, Speaker, and exclude it. Everything else falls through untouched. We are
+    not prescribing what things ARE; we state one thing: speakers are not nodes.
+
+    PROVENANCE IS NOT LOST
+    ----------------------
+    Attribution lives on the EPISODE, not on a person node. Each fact keeps
+    `episodes`; each episode stores the raw window text (which still begins
+    "User_5: ...") and maps back to its 5 source messages, each carrying an
+    `author`. Verified on the live graph: concept->concept facts still resolve to
+    a named speaker through that path, which is the same path `retrieve()`
+    already walks. Attribution is metadata; structure is topology.
+    """
+    from pydantic import BaseModel, Field
+
+    class Speaker(BaseModel):
+        """A participant in the conversation — a person who utters messages.
+
+        Examples: a chat handle such as "User_5", or a bare role standing in for a
+        person such as "Ops lead", "Compliance". NOT the systems, documents,
+        decisions, risks or phases they talk about.
+        """
+
+        role: str = Field(default="", description="their role, if stated")
+
+    return {"Speaker": Speaker}, ["Speaker"]
+
+
 def _episode_body(messages: List[dict], idxs: List[int]) -> str:
     """Render a window of messages as the text Graphiti will extract from.
 
@@ -391,6 +451,14 @@ async def _ingest(
               flush=True)
         return ep_to_indices
 
+    # Built once: passing entity_types on every call would be identical work.
+    episode_kwargs: dict = {}
+    if os.getenv("GRAPHITI_EXCLUDE_SPEAKERS", "0") == "1":
+        et, ex = _speaker_exclusion()
+        episode_kwargs = {"entity_types": et, "excluded_entity_types": ex}
+        print("[graphiti] 🚫 SPEAKER EXCLUSION ON — speakers will not become nodes",
+              flush=True)
+
     for w_no, idxs in windows:
         name = f"{group_id}_w{w_no}"
         if name in already:
@@ -411,6 +479,7 @@ async def _ingest(
                 reference_time=ref,
                 group_id=group_id,
                 previous_episode_uuids=prev_uuids[-4:] or None,
+                **episode_kwargs,
             )
         except Exception as exc:  # noqa: BLE001 — one bad window must not be fatal
             # A single window whose extraction never parses (repetition loop ->
