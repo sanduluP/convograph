@@ -56,28 +56,39 @@ USER = os.getenv("NEO4J_USER", "neo4j")
 PWD = os.getenv("NEO4J_PASSWORD", "graphiti123")
 OUT = os.getenv("BOARD_OUT", "excalidraw/board/board.excalidraw")
 
-# ── board geometry ───────────────────────────────────────────────────────────
-CARD_W, GAP_X = 330, 46
-COL_TOP, HEADER_H = 210, 46
-CARD_GAP, PAD = 18, 60
-FS_CARD, FS_HEAD, LH = 13, 16, 1.28
-CHAR_W = 0.54                       # Nunito ≈ 0.54 em per char, measured
+# ── presentation comes from a config file, never from code ───────────────────
+# How a board LOOKS gets re-tuned constantly, by people who are not editing
+# Python. Hardcoding it here would mean a code change (and a review) for every
+# colour tweak, and would make it impossible to compare two looks side by side.
+STYLE_FILE = os.getenv("BOARD_STYLE_FILE", "styles/board_styles.json")
+STYLE_NAME = os.getenv("BOARD_STYLE", "graphic-recording")
 
-# ── palette: muted, and status colours are RESERVED ─────────────────────────
-INK        = "#2f3337"
-MUTED      = "#7a7f87"
-CUR_BG, CUR_ST   = "#e7f5ff", "#1971c2"   # still true
-SUP_BG, SUP_ST   = "#f1f3f5", "#adb5bd"   # superseded — deliberately drained
-HEAD_BG, HEAD_ST = "#fff3bf", "#f08c00"   # the topic this column is about
-STRIKE     = "#e03131"                     # reserved status colour: struck through
+def load_style(name: str) -> dict:
+    with open(STYLE_FILE) as fh:
+        all_styles = json.load(fh)
+    if name not in all_styles:
+        avail = [k for k in all_styles if not k.startswith("_")]
+        raise SystemExit(f"unknown style {name!r}; available: {avail}")
+    return all_styles[name]
 
-# A column heading must be a TOPIC, not a person. Left to itself the query picks
-# User_13, User_2 … because 94 % of facts start at a speaker — the star graph
-# leaking straight onto the board. So people are excluded from the heading role
-# here (they remain visible inside the sentences, where they belong).
-#
-# A topic also has to have CHANGED: a column with nothing superseded has no story
-# to tell, and the whole point of the board is showing the meeting change its mind.
+STYLE = load_style(STYLE_NAME)
+
+# Geometry that does not vary by style.
+COL_TOP, PAD = 250, 60
+LH = 1.28
+CHAR_W = 0.54                       # Nunito/Excalifont ≈ 0.54 em per character
+
+INK, MUTED, STRIKE = "#2f3337", "#7a7f87", STYLE["strike_color"]
+ROUGH = STYLE["roughness"]
+FONT = STYLE["fontFamily"]
+GAP_X, CARD_GAP = STYLE["gap_x"], STYLE["card_gap"]
+SHAPE = STYLE["shape"]
+ICONS = STYLE.get("icons", {})
+HEAD = STYLE["column_header"]
+CUR, SUP = STYLE["card"]["current"], STYLE["card"]["superseded"]
+# The widest card decides the column, so a size hierarchy never overlaps a neighbour.
+CARD_W = max(CUR["width"], SUP["width"])
+
 PERSON_RE = r"(?i)^(user_\\d+|ops|compliance|risk|qa|finance|it|security|legal|product|ux|support|comms)\\s?(lead|owner|analyst|team)?$"
 
 # A NAMED THING: starts capitalised and has at least two words. Only 13 % of our
@@ -164,7 +175,7 @@ def _base(kind, x, y, w, h, stroke, bg, **kw):
     e = {"id": kw.pop("id", f"el{_seed[0]}"), "type": kind, "x": x, "y": y,
          "width": w, "height": h, "angle": 0, "strokeColor": stroke,
          "backgroundColor": bg, "fillStyle": "solid", "strokeWidth": 2,
-         "strokeStyle": "solid", "roughness": 0, "opacity": 100, "groupIds": [],
+         "strokeStyle": "solid", "roughness": ROUGH, "opacity": 100, "groupIds": [],
          "frameId": None, "roundness": {"type": 3} if kind == "rectangle" else None,
          "seed": _seed[0], "version": 1, "versionNonce": 1, "isDeleted": False,
          "boundElements": None, "updated": 1, "link": None, "locked": False}
@@ -174,7 +185,7 @@ def _base(kind, x, y, w, h, stroke, bg, **kw):
 
 def _text(x, y, w, h, txt, fs, color, align="left", **kw):
     e = _base("text", x, y, w, h, color, "transparent", **kw)
-    e.update(text=txt, originalText=txt, fontSize=fs, fontFamily=6,
+    e.update(text=txt, originalText=txt, fontSize=fs, fontFamily=FONT,
              textAlign=align, verticalAlign="top", containerId=None, lineHeight=LH)
     return e
 
@@ -185,40 +196,53 @@ def build(board, out_path: str) -> None:
     col_bottoms = []
 
     for topic, facts in board:
-        # ── column header: the thing this column is about ───────────────────
-        els.append(_base("rectangle", x, COL_TOP, CARD_W, HEADER_H, HEAD_ST, HEAD_BG))
-        head = _wrap(topic, CARD_W - 24, FS_HEAD)[:1]
-        els.append(_text(x + 12, COL_TOP + 13, CARD_W - 24, 20, head[0],
-                         FS_HEAD, INK, "center"))
+        # ── column header: a HEADLINE word, hand-lettered and large ─────────
+        # On a real board five to eight big words carry the structure. The header
+        # is deliberately the biggest text on the column.
+        els.append(_base(SHAPE, x, COL_TOP, CARD_W, HEAD["height"],
+                         HEAD["stroke"], HEAD["bg"]))
+        head_lines = _wrap(topic, CARD_W - 30, HEAD["size"])[:2]
+        hh = len(head_lines) * HEAD["size"] * LH
+        els.append(_text(x + 15, COL_TOP + (HEAD["height"] - hh) / 2, CARD_W - 30,
+                         hh, "\n".join(head_lines), HEAD["size"], INK, "center"))
 
-        y = COL_TOP + HEADER_H + CARD_GAP
+        y = COL_TOP + HEAD["height"] + CARD_GAP
         for f in facts:
             sup = f["superseded"]
-            lines = _wrap(f["fact"], CARD_W - 26, FS_CARD)
-            body_h = len(lines) * FS_CARD * LH
-            # Not every fact carries valid_at; "still true · since " with nothing
-            # after it reads as a rendering bug rather than missing data.
+            spec = SUP if sup else CUR
+            # SIZE HIERARCHY — the main signal a graphic recording uses. A live
+            # decision is drawn big; something the meeting moved past is small and
+            # faded. Uniform cards are what made the first board read as a Kanban
+            # wall rather than a poster.
+            w, fs = spec["width"], spec["size"]
+            cx = x + (CARD_W - w) / 2          # narrow cards stay centred in the column
+
+            icon = ICONS.get("superseded" if sup else "current", "")
+            body = f"{icon} {f['fact']}".strip() if icon else f["fact"]
+            lines = _wrap(body, w - 26, fs)
+            body_h = len(lines) * fs * LH
+
             since = _short_date(f["valid_at"])
             stamp = (f"superseded {_short_date(f['invalid_at'])}" if sup
                      else (f"still true · since {since}" if since else "still true"))
-            card_h = body_h + 34
+            # An ellipse needs vertical slack: its usable width narrows toward the
+            # top and bottom, so text set to the full box height would spill out.
+            pad_v = 34 if SHAPE == "rectangle" else 54
+            card_h = body_h + pad_v
 
-            els.append(_base("rectangle", x, y, CARD_W, card_h,
-                             SUP_ST if sup else CUR_ST,
-                             SUP_BG if sup else CUR_BG,
-                             strokeStyle="dashed" if sup else "solid",
-                             strokeWidth=2 if sup else 2))
-            els.append(_text(x + 13, y + 10, CARD_W - 26, body_h, "\n".join(lines),
-                             FS_CARD, MUTED if sup else INK))
-            els.append(_text(x + 13, y + 10 + body_h + 4, CARD_W - 26, 14, stamp,
-                             10.5, SUP_ST if sup else MUTED))
+            els.append(_base(SHAPE, cx, y, w, card_h, spec["stroke"], spec["bg"],
+                             strokeStyle=spec["style"]))
+            els.append(_text(cx + 13, y + pad_v / 2 - 6, w - 26, body_h,
+                             "\n".join(lines), fs, spec["text"]))
+            els.append(_text(cx + 13, y + pad_v / 2 - 6 + body_h + 4, w - 26, 14,
+                             stamp, max(9.5, fs * 0.72), spec["stroke"]))
 
-            # THE money shot: a real line drawn through an overturned statement.
+            # THE money shot: a line actually drawn through an overturned statement.
             if sup:
-                mid = y + 10 + body_h / 2
-                els.append(_base("line", x + 10, mid, CARD_W - 20, 0, STRIKE,
+                mid = y + pad_v / 2 - 6 + body_h / 2
+                els.append(_base("line", cx + 10, mid, w - 20, 0, STRIKE,
                                  "transparent", strokeWidth=2,
-                                 points=[[0, 0], [CARD_W - 20, 0]],
+                                 points=[[0, 0], [w - 20, 0]],
                                  lastCommittedPoint=None, startBinding=None,
                                  endBinding=None, startArrowhead=None,
                                  endArrowhead=None))
@@ -228,17 +252,21 @@ def build(board, out_path: str) -> None:
 
     width = x - GAP_X + PAD
 
-    # ── title block: bold headline, recessive grey subtitle, legend ─────────
-    els.append(_text(PAD, 46, width - 2 * PAD, 34,
+    # ── title block; gaps derived from the type sizes, not magic numbers ────
+    t, sub = STYLE["title"], STYLE["subtitle"]
+    els.append(_text(PAD, 50, width - 2 * PAD, t["size"] * LH,
                      "What this meeting decided — and changed its mind about",
-                     26, INK))
-    els.append(_text(PAD, 92, width - 2 * PAD, 20,
+                     t["size"], t["color"]))
+    y2 = 50 + t["size"] * LH + 16
+    els.append(_text(PAD, y2, width - 2 * PAD, sub["size"] * LH,
                      "Generated from the temporal knowledge graph. "
-                     "One column per topic; one card per statement.", 13.5, MUTED))
-    els.append(_text(PAD, 132, width - 2 * PAD, 20,
-                     "solid = still true          "
-                     "greyed + struck through = the meeting later overturned it",
-                     13.5, MUTED))
+                     "One column per topic; one card per statement.",
+                     sub["size"], sub["color"]))
+    els.append(_text(PAD, y2 + sub["size"] * LH + 10, width - 2 * PAD,
+                     sub["size"] * LH,
+                     "big + solid = still true          "
+                     "small + faded + struck through = the meeting later overturned it",
+                     sub["size"], sub["color"]))
 
     doc = {"type": "excalidraw", "version": 2,
            "source": "convograph/module-3 build_board.py",
@@ -257,13 +285,13 @@ def build(board, out_path: str) -> None:
     height = max(col_bottoms) + PAD
     n_sup = sum(1 for _, fs in board for f in fs if f["superseded"])
     n_cur = sum(1 for _, fs in board for f in fs if not f["superseded"])
-    print(f"✅ wrote {out_path}")
-    print(f"   {len(board)} topics · {n_cur} still-true cards · {n_sup} struck through")
+    print(f"✅ wrote {out_path}   [style: {STYLE_NAME}]")
+    print(f"   {len(board)} topics · {n_cur} still-true · {n_sup} struck through")
     print(f"   canvas {width:.0f} x {height:.0f}  → aspect {width/height:.2f}:1")
-    print(f"   elements {len(els)}")
+    print(f"   roughness={ROUGH} font={FONT} shape={SHAPE} · elements {len(els)}")
     for topic, fs in board:
-        s = sum(1 for f in fs if f["superseded"])
-        print(f"     · {topic[:44]:<46} {len(fs)} cards ({s} superseded)")
+        sc = sum(1 for f in fs if f["superseded"])
+        print(f"     · {topic[:44]:<46} {len(fs)} cards ({sc} superseded)")
 
 
 if __name__ == "__main__":
