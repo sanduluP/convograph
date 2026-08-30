@@ -43,3 +43,20 @@ with the product** rather than living in someone's editor instructions.
 If the hand-drawn font turns out to be unreadable at presentation size, change
 `fontFamily` to `6` in the preset. That is exactly the kind of edit this file
 exists to make cheap.
+
+## Use an INSTRUCT model, never a THINKING one, for short-output jobs
+
+Compressing a fact into a board headline needs a model that answers, not one that
+deliberates. `qwen3:4b` narrates its reasoning ("Hmm, the user wants me to…") and
+exhausts the token budget before producing anything — even with `think: false`
+and few-shot priming. It is not a prompt problem; it is the wrong model class.
+
+The cluster mirrors this split, and the pairs are easy to confuse:
+
+| Deliberates — avoid here | Answers — use here |
+|---|---|
+| `Qwen3-4B-Thinking-2507` | `Qwen3-4B-Instruct-2507` |
+| `Qwen3-30B-A3B-Thinking-2507-FP8` | `Qwen3-30B-A3B-Instruct-2507-FP8` |
+
+Locally: `qwen2.5:3b-instruct` via ollama. The ingest already uses the Instruct
+30B; keep it that way.

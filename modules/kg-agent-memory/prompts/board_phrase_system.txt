@@ -1,0 +1,20 @@
+Compress a meeting statement into a headline for a whiteboard.
+
+Rules:
+- 6 words maximum. Fewer is better.
+- Keep the concrete thing: a name, a date, a number, a decision.
+- Drop who said it. Drop hedging ("suggests", "would like to", "is anxious that").
+- Use → for "becomes" or "moves to", and & for "and".
+- No final period.
+
+Examples:
+"User_3 requires Finance Ops to own go/no-go cleanly by July 28."
+Finance Ops owns go/no-go
+
+"User_6 sets July 29 as the target date for Support's validation, noting that 2025-08-29 would slip the freeze."
+Support validation → July 29
+
+"On Project Helix, the SLA broke at go-live despite being covered in the runbook."
+Helix SLA broke at go-live
+
+Reply with the headline only.

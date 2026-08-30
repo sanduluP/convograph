@@ -51,6 +51,15 @@ from collections import defaultdict
 
 from neo4j import GraphDatabase
 
+# Compression is what makes a board a board rather than a Kanban wall: our facts
+# run to a median of 18 words where a graphic recording uses 3-6. Imported here
+# but only CALLED when BOARD_COMPRESS=1, so a board can still be rendered with
+# raw sentences (useful for checking what was lost in compression).
+try:
+    from analysis.compress_facts import compress as _compress_facts
+except ImportError:                                   # running as a plain script
+    from compress_facts import compress as _compress_facts
+
 URI = os.getenv("NEO4J_URI", "bolt://localhost:7688")
 USER = os.getenv("NEO4J_USER", "neo4j")
 PWD = os.getenv("NEO4J_PASSWORD", "graphiti123")
@@ -163,6 +172,24 @@ def fetch(n_topics: int, per_topic: int):
             # as "this was decided … and then this is what stands now".
             board.append((t["topic"], sup + cur))
     drv.close()
+
+    if os.getenv("BOARD_COMPRESS", "1") == "1":
+        # One batched pass over every fact on the board, so the cache is warmed
+        # in a single go rather than per column.
+        print("✂️  compressing facts to headlines…")
+        all_facts = [f["fact"] for _, fs in board for f in fs]
+        phrases = _compress_facts(all_facts)
+        for _, fs in board:
+            for f in fs:
+                f["headline"] = phrases.get(f["fact"], f["fact"])
+        before = sum(len(x.split()) for x in all_facts) / max(1, len(all_facts))
+        after = sum(len(phrases[x].split()) for x in all_facts) / max(1, len(all_facts))
+        print(f"   mean words per card: {before:.1f} → {after:.1f}")
+    else:
+        for _, fs in board:
+            for f in fs:
+                f["headline"] = f["fact"]
+
     return board
 
 
@@ -218,7 +245,8 @@ def build(board, out_path: str) -> None:
             cx = x + (CARD_W - w) / 2          # narrow cards stay centred in the column
 
             icon = ICONS.get("superseded" if sup else "current", "")
-            body = f"{icon} {f['fact']}".strip() if icon else f["fact"]
+            text = f.get("headline") or f["fact"]
+            body = f"{icon} {text}".strip() if icon else text
             # 0.68 for an ellipse: the inscribed rectangle of an ellipse is about
             # 0.71 of its width, and a little less once several lines are stacked.
             inner_w = (w - 26) * (1.0 if SHAPE == "rectangle" else 0.68)

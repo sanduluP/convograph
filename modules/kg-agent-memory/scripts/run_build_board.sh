@@ -26,6 +26,7 @@ PY="./.venv/bin/python"; [[ -x "$PY" ]] || { echo "❌ no repo venv — see requ
   echo "   neo4j  : ${NEO4J_URI:-bolt://localhost:7688}"
   echo "   topics : ${BOARD_TOPICS:-4} × ${BOARD_FACTS_PER_TOPIC:-5} facts"
   echo "   style  : ${BOARD_STYLE:-graphic-recording}   (see styles/board_styles.json)"
+  echo "   compress: ${BOARD_COMPRESS:-1}  model ${PHRASE_MODEL:-qwen3:4b} @ ${OPENAI_BASE_URL:-http://localhost:11434/v1}"
   echo ""
   PYTHONUNBUFFERED=1 "$PY" -u analysis/build_board.py
   echo ""
