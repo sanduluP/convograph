@@ -1,0 +1,14 @@
+.DS_Store
+.env
+.env.local
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Generated per run — not source.
+logs/
+output/
+
+# Downloaded model weights, if they ever land here instead of the HF cache.
+models/
