@@ -1,0 +1,30 @@
+# Module 3 — graphic-generation
+#
+# Deliberately heavy: this is the ONE module with torch + GPU pins, which is why
+# it gets its own virtualenv (see modules/kg-agent-memory/requirements.txt's
+# comment — that module is kept torch-free specifically so its env never
+# conflicts with this one). Needs a CUDA GPU; FLUX.1-schnell is a 12B model.
+#
+# torch is NOT installed from this file — a plain `pip install torch` grabs
+# whatever the newest default build is (observed: 2.13.0+cu130), and if that
+# CUDA version is newer than the host's driver supports, torch imports fine
+# but torch.cuda.is_available() silently returns False instead of erroring.
+# Measured on unicorn (driver 570.195.03, max CUDA 12.8): the fix is installing
+# a matching +cu12x wheel explicitly. See scripts/setup_remote_env.sh, which
+# does this before installing the rest of this file.
+#
+#   python3 -m venv .venv
+#   ./.venv/bin/pip install torch --index-url https://download.pytorch.org/whl/cu124
+#   ./.venv/bin/pip install -r requirements.txt
+
+diffusers>=0.30.0
+transformers>=4.43
+accelerate>=0.33
+sentencepiece>=0.2.0     # T5 tokenizer, one of FLUX's two text encoders
+protobuf>=4.25
+safetensors>=0.4
+Pillow>=10.0              # image_to_excalidraw.py reads PNG dimensions
+
+# ── board rendering (copied from modules/kg-agent-memory) ───────────────────
+neo4j>=5.20               # analysis/build_board.py reads the temporal KG directly
+openai>=1.30.0            # analysis/compress_facts.py's headline-compression call

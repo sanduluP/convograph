@@ -36,7 +36,7 @@ Modules are independent and communicate through the data contracts in [`schemas/
 |---|---|---|---|
 | ASR + diarization | [`modules/asr-diarization`](modules/asr-diarization) | scaffold | Streaming 4-speaker diarization (NVIDIA Sortformer, DGX GB10) -> speaker-tagged script -> batch KG generation input. |
 | Temporal KG + agent memory | [`modules/kg-agent-memory`](modules/kg-agent-memory) | **working, measured** | Transcript → temporal KG (Graphiti + Neo4j) with a bi-temporal `invalid_at` layer, evaluated on GroupMemBench. Full Finance domain ingested: 5,810 episodes / 111,258 facts / 18,450 superseded. Browsable live — see the module README. |
-| Graphic generation | [`modules/graphic-generation`](modules/graphic-generation) | scaffold | LLM caption -> Flux Schnell image; planned MCP bridge to Excalidraw for an editable, real-time graphic-recording canvas. |
+| Graphic generation | [`modules/graphic-generation`](modules/graphic-generation) | **in progress** | Caption -> FLUX.1-schnell image -> embedded Excalidraw element scripted (needs a GPU to actually run); fact-card board copied in from module 2. Planned MCP bridge to Excalidraw for an editable, real-time graphic-recording canvas is not started. |
 
 ## Adding a new module
 

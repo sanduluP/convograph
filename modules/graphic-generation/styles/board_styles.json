@@ -1,0 +1,76 @@
+{
+  "_comment": [
+    "Board presentation presets for Module 3.",
+    "",
+    "WHY THIS IS A FILE AND NOT CODE (OR A CLAUDE.md RULE):",
+    "How a board LOOKS is a product decision that will be re-tuned many times,",
+    "by people who are not editing Python. Keeping it as data means the look can",
+    "change without touching the renderer, two looks can be compared by swapping",
+    "one argument, and the chosen preset ships with the product instead of living",
+    "in someone's editor instructions.",
+    "",
+    "NOTE ON THE TWO REGIMES:",
+    "'clean' is the house style used for PIPELINE diagrams (extraction/retrieval",
+    "journeys): straight edges, Nunito, maximum legibility in a paper.",
+    "'graphic-recording' is the opposite on purpose - sketchy edges, hand-drawn",
+    "font, size hierarchy - because a graphic recording is a POSTER, not a",
+    "diagram. Same renderer, different data. The repo uses 'clean' everywhere",
+    "except the board."
+  ],
+
+  "clean": {
+    "description": "House style for pipeline diagrams. Maximum legibility.",
+    "roughness": 0,
+    "fontFamily": 6,
+    "title": { "size": 26, "color": "#2f3337" },
+    "subtitle": { "size": 13.5, "color": "#7a7f87" },
+    "column_header": { "size": 16, "bg": "#fff3bf", "stroke": "#f08c00", "height": 46 },
+    "card": {
+      "current":    { "size": 13, "bg": "#e7f5ff", "stroke": "#1971c2", "text": "#2f3337", "style": "solid",  "width": 330 },
+      "superseded": { "size": 13, "bg": "#f1f3f5", "stroke": "#adb5bd", "text": "#7a7f87", "style": "dashed", "width": 330 }
+    },
+    "strike_color": "#e03131",
+    "shape": "rectangle",
+    "gap_x": 46,
+    "card_gap": 18
+  },
+
+  "graphic-recording": {
+    "description": "Poster style. Sketchy, hand-lettered, size-ranked.",
+
+    "_why_roughness": "1 is Excalidraw's hand-drawn stroke. It is deliberately OFF for pipeline diagrams (harder to read at figure size) and deliberately ON here, because the marker look is what makes a board read as a graphic recording rather than a spreadsheet.",
+    "roughness": 1,
+
+    "_why_font": "5 = Excalifont, Excalidraw's hand-drawn face. Legibility is worse than Nunito, which is why the pipeline diagrams do not use it. On a poster it is the point. Swap to 6 if it proves unreadable at presentation size - that is exactly the kind of change this file exists to make cheap.",
+    "fontFamily": 5,
+
+    "title": { "size": 34, "color": "#1e1e1e" },
+    "subtitle": { "size": 15, "color": "#868e96" },
+
+    "_why_header": "Headline words are hand-lettered and LARGE. On a real board five to eight big words carry the whole structure; everything else is subordinate.",
+    "column_header": { "size": 24, "bg": "#ffec99", "stroke": "#e8590c", "height": 66 },
+
+    "_why_card_sizes": "Size hierarchy is the main signal a graphic recording uses. A live decision is drawn big; something the meeting has moved past is small and faded. Uniform cards are what makes our current board look like a Kanban wall.",
+    "card": {
+      "current":    { "size": 16, "bg": "#d3f9d8", "stroke": "#2f9e44", "text": "#1e1e1e", "style": "solid",  "width": 380 },
+      "superseded": { "size": 12, "bg": "#f8f9fa", "stroke": "#ced4da", "text": "#adb5bd", "style": "dashed", "width": 300 }
+    },
+
+    "strike_color": "#e03131",
+
+    "_why_shape": "Ellipses read as hand-drawn blobs and break the grid. Rectangles read as a table.",
+    "shape": "ellipse",
+
+    "gap_x": 70,
+    "card_gap": 26,
+
+    "_why_icons": "Pictograms are half of what makes a board legible at a glance. These are text glyphs for now - a placeholder for real shapes pulled from an .excalidrawlib (libraries.excalidraw.com, MIT, and just JSON element groups we can inject).",
+    "icons": {
+      "superseded": "✗",
+      "current": "✓",
+      "deadline": "⏱",
+      "risk": "⚠",
+      "decision": "★"
+    }
+  }
+}
