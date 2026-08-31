@@ -1,0 +1,11 @@
+# Audio is big and either regenerable (make getexamples / make examples) or a
+# personal recording — never commit it. The small .rttm files in examples/ ARE
+# tracked on purpose: they are the fixtures pipeline/check_handoff.py runs
+# against, and the tmp/ precedent applies — exact bytes matter for fixtures.
+audio/
+out/
+examples/*.wav
+examples/raw/
+
+__pycache__/
+*.pyc
