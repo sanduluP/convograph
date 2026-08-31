@@ -1,0 +1,69 @@
+{
+  "source_conversation_id": "conv_sample_incident_001",
+  "nodes": [
+    {
+      "id": "Topic_1",
+      "type": "topic",
+      "content": "Payment gateway timeout incident",
+      "timestamp": "2026-08-20T14:00:00Z"
+    },
+    {
+      "id": "Entity_1",
+      "type": "entity",
+      "content": "Integration Team",
+      "timestamp": "2026-08-20T14:00:00Z"
+    },
+    {
+      "id": "Entity_2",
+      "type": "entity",
+      "content": "risk spec",
+      "timestamp": "2026-08-20T14:00:00Z"
+    },
+    {
+      "id": "Msg_1",
+      "type": "message",
+      "content": "User_2 requests Finance Ops and Integration Team to isolate the failure point, confirm impacted workflows, and post findings against the risk spec by EOD.",
+      "author": "User_2",
+      "role": "user",
+      "timestamp": "2026-08-20T14:02:00Z",
+      "phase_name": "triage",
+      "topic": "Payment gateway timeout incident",
+      "is_noise": false,
+      "is_decision_point": false
+    },
+    {
+      "id": "Msg_2",
+      "type": "message",
+      "content": "Integration Team confirms the timeout traces to the retry queue, not the gateway itself.",
+      "author": "User_5",
+      "role": "user",
+      "timestamp": "2026-08-20T15:10:00Z",
+      "phase_name": "diagnosis",
+      "topic": "Payment gateway timeout incident",
+      "is_noise": false,
+      "is_decision_point": false
+    },
+    {
+      "id": "Decision_1",
+      "type": "decision",
+      "content": "Integration Team owns the failure isolation and will post findings against the risk spec by end of day.",
+      "timestamp": "2026-08-20T15:12:00Z",
+      "phase_name": "diagnosis",
+      "topic": "Payment gateway timeout incident",
+      "is_decision_point": true
+    }
+  ],
+  "edges": [
+    { "source": "Msg_1", "target": "Topic_1", "relation": "mentions", "valid_from": "2026-08-20T14:02:00Z", "valid_to": null },
+    { "source": "Msg_1", "target": "Entity_1", "relation": "mentions", "valid_from": "2026-08-20T14:02:00Z", "valid_to": null },
+    { "source": "Msg_1", "target": "Msg_2", "relation": "precedes", "valid_from": "2026-08-20T14:02:00Z", "valid_to": null },
+    { "source": "Msg_2", "target": "Decision_1", "relation": "precedes", "valid_from": "2026-08-20T15:10:00Z", "valid_to": null },
+    { "source": "Entity_1", "target": "Decision_1", "relation": "decided_by", "valid_from": "2026-08-20T15:12:00Z", "valid_to": null },
+    { "source": "Decision_1", "target": "Entity_2", "relation": "mentions", "valid_from": "2026-08-20T15:12:00Z", "valid_to": null }
+  ],
+  "subgraph_filter": {
+    "person": "User_5",
+    "window_start": "2026-08-20T14:00:00Z",
+    "window_end": "2026-08-20T15:15:00Z"
+  }
+}

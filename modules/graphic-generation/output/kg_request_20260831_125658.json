@@ -1,0 +1,14 @@
+{
+  "caption": "Integration Team isolates the failure and posts findings by EOD, hand-drawn sticky-note icon style, marker on white paper",
+  "subgraph_ref": {
+    "source_conversation_id": "conv_sample_incident_001",
+    "node_ids": [
+      "Entity_1",
+      "Entity_2",
+      "Msg_2",
+      "Decision_1"
+    ]
+  },
+  "edit_target": null,
+  "style_refs": []
+}

@@ -1,0 +1,4 @@
+# ui/ — Streamlit front end + orchestrator. Deliberately light: talks to
+# module 2 and module 3 over subprocess (their own venvs), not shared imports.
+streamlit>=1.35
+Pillow>=10.0

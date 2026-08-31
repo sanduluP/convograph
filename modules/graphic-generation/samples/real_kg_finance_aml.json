@@ -1,0 +1,81 @@
+{
+  "_comment": "Not synthetic-for-this-repo — built from modules/kg-agent-memory/data/final/Finance/synthetic_domain_channels_rolevariants_Finance.json (module 2's own eval corpus, project 'AML (Anti-Money Laundering) Project'), the closest thing to a real module-2 export reachable without a running Neo4j. Node/edge shape follows schemas/temporal-kg.schema.json; content, authors, roles, and timestamps are copied verbatim from Msg_2084, Msg_3274, and Msg_3495 in that file.",
+  "source_conversation_id": "aml_anti_money_laundering_project",
+  "nodes": [
+    {
+      "id": "Topic_1",
+      "type": "topic",
+      "content": "Transaction Monitoring Framework",
+      "timestamp": "2025-07-19T00:00:00"
+    },
+    {
+      "id": "Entity_Compliance",
+      "type": "entity",
+      "content": "Compliance",
+      "timestamp": "2025-07-19T00:00:00"
+    },
+    {
+      "id": "Entity_Data",
+      "type": "entity",
+      "content": "Data",
+      "timestamp": "2025-07-19T00:00:00"
+    },
+    {
+      "id": "Entity_Ops",
+      "type": "entity",
+      "content": "Ops",
+      "timestamp": "2025-07-19T00:00:00"
+    },
+    {
+      "id": "Msg_2084",
+      "type": "message",
+      "content": "Yes, lock it into the spec today. @Compliance can you add the threshold/escalation assumptions, and @Data/@Ops can you flag any alert-population or routing dependency that would change build? I think we should treat anything unresolved as open, not final. Can everyone confirm by Friday so we can move into build without rework?",
+      "author": "User_9",
+      "role": "Business Analyst",
+      "timestamp": "2025-07-20T08:29:37",
+      "phase_name": "Define Monitoring Requirements",
+      "topic": "Transaction Monitoring Framework",
+      "is_noise": false,
+      "is_decision_point": true
+    },
+    {
+      "id": "Msg_3274",
+      "type": "message",
+      "content": "Agreed — routing-only channels can stay out of build-lock, but alert-volume movers need tighter treatment. That split protects threshold tuning and stops Phase 2 from inheriting hidden case-volume shifts. @Data @Ops, please tag each scenario by Friday: alert-volume mover, routing-only, or monitor-only.",
+      "author": "User_2",
+      "role": "Client Services Lead",
+      "timestamp": "2025-07-21T10:45:29",
+      "phase_name": "Define Monitoring Requirements",
+      "topic": "Transaction Monitoring Framework",
+      "is_noise": false,
+      "is_decision_point": true
+    },
+    {
+      "id": "Decision_1",
+      "type": "decision",
+      "content": "The original build-lock-now, monitor-only-by-Friday decision no longer works: Compliance confirmed one high-risk payment scenario is required for the current regulatory reporting pack, and threshold assumptions vary by channel more than expected. Change: pull that channel and its threshold/routing rules into build-lock now; Compliance owns the finalized assumptions, and Data/Ops update the alert-population dependencies in the spec.",
+      "author": "User_9",
+      "role": "Business Analyst",
+      "timestamp": "2025-07-21T17:22:43",
+      "phase_name": "Define Monitoring Requirements",
+      "topic": "Transaction Monitoring Framework",
+      "is_noise": false,
+      "is_decision_point": true
+    }
+  ],
+  "edges": [
+    { "source": "Msg_2084", "target": "Topic_1", "relation": "mentions", "valid_from": "2025-07-20T08:29:37", "valid_to": null },
+    { "source": "Msg_2084", "target": "Msg_3274", "relation": "precedes", "valid_from": "2025-07-20T08:29:37", "valid_to": null },
+    { "source": "Msg_3274", "target": "Decision_1", "relation": "precedes", "valid_from": "2025-07-21T10:45:29", "valid_to": null },
+    { "source": "Decision_1", "target": "Msg_2084", "relation": "supersedes", "valid_from": "2025-07-21T17:22:43", "valid_to": null },
+    { "source": "Decision_1", "target": "Entity_Compliance", "relation": "mentions", "valid_from": "2025-07-21T17:22:43", "valid_to": null },
+    { "source": "Decision_1", "target": "Entity_Data", "relation": "mentions", "valid_from": "2025-07-21T17:22:43", "valid_to": null },
+    { "source": "Decision_1", "target": "Entity_Ops", "relation": "mentions", "valid_from": "2025-07-21T17:22:43", "valid_to": null },
+    { "source": "Entity_Compliance", "target": "Decision_1", "relation": "decided_by", "valid_from": "2025-07-21T17:22:43", "valid_to": null }
+  ],
+  "subgraph_filter": {
+    "person": "User_9",
+    "window_start": "2025-07-20T08:29:37",
+    "window_end": "2025-07-21T17:22:43"
+  }
+}

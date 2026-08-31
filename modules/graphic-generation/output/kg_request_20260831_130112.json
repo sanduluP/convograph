@@ -1,0 +1,16 @@
+{
+  "caption": "Compliance pulls channel-specific thresholds into build lock now, updates spec for alert population, by Fri, hand-drawn sticky-note icon style, marker on white paper",
+  "subgraph_ref": {
+    "source_conversation_id": "aml_anti_money_laundering_project",
+    "node_ids": [
+      "Entity_Compliance",
+      "Entity_Data",
+      "Entity_Ops",
+      "Msg_2084",
+      "Msg_3274",
+      "Decision_1"
+    ]
+  },
+  "edit_target": null,
+  "style_refs": []
+}
