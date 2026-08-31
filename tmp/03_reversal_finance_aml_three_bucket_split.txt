@@ -1,0 +1,59 @@
+User_10: Yep — that three-bucket split is exactly what kept us from losing gaps in the weeds last time. For SAR, I’d make “blocking” mean it changes filing logic or audit trail, “watchlist” mean it may affect those later, and “ops-only” mean pure workflow cleanup. Can @Legal tag the gaps that way in the draft, and @Ops name the person turning each bucket into scenario IDs?
+
+User_9: I’m aligned on FIFO plus hard-coded severity exceptions. Can @Ops confirm age-stamps, ownership, and whether July 27 cutover stays clean in the spec? If that’s clean, do we also want @QA to own sign-off on the 10-business-day threshold?
+
+User_12: Absolutely — let’s lock both fields into the spec now! I’d want Data/Ops to tag any alert-population shift, plus a hard provisional flag, so build doesn’t treat a moving control as final.
+
+User_12: Lock it, with one tweak: Data Engineering should tag **trigger-impacting** defects too, so “noise” doesn’t cosplay as harmless drift. Ops can ignore reporting-only items in tests unless they touch filing logic, audit trail, or manual override paths—because SAR automation loves a plot twist.
+
+User_9: Agreed on “trigger-impacting” — that gives us a clean flag for filing logic and audit trail. Can @DataEngineering mark those defects in http://sharepoint/aml_(anti-money_laundering)_project/sar_reporting_requirements___revision_spec today, and can @Ops ignore only the non-trigger items in testing?
+
+User_5: Quick status from my side: CDD Data Source Integration is moving, but we’re still only around 20% complete, so I’m a bit uneasy about calling this settled yet. Not to be that person, but a couple of source owners have already flagged late input-format changes, and I’d really like us to confirm we’re not introducing any mapping or validation gaps before operations starts leaning on the feed. From a compliance angle, I’m mainly watching for missing fields, timing delays, and any mismatch between the source spec and what’s actually landing in the pipeline: http://sharepoint/aml_(anti-money_laundering)_project/cdd_data_source_integration_spec. Could someone confirm which source changes have been absorbed already, and whether we’ve got any residual risks or follow-up fixes queued?
+
+User_2: Locked. @Compliance’s final mandatory/optional call is the right gate for freezing scenario IDs tomorrow. Please flag any line that changes exception handling or data mapping in the spec today; otherwise Ops and Engineering should treat the current version as baseline and hold all new items as explicit rework. Can @Compliance confirm the exact lines by EOD so we don’t reopen scope late?
+
+User_12: Love this split! @Legal can confirm the three buckets today, and @Ops can assign one owner per bucket in parallel. If any scenario misses trigger-impacting field or audit-trail impact, it’s not test-ready yet!
+
+User_9: Yes — owner plus exact timestamp is what kept RCP clean for audit. @DataTeam, please post the final delta summary in-thread today, and @Compliance, confirm whether any onboarding changes were pending at EOD. Can we also tag each open exception as control break or cleanup, with owner and ETA?
+
+User_9: @DataTeam, please post the restricted blob path, retention SLA, and exact read/delete roles against http://sharepoint/aml_(anti-money_laundering)_project/cdd_data_source_integration_spec. On AML replay, I think metadata-only is enough for now unless Compliance says the blob is approved for restricted access. Can you confirm that by Friday so we can lock the replay rule?
+
+User_2: Agreed — the three-bucket split keeps us from turning noise into fake stability. @Legal please post blocking/watchlist/ops-only tags in the spec by EOD tomorrow, and @Ops assign one scenario owner per bucket in parallel. Can @DataEngineering also flag any trigger-impacting mappings in the draft today so QA isn’t testing against a moving target?
+
+User_12: Strong progress on Alert Scoring Model Design—about 20% in, and the core scoring logic is taking shape! Big focus now: calibration against current typologies, alert volume tolerance, and explainability so the model stays aligned with investigator capacity and AML expectations. We’re also reviewing newly surfaced risk indicators and refreshed inputs with Data Science and Operations before downstream monitoring rules lock in. Spec reference: http://sharepoint/aml_(anti-money_laundering)_project/alert_scoring_model_design_spec
+
+User_12: No residual compliance blockers from my side: identity, screening, and ownership mappings still need the final delta check, but no approved rule changes since the spec refresh. Post the absorbed source changes plus any open field-level gaps against http://sharepoint/aml_(anti-money_laundering)_project/cdd_data_source_integration_spec; if anything touches customer ID, screening inputs, or ownership, flag it now.
+
+User_12: Love this segmentation ask! @Ops, please split by age band and risk tier; @QA, validate the 10-business-day handoff against http://sharepoint/aml_(anti-money_laundering)_project/risk:_case_backlog_surge_spec by EOD tomorrow.
+
+User_1: RCP taught me owner plus exact timestamp is the audit anchor, not the SharePoint note. Please tag each exception control break vs cleanup, with owner and ETA, so nothing reopens later. Should DataTeam also include the exception reason code in-thread?
+
+User_9: Agree with metadata-only for now, unless DataTeam can prove restricted-blob controls today. @DataTeam please post read vs delete RBAC, storage owner, retention SLA, deletion evidence path, and redaction-rule version link against http://sharepoint/aml_(anti-money_laundering)_project/cdd_data_source_integration_spec by Friday. @Compliance can you confirm whether replay stays blocked until those controls are in-thread?
+
+User_2: RCP showed the thread is the audit record, so I’d keep that same bar here. @DataTeam, please post the final delta summary with owner, exact timestamp, impacted fields, and open exceptions; @Compliance, confirm no onboarding changes were pending at EOD. If anything is still open, tag it control break versus cleanup now so we don’t reopen this later—can we lock that in today?
+
+User_10: Yep — that’s exactly the split that stopped RCP from turning into a label soup. Ops should tag upstream data dependency too, but only when it can change filing logic, audit trail, or manual override paths. Can we make “messy inputs” a separate note from “trigger-impacting,” so Legal isn’t triaging noise as if it were rule drift?
+
+User_5: Yep, I’m with you — should we be worried that the threshold assumptions are already drifting this early? 😬 I can do a quick Compliance read on the scenarios and escalation triggers in http://sharepoint/aml_(anti-money_laundering)_project/define_monitoring_requirements_spec, but I’d really like Data and Ops to confirm which transaction fields and client-segment flags are actually stable in prod first. If those are still moving, can we keep the impacted items provisional and only lock the clean scenarios by Friday?
+
+User_5: @Legal @Ops I’d suggest we tighten this up a bit based on what Legal just found: the original split is no longer safe for that bucket. **New issue:** that bucket still feeds filing-logic validation, and if upstream case classification shifts, it can change the SAR trigger outcome; Ops also confirmed late data corrections are still coming in 😬 **Change to decision:** pause scenario creation for that bucket and have Legal + Ops jointly freeze the trigger-impacting fields and audit-trail rules before any further review.
+
+User_12: Good — that closes the high-risk gap for build-lock. I’ll note the revised threshold and routing assumptions in the spec and keep Data/Ops on the Friday confirmation.
+
+User_12: Love this split! In RCP, separating “noise” from trigger-impacting fields stopped Legal from chasing harmless defects and kept the audit trail clean. Can Ops tag upstream dependencies as **filing-logic / audit-trail / manual-override** only when they truly change outcomes, and park messy-input notes separately?
+
+User_12: Locked in on my side! Hours as the control, queue volume as impact context—clean for audit and validation. @Operations, please post the Friday cutoff; once that’s in, Compliance can freeze the banded evidence set.
+
+User_12: Backlog pressure is now a real impediment in Case Management & Investigation Workflow — older open AML cases are starting to crowd out higher-priority alerts, and SLA risk is climbing fast! At 31% complete, we need immediate triage alignment, plus confirmation on whether any low-risk cases can be safely re-sequenced without weakening control effectiveness. Please weigh in on investigator coverage and any upstream alert throttling needed to protect turnaround times!
+
+User_5: Yep, that works for me — moving that channel into build-lock feels safer now. 😅 Could Data/Ops also confirm whether the routing change affects any downstream case queues or just the alert population? I’m a bit anxious about missing a hidden dependency before Friday, tbh.
+
+User_9: Alert Scoring Model Design is at 31%, and we need alignment before Data Science starts testing. I need @Compliance, @AML Ops, and @Data Science to review the design spec here: http://sharepoint/aml_(anti-money_laundering)_project/alert_scoring_model_design_spec and flag any gaps on input data, high-risk weighting, and higher-value transaction triage. I’m setting a working session to settle scoring logic, reporting impact, and case workflow changes. Can each lead send one reviewer and confirm availability by EOD Friday?
+
+User_5: I’m okay with that, but are we sure the Wednesday cutoff covers the latest rule drift too? 😬 Could @Operations and @Model Risk keep the cutoff, `owner/date/band`, and approved snapshot/version in one line so Audit doesn’t split it later? If anything changed in the scoring assumptions, maybe call it out now rather than after handoff.
+
+User_5: Quick update from my side: we’re sitting at 31% for Alert Scoring Model Design, and the core logic is moving, but I’m still a bit twitchy about explainability and downstream impacts. The design spec is here for reference: http://sharepoint/aml_(anti-money_laundering)_project/alert_scoring_model_design_spec The business push to reduce false positives sooner is helpful, though it may mean Analytics and Ops need to revisit thresholds before we lock anything down. Should I be worried that a small scoring tweak could change case volumes more than expected?
+
+User_12: do we really need another volatile-feed check before outputs? that’s scope creep unless ops has a live delta; better to lock the current feed-status now and treat any late source change as exception handling against http://sharepoint/aml_(anti-money_laundering)_project/cdd_data_source_integration_spec.
+
+User_2: Agreed — pause scenario creation for that bucket until Legal freezes trigger-impacting fields and audit-trail rules in the spec. That protects us from re-testing against shifting classifications, and it keeps downstream ops from baking in the wrong SAR outcome. @Legal @Ops please post the frozen field list and the affected bucket call by EOD today, then @DataEngineering can confirm any residual late-correction risk.

@@ -20,3 +20,8 @@ venv/
 node_modules/
 dist/
 build/
+
+# tmp/ is TRACKED on purpose: it holds the extracted transcript slices we test
+# external tools against and share with the team. They are small, and the exact
+# bytes matter — "regenerate it from the script" is not the same artifact once a
+# selection heuristic changes.
