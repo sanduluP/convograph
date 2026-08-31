@@ -41,13 +41,45 @@ caption ──▶ generate_image.py ──▶ PNG ──▶ image_to_excalidraw.
 - `scripts/run_generate_image.sh` — runs both steps back to back, timestamped
   output under `output/`.
 
-Requires a CUDA GPU (FLUX.1-schnell is a 12B-parameter model) — run on the
-department GPU cluster, not a laptop. Cluster submission wiring (partition,
-paths, venv setup) is not done yet; see `modules/kg-agent-memory/scripts/` for
-the existing `srun_submit.sh` pattern this module will likely reuse.
+Requires a CUDA GPU (FLUX.1-schnell is a 12B-parameter model) — this laptop
+(M3 Pro, 18GB, no CUDA) can't run it. Runs instead on **unicorn**, a
+department GPU host (`serv-7101.kl.dfki.de`) reached directly over SSH — not
+behind SLURM like module 2's Pegasus cluster, so there's no `srun_submit.sh`
+equivalent, just sync + ssh + run.
+
+### Running on unicorn
+
+Add to `~/.ssh/config` once:
+
+```
+Host unicorn
+  HostName serv-7101.kl.dfki.de
+  User sandulu
+```
+
+One-time env setup (installs torch/diffusers into this module's own venv,
+mirroring module 2's "keep torch out of my env" isolation, in reverse):
+
+```bash
+bash scripts/sync_to_cluster.sh
+ssh unicorn
+cd /scratch/mpatil/sandulu/convograph-graphic-generation
+bash scripts/setup_remote_env.sh
+```
+
+Then, from the laptop, one command does sync + run + copy the result back:
+
+```bash
+bash scripts/run_on_unicorn.sh
+bash scripts/run_on_unicorn.sh --caption "Finance Ops locks go/no-go"
+```
+
+Output lands in `output/` both on unicorn and locally after copy-back.
 
 ## Not built yet
 
+- Actually running `generate_image.py` against the real model — written and
+  reviewed, not yet executed (no GPU available until unicorn is set up).
 - Placing a generated image *inside* the fact-card board (same canvas) rather
   than in its own separate `.excalidraw` file.
 - Wiring a real caption from the KG instead of the dummy default.
@@ -60,6 +92,6 @@ the existing `srun_submit.sh` pattern this module will likely reuse.
 ## Status
 
 Board rendering: copied from module 2, functionally working there. Caption→image:
-scripted, untested end-to-end (no local GPU to run FLUX.1-schnell against —
-needs the department cluster). Image→Excalidraw: implemented and tested with a
-synthetic image.
+scripted, passes a synthetic-image test end-to-end, but the actual FLUX.1-schnell
+call is untested pending unicorn env setup. Image→Excalidraw: implemented and
+tested with a synthetic image.
