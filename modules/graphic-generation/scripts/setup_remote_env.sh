@@ -21,7 +21,17 @@ echo "🐍 Creating venv at ${VENV}"
 python3 -m venv "${VENV}"
 "${VENV}/bin/python" -m pip install -q --upgrade pip setuptools wheel
 
-echo "📦 Installing requirements (torch/diffusers CUDA wheels — a few minutes)"
+# torch specifically, from the CUDA-tagged index, NOT plain PyPI: a bare
+# `pip install torch` grabs the newest default build, which can bundle a CUDA
+# runtime newer than the host's driver supports. When that happens torch
+# imports fine but torch.cuda.is_available() silently returns False rather
+# than erroring — cu124 is broadly compatible with any driver >=CUDA 12.4
+# (forward-compatible), which covers this host (driver 570.x / CUDA 12.8) and
+# most others without needing to detect the exact driver version.
+echo "📦 Installing torch (CUDA 12.4 wheel — a few minutes)"
+"${VENV}/bin/pip" install -q torch --index-url https://download.pytorch.org/whl/cu124
+
+echo "📦 Installing the rest of requirements.txt"
 "${VENV}/bin/pip" install -q --requirement "${REPO_ROOT}/requirements.txt"
 
 echo "🔎 Verifying imports + CUDA visibility"

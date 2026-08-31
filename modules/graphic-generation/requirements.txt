@@ -5,9 +5,18 @@
 # comment — that module is kept torch-free specifically so its env never
 # conflicts with this one). Needs a CUDA GPU; FLUX.1-schnell is a 12B model.
 #
-#   python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt
+# torch is NOT installed from this file — a plain `pip install torch` grabs
+# whatever the newest default build is (observed: 2.13.0+cu130), and if that
+# CUDA version is newer than the host's driver supports, torch imports fine
+# but torch.cuda.is_available() silently returns False instead of erroring.
+# Measured on unicorn (driver 570.195.03, max CUDA 12.8): the fix is installing
+# a matching +cu12x wheel explicitly. See scripts/setup_remote_env.sh, which
+# does this before installing the rest of this file.
+#
+#   python3 -m venv .venv
+#   ./.venv/bin/pip install torch --index-url https://download.pytorch.org/whl/cu124
+#   ./.venv/bin/pip install -r requirements.txt
 
-torch>=2.3
 diffusers>=0.30.0
 transformers>=4.43
 accelerate>=0.33
