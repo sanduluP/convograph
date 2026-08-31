@@ -1,0 +1,43 @@
+# Base image from NVIDIA. This one already contains a PyTorch build that
+# works on the GB10's ARM CPU *and* its Blackwell GPU. That is the whole
+# reason we use Docker: installing this by hand on the host gets you a
+# CPU-only PyTorch that silently runs 30x slower.
+#
+# 25.10 is pinned on purpose: it is the last NGC image shipping PyTorch 2.9.
+# PyTorch 2.10 removed an argument that Lhotse (a NeMo dependency) relies on,
+# which shows up as a confusing "object.__init__() takes exactly one argument"
+# crash. If you want to try a newer image later, bump this line and re-run
+# `make verify`.
+FROM nvcr.io/nvidia/pytorch:25.10-py3
+
+# Audio libraries NeMo needs to read wav/mp3 files.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libsndfile1 \
+        ffmpeg \
+        sox \
+    && rm -rf /var/lib/apt/lists/*
+
+# NeMo's build needs these present before it installs.
+RUN pip install --no-cache-dir Cython packaging
+
+# Write the container's existing PyTorch version into a "constraints" file.
+# This tells pip: "install NeMo, but do NOT touch PyTorch." Without this,
+# pip helpfully replaces the working GPU build with a CPU-only one from PyPI.
+RUN python -c "import torch; print(f'torch=={torch.__version__}')" > /tmp/constraints.txt \
+ && pip install --no-cache-dir -c /tmp/constraints.txt "nemo_toolkit[asr]"
+
+# Confirm pip did not swap the ARM+CUDA PyTorch for a CPU-only wheel.
+#
+# Note we check torch.version.cuda, NOT torch.cuda.is_available().
+# During `docker build` there is no GPU attached at all -- the GPU only
+# appears at `docker run --gpus all` -- so is_available() is always False
+# here and would fail the build every single time. What we can check now
+# is whether this PyTorch was *compiled* with CUDA support, which is
+# exactly the failure mode we care about. Actual GPU visibility gets
+# checked at runtime by scripts/01_verify.py.
+RUN python -c "\
+import torch; \
+assert torch.version.cuda is not None, 'FAILED: a CPU-only PyTorch got installed'; \
+print('OK: torch', torch.__version__, 'built against CUDA', torch.version.cuda)"
+
+WORKDIR /work
