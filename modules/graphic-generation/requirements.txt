@@ -28,3 +28,9 @@ Pillow>=10.0              # image_to_excalidraw.py reads PNG dimensions
 # ── board rendering (copied from modules/kg-agent-memory) ───────────────────
 neo4j>=5.20               # analysis/build_board.py reads the temporal KG directly
 openai>=1.30.0            # analysis/compress_facts.py's headline-compression call
+
+# ── warm-server mode (serve_flux.py) ────────────────────────────────────────
+# Keeps the pipeline resident in VRAM behind a loopback HTTP API, so a board
+# costs ~10 s instead of paying a ~40-90 s model load per board.
+fastapi>=0.110
+uvicorn>=0.29

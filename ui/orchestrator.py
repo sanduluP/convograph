@@ -19,9 +19,9 @@ importing across them.
     kg_to_caption.caption_from_fact(fact)      (stdlib-only, imported directly)
         │  caption per fact
         ▼
-    modules/graphic-generation/scripts/run_on_unicorn.sh --caption "..."
-        │  (subprocess per fact, sequential — see NOT BUILT YET in that
-        │  module's README about batching this into one remote call)
+    modules/graphic-generation/scripts/run_on_unicorn.sh --captions-file ...
+        │  ONE subprocess for the whole board: the ~31 GB FLUX pipeline is
+        │  constructed once, not once per fact (~6 min -> ~70 s for 6 facts)
         ▼
     compose_board.compose(...)                  (imported directly, needs PIL)
         │
@@ -30,6 +30,7 @@ importing across them.
 """
 from __future__ import annotations
 
+import base64
 import json
 import os
 import subprocess
@@ -105,24 +106,148 @@ def _select_facts(facts: list[dict], max_facts: int) -> list[dict]:
     return picked
 
 
-def _generate_image(caption: str, cb: ProgressCB) -> str:
-    before = set(os.listdir(os.path.join(IMG_MODULE, "output"))) \
-        if os.path.isdir(os.path.join(IMG_MODULE, "output")) else set()
-    _log(cb, f"🖼️  FLUX (unicorn) — \"{caption[:70]}...\"" if len(caption) > 70
-             else f"🖼️  FLUX (unicorn) — \"{caption}\"")
-    proc = subprocess.run(
-        ["bash", os.path.join(IMG_MODULE, "scripts", "run_on_unicorn.sh"),
-         "--caption", caption],
-        cwd=IMG_MODULE, capture_output=True, text=True, timeout=300,
-    )
-    if proc.returncode != 0:
-        raise PipelineError(f"FLUX generation failed:\n{proc.stdout[-2000:]}\n{proc.stderr[-2000:]}")
+def _generate_images_via_server(captions: list[str], cb: ProgressCB) -> list[str]:
+    """Render via the warm FLUX server, if FLUX_SERVER_URL points at one.
 
-    after = set(os.listdir(os.path.join(IMG_MODULE, "output")))
-    new_pngs = [f for f in (after - before) if f.endswith(".png")]
-    if not new_pngs:
-        raise PipelineError(f"no new PNG appeared in output/ after generation:\n{proc.stdout[-1000:]}")
-    return os.path.join(IMG_MODULE, "output", sorted(new_pngs)[-1])
+    The batch subprocess path below still pays one ~40-90 s model load per
+    board. A server that already holds the pipeline in VRAM removes even that:
+    ~10 s for a 6-image board instead of ~70 s.
+
+    Returns None for this whole path if no server is reachable, so the caller
+    can fall back rather than failing - the server is an optimisation, never a
+    requirement.
+    """
+    base = os.getenv("FLUX_SERVER_URL", "").rstrip("/")
+    if not base:
+        return None  # type: ignore[return-value]
+
+    import urllib.error
+    import urllib.request
+
+    # Probe first: a stale FLUX_SERVER_URL (tunnel dropped, server restarted)
+    # should cost a 2 s timeout and a fallback, not a hung board.
+    try:
+        with urllib.request.urlopen(f"{base}/health", timeout=2) as r:
+            health = json.loads(r.read())
+    except Exception:                                     # noqa: BLE001
+        _log(cb, f"   ℹ️  no FLUX server at {base} — falling back to a batched "
+                 f"remote call (one model load)")
+        return None  # type: ignore[return-value]
+
+    _log(cb, f"🖼️  FLUX server ({health.get('device', '?')}, "
+             f"{health.get('status')}) — {len(captions)} caption(s), no model load")
+
+    payload = json.dumps({"captions": [" ".join(c.split()) for c in captions]}).encode()
+    req = urllib.request.Request(f"{base}/generate", data=payload,
+                                 headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(
+            req, timeout=int(os.getenv("FLUX_BATCH_TIMEOUT", "3600"))) as r:
+        result = json.loads(r.read())
+
+    # The server returns PNG bytes inline (base64) because it lives on another
+    # host with no shared filesystem. Land them next to every other board asset.
+    out_dir = os.path.join(OUT_DIR, f"flux_{time.strftime('%Y%m%d_%H%M%S')}")
+    os.makedirs(out_dir, exist_ok=True)
+
+    paths: list[str] = []
+    by_index = {img["index"]: img for img in result.get("images", [])}
+    for i in range(len(captions)):
+        img = by_index.get(i)
+        if img is None or "png_b64" not in img:
+            err = (img or {}).get("error", "no response entry")
+            _log(cb, f"   ⚠️  caption {i + 1} produced no image ({err}) — skipping it")
+            paths.append(None)  # type: ignore[arg-type]
+            continue
+        path = os.path.join(out_dir, f"image_{i:03d}.png")
+        with open(path, "wb") as fh:
+            fh.write(base64.b64decode(img["png_b64"]))
+        paths.append(path)
+    return paths
+
+
+def _generate_images(captions: list[str], cb: ProgressCB) -> list[str]:
+    """Render EVERY caption in ONE remote call. Returns paths, aligned to input.
+
+    This used to be _generate_image(), invoked once per fact. That meant each
+    image paid the full round trip: rsync up, ssh, ~40-90 s of FLUX pipeline
+    construction (~31 GB of weights), render, rsync down. A 6-fact board spent
+    ~6 minutes almost entirely on loading the same model six times, for ~12 s of
+    actual rendering.
+
+    Sending all captions at once makes it one load: ~70 s for the same board.
+
+    Result paths come from the batch's manifest.jsonl, NOT from diffing the
+    output directory. The old approach listed output/ before and after and took
+    the newest PNG, which mis-assigns caption to image the moment two runs
+    overlap or anything else writes there.
+
+    A caption FLUX failed on yields None in its slot rather than aborting the
+    board - losing one pictogram should not cost the other five.
+    """
+    if not captions:
+        return []
+
+    # Warm server first (no model load at all); the batched subprocess below is
+    # the fallback when no server is configured or reachable.
+    via_server = _generate_images_via_server(captions, cb)
+    if via_server is not None:
+        return via_server
+
+    # One caption per line is the contract generate_image.py --captions-file
+    # reads. Newlines inside a caption would silently split it into two prompts,
+    # so flatten any that appear.
+    with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False,
+                                     encoding="utf-8") as fh:
+        for c in captions:
+            fh.write(" ".join(c.split()) + "\n")
+        captions_path = fh.name
+
+    _log(cb, f"🖼️  FLUX — {len(captions)} caption(s) in ONE remote call "
+             f"(model loads once, not {len(captions)}x)")
+    try:
+        proc = subprocess.run(
+            ["bash", os.path.join(IMG_MODULE, "scripts", "run_on_unicorn.sh"),
+             "--captions-file", captions_path],
+            cwd=IMG_MODULE, capture_output=True, text=True,
+            # One load plus N renders, plus two rsyncs of a large tree. The old
+            # per-image timeout of 300 s is far too tight for the whole batch.
+            timeout=int(os.getenv("FLUX_BATCH_TIMEOUT", "3600")),
+        )
+    finally:
+        os.unlink(captions_path)
+
+    if proc.returncode != 0:
+        raise PipelineError(
+            f"FLUX generation failed:\n{proc.stdout[-3000:]}\n{proc.stderr[-2000:]}")
+
+    # run_on_unicorn.sh prints this as its last line.
+    batch_dir = None
+    for line in proc.stdout.splitlines():
+        if line.startswith("local-batch-dir: "):
+            batch_dir = line.split("local-batch-dir: ", 1)[1].strip()
+    if not batch_dir:
+        raise PipelineError(
+            f"no batch directory reported by run_on_unicorn.sh — stdout tail:\n"
+            f"{proc.stdout[-2000:]}")
+
+    manifest = os.path.join(batch_dir, "manifest.jsonl")
+    by_index: dict[int, dict] = {}
+    with open(manifest, encoding="utf-8") as fh:
+        for line in fh:
+            if line.strip():
+                rec = json.loads(line)
+                by_index[rec["index"]] = rec
+
+    paths: list[str] = []
+    for i in range(len(captions)):
+        rec = by_index.get(i)
+        if rec is None or not rec.get("path"):
+            err = (rec or {}).get("error", "no manifest entry")
+            _log(cb, f"   ⚠️  caption {i + 1} produced no image ({err}) — skipping it")
+            paths.append(None)  # type: ignore[arg-type]
+        else:
+            paths.append(rec["path"])
+    return paths
 
 
 def run_pipeline(
@@ -155,16 +280,26 @@ def run_pipeline(
     _log(progress_cb, f"   using {len(selected)} of {len(facts)} facts "
                        f"({sum(1 for f in selected if f.get('invalid_at'))} superseded)")
 
+    # Captions first, for ALL facts, then a single batched render. Interleaving
+    # them (caption -> image -> caption -> image) is what forced one model load
+    # per fact; the captions are stdlib-only and cost milliseconds, so there is
+    # no reason to spread them across the expensive calls.
+    captions = [kg_to_caption.caption_from_fact(f["fact"]) for f in selected]
+    image_paths = _generate_images(captions, progress_cb)
+
     entries = []
-    for i, fact in enumerate(selected):
-        caption = kg_to_caption.caption_from_fact(fact["fact"])
-        image_path = _generate_image(caption, progress_cb)
+    for i, (fact, caption, image_path) in enumerate(
+            zip(selected, captions, image_paths)):
+        if image_path is None:
+            continue          # FLUX failed on this one; the board omits it
         entries.append({
             "image": image_path,
             "caption": caption,
             "timestamp": fact.get("valid_at"),
             "label": f"{i + 1}" + (" · superseded" if fact.get("invalid_at") else ""),
         })
+    if not entries:
+        raise PipelineError("every caption failed to render — nothing to compose")
 
     os.makedirs(OUT_DIR, exist_ok=True)
     out_path = os.path.join(OUT_DIR, f"board_{stamp}.excalidraw")

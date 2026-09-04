@@ -12,3 +12,7 @@ output/
 
 # Downloaded model weights, if they ever land here instead of the HF cache.
 models/
+
+# Model weights — never committed, never rsynced.
+hf-cache/
+.hf-cache/

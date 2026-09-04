@@ -7,6 +7,10 @@
 # Example (serve the model, grabbing whichever FP8-safe GPU frees first):
 #   bash scripts/srun_submit.sh all serve_qwen 8 1 96G 8 scripts/serve_vllm.sh
 #
+# PARTITION accepts two broad keywords:
+#   all        FP8-safe only  (Ada/Hopper/Blackwell) — for vLLM/FP8 serving
+#   all-bf16   bf16-safe      (adds Ampere: RTXA6000, A100-80GB) — for FLUX etc.
+#
 # ─────────────────────────────────────────────────────────────────────────────
 # PARTITION = "all"  → broad submit across a COMMA-LIST of partitions so SLURM
 # grabs whichever node frees up first (no waiting in one congested queue).
@@ -34,9 +38,37 @@ TASK_ARGS="$@"
 # "all" → every FP8-safe (Ada/Hopper/Blackwell) partition. L40S-DSA first: it's
 # our dedicated DSA allocation, so lowest contention. Ampere/Volta deliberately absent.
 FP8_SAFE_PARTITIONS="L40S-DSA,L40S,L40S-AV,H100,H100-RP,H100-PCI,H200,H200-PCI,B200"
+
+# "all-bf16" → the SAME "submit broad" idea, but for jobs that do NOT serve FP8.
+#
+# The FP8 list above is narrow for one specific reason: dynamic-activation FP8
+# (e4m3) silently GARBLES on Ampere and Volta, so vLLM must stay on Ada/Hopper/
+# Blackwell. That reason does NOT apply to a bf16 job — Ampere supports bf16
+# natively — and paying the FP8 restriction anyway costs us the biggest pools on
+# the cluster for nothing.
+#
+# Concretely, this is for FLUX.1-schnell (modules/graphic-generation): a 12B
+# rectified-flow diffusion transformer run in bf16, needing ~36-38 GB of VRAM at
+# 1024x1024 (~22 GB with enable_model_cpu_offload). So the gate is "≥48 GB and
+# real bf16", which adds:
+#
+#   RTXA6000 / RTXA6000-AV   48 GB, Ampere   ← 12+ nodes, the LARGEST pool here
+#   A100-80GB / A100-RP      80 GB, Ampere
+#   RTXB6000                 96 GB, Blackwell
+#
+# Deliberately still excluded, and why:
+#   A100-40GB, A100-PCI   40 GB  — too tight against a ~38 GB peak
+#   RTX3090               24 GB  — offload-only, very slow
+#   V100-32GB                    — Volta has NO bf16 at all, and only 32 GB
+#   batch                        — CPU partition, no usable GPU for this
+BF16_SAFE_PARTITIONS="L40S-DSA,L40S,L40S-AV,RTXA6000,RTXA6000-AV,A100-80GB,A100-RP,H100,H100-RP,H100-PCI,H200,H200-PCI,H200-AV,B200,RTXB6000"
+
 if [[ "$PARTITION" == "all" ]]; then
   PARTITION="$FP8_SAFE_PARTITIONS"
   echo "🌐 partition=all → FP8-safe list: $PARTITION"
+elif [[ "$PARTITION" == "all-bf16" ]]; then
+  PARTITION="$BF16_SAFE_PARTITIONS"
+  echo "🌐 partition=all-bf16 → bf16-safe list (adds Ampere): $PARTITION"
 fi
 
 # Normalize memory ('G' / 'GB' / bare → 'G').

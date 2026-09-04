@@ -81,6 +81,28 @@ def _build_client() -> Graphiti:
     ))
     cross_encoder = OpenAIRerankerClient(config=llm_config)
 
+    # Fail with an instruction, not a bare KeyError. This module historically had
+    # NO .env at all - every run got its Neo4j connection from the cluster job
+    # scripts, which start their own Neo4j and export the URI - so "NEO4J_URI is
+    # missing" is the FIRST thing a new local/UI user hits, and the raw traceback
+    # says nothing about how to fix it.
+    missing = [k for k in ("NEO4J_URI", "NEO4J_USER", "NEO4J_PASSWORD")
+               if not os.getenv(k)]
+    if missing:
+        raise SystemExit(
+            f"missing {', '.join(missing)}.\n\n"
+            f"This module needs a git-ignored .env next to this file. For a local UI run:\n\n"
+            f"    docker start neo4j-convograph-ui     # bolt 7690, browser http://localhost:7476\n\n"
+            f"    # modules/kg-agent-memory/.env\n"
+            f"    NEO4J_URI=bolt://localhost:7690\n"
+            f"    NEO4J_USER=neo4j\n"
+            f"    NEO4J_PASSWORD=<the container's password>\n"
+            f"    NEO4J_DATABASE=neo4j\n\n"
+            f"Do NOT point this at neo4j-gmb-full (port 7688): that container holds the\n"
+            f"merged full-corpus graph and every score measured on it. UI runs are\n"
+            f"throwaway and belong in their own store."
+        )
+
     driver = Neo4jDriver(
         os.environ["NEO4J_URI"], os.environ["NEO4J_USER"], os.environ["NEO4J_PASSWORD"],
         database=os.getenv("NEO4J_DATABASE", "neo4j"),
