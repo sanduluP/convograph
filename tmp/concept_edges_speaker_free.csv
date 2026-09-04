@@ -1,0 +1,463 @@
+source, relation, target, fact, superseded
+"Investigation Workflow Definition Spec", "HAS_OPTION", "24-hour remediation SLA", "One option for the investigation handoff pattern is a single end-to-end workflow with one escalation path.", FALSE
+"queue owner", "HAS", "24-hour remediation SLA", "The remediation queue owner has an SLA that is still open and should be locked before more cases start landing.", FALSE
+"intake", "CONTRIBUTES_TO", "CDD records", "Bad source data contributes to failed CDD cases.", FALSE
+"intake", "CONTRIBUTES_TO", "CDD records", "Process drift contributes to failed CDD cases.", FALSE
+"Risk: Inconsistent KYC Records", "HAS_INCONSISTENT_RECORDS", "CDD records", "The KYC risk phase has inconsistent records across the CDD pipeline.", FALSE
+"Legal/Risk", "REVIEW", "CDD records", "Tech must review customer profiles to understand where KYC mismatches are coming from.", FALSE
+"Data Engineering", "REVIEW", "CDD records", "Data Engineering must review customer profiles to understand where KYC mismatches are coming from.", FALSE
+"Risk: Inconsistent KYC Records", "CAUSES", "CDD records", "Inconsistent KYC records are causing CDD gaps.", FALSE
+"http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec", "REQUIRES_INPUT_FROM", "Case-Design", "The Investigation Workflow Definition requires input from Case-Design on whether threshold changes affect routing, evidence capture, and downstream compliance timing.", FALSE
+"engineering", "INCLUDES_IN", "Client Services", "engineering includes retrieval path in the row-level matrix.", FALSE
+"Model Risk", "CONFIRMS", "Client Services", "Operations confirms the exact allowed values by Friday.", TRUE
+"Detected", "REQUIRES_LOCKED_LINEAGE_EXCEPTIONS", "Client Services", "For AML, lineage exceptions must be locked before build to prevent destabilization of alert volumes, model stability, and case workload.", FALSE
+"edge cases", "RECORDED_BY", "Data Engineering", "Record swaps are recorded by DE.", FALSE
+"feature scope", "RECORDS", "Data Engineering", "DE records source-system lineage.", FALSE
+"edge cases", "REQUIRES_APPROVAL_FROM", "Data Engineering", "A feature swap requires approval from DE.", FALSE
+"Detected", "OWNED_BY", "Data Engineering", "The high-risk segment cutoff is owned by DE.", FALSE
+"effective date", "STORED_IN", "Data Quality", "The effective date is stored only in the decision log, not in the build fields.", FALSE
+"onboarding breakpoints", "REQUIRES", "Data Quality", "Onboarding as source of truth requires overrides to have evidence, timestamp, and approver ID.", FALSE
+"exception trail", "TAGGED_BY", "DataOwner", "DataOwner is responsible for tagging the exception trail.", FALSE
+"expiry date", "ALIGNS_WITH", "DataOwner", "In Regulatory Compliance Program, owner + expiry + review-date was the difference between a real control and permanent drift—aligns cleanly with ISO 31000 control accountability.", FALSE
+"Model Risk", "CONFIRMS", "DataOwner", "Operations confirms the evidence capture by Friday.", TRUE
+"newer transaction patterns", "CAN_REACH", "Detected", "By ranking patterns, we can get to Detected faster without pretending coverage is complete.", FALSE
+"engineering", "INCLUDED_IN", "Friday", "provisional flag is included in the must-gap freeze.", FALSE
+"jurisdictions", "INCLUDED_IN", "Friday", "jurisdiction is included in the must-gap freeze.", FALSE
+"engineering", "REQUIRED_FOR", "Friday", "reason for provisional is required for the must-gap freeze.", FALSE
+"exclusion handling", "INCLUDED_IN", "Friday", "rule impact is included in the must-gap freeze.", FALSE
+"Risk: Inconsistent KYC Records", "RELIES_ON_SPEC", "Incomplete Regulatory Coverage", "The KYC risk phase relies on the risk:_incomplete_regulatory_coverage_spec for defining regulatory coverage gaps.", FALSE
+"hold state", "REFERS_TO", "Incomplete Regulatory Coverage", "The hold-state duration must be explicitly defined in the risk: incomplete regulatory coverage specification on SharePoint.", FALSE
+"blocker flags", "REFERS_TO", "Incomplete Regulatory Coverage", "Blocker type should be added to the risk: incomplete regulatory coverage specification on SharePoint.", FALSE
+"unmapped values", "REFERS_TO", "Incomplete Regulatory Coverage", "Unmapped cases should be addressed in the risk: incomplete regulatory coverage specification on SharePoint.", FALSE
+"cutoff approval", "REFERS_TO", "Incomplete Regulatory Coverage", "The cutoff owner must be confirmed in the risk: incomplete regulatory coverage specification on SharePoint by EOD.", FALSE
+"Legal/Risk", "SANITY_CHECKS", "Incomplete Regulatory Coverage", "Legal is requested to sanity-check the regulatory coverage gap against the spec.", FALSE
+"Investigations", "SANITY_CHECKS", "Incomplete Regulatory Coverage", "Investigations is requested to sanity-check the regulatory coverage gap against the spec.", FALSE
+"Rules Config", "SANITY_CHECKS", "Incomplete Regulatory Coverage", "Rules Config is requested to sanity-check the regulatory coverage gap against the spec.", FALSE
+"Data Quality", "SANITY_CHECKS", "Incomplete Regulatory Coverage", "Data Quality is requested to sanity-check the regulatory coverage gap against the spec.", FALSE
+"Legal/Risk", "FOCUSES_ON", "Incomplete Regulatory Coverage", "Legal/Risk focuses only on the truly messy gaps, specifically the 'true regulatory gaps' bucket.", FALSE
+"full rule-to-jurisdiction mapping", "PREVENTS", "Incomplete Regulatory Coverage", "Full rule-to-jurisdiction mapping prevents missed regulatory coverage.", FALSE
+"Legal/Risk", "TAGS", "Incomplete Regulatory Coverage", "Legal tags critical items in risk:_incomplete_regulatory_coverage_spec.", FALSE
+"engineering", "USES", "Incomplete Regulatory Coverage", "Engineering uses the risk: incomplete regulatory coverage spec as the working reference.", FALSE
+"Data Engineering", "WEIGHS_IN_ON", "Incomplete Regulatory Coverage", "Technology will weigh in on the risk:incomplete_regulatory_coverage_spec document by EOD Friday.", TRUE
+"engineering", "CONFIRMS_BUILD_HAS_FIXED_FIELDS", "Investigation Workflow Definition Spec", "engineering will confirm whether the build has fixed owner, timestamp, reason, and before/after values by Friday.", TRUE
+"Data Engineering", "REVIEWS", "Investigation Workflow Definition Spec", "Data Engineering is reviewing the investigation_workflow_definition_spec.", FALSE
+"Data Engineering", "UPDATES", "Investigation Workflow Definition Spec", "Data Engineering is updating the investigation_workflow_definition_spec.", FALSE
+"first pass", "REQUIRES_DECISION_ON", "Investigation Workflow Definition Spec", "Triage priority requires a decision in the investigation workflow definition spec.", FALSE
+"sla hooks", "REQUIRES_DECISION_ON", "Investigation Workflow Definition Spec", "SLA timing requires a decision in the investigation workflow definition spec.", FALSE
+"evidence fields", "REQUIRES_DECISION_ON", "Investigation Workflow Definition Spec", "Case evidence storage requires a decision in the investigation workflow definition spec.", FALSE
+"evidence fields", "REQUIRES_DECISION_ON", "Investigation Workflow Definition Spec", "A backup role for absences requires a decision in the investigation workflow definition spec.", FALSE
+"escalation points", "REQUIRES_DECISION_ON", "Investigation Workflow Definition Spec", "Escalation triggers require a decision in the investigation workflow definition spec.", FALSE
+"evidence fields", "REQUIRES_DECISION_ON", "Investigation Workflow Definition Spec", "Evidence log update requires a decision in the investigation workflow definition spec.", FALSE
+"evidence fields", "REQUIRES_DECISION_ON", "Investigation Workflow Definition Spec", "Required audit fields require a decision in the investigation workflow definition spec.", FALSE
+"case routing and escalation owners", "REQUIRES_DECISION_ON", "Investigation Workflow Definition Spec", "Leadership ownership requires a decision on triage priority, escalation triggers, and case evidence storage in the investigation workflow definition spec.", FALSE
+"http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec", "HAS_SPECIFICATION", "Investigation Workflow Definition Spec", "The Investigation Workflow Definition has a specification document at http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec.", FALSE
+"SAR Reporting Requirements", "VALIDATES_AGAINST", "Investigation Workflow Definition Spec", "SAR Reporting Requirements validates against automated outputs.", FALSE
+"SAR Reporting Requirements", "REQUIRES", "Investigation Workflow Definition Spec", "SAR Reporting Requirements requires field-level source definitions.", FALSE
+"case routing and escalation owners", "REFERS_TO", "Investigation Workflow Definition Spec", "The case routing and escalation owners are too vague in the Investigation Workflow Definition Spec.", FALSE
+"engineering", "TAGS", "Investigations", "engineering tags the remediation date on every open row.", FALSE
+"Data Engineering", "HAS", "Investigations", "Data Engineering will confirm the record location in SharePoint by Friday.", TRUE
+"http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec", "CONTAINS_SPECIFICATION_FOR", "Legal/Risk", "The specification at http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec contains the workflow requirements for investigation workflow definition.", FALSE
+"temporary control outside the model", "REQUIRES_APPROVAL_FROM", "Legal/Risk", "A temporary control requires approval from Legal/Risk.", FALSE
+"Model Risk", "CONFIRMS", "Legal/Risk", "Operations confirms the taxonomy by Friday.", TRUE
+"data gaps", "HAS", "Model Feature Engineering", "Model Feature Engineering has data gaps that need to be confirmed by Friday.", TRUE
+"policy constraints", "HAS", "Model Feature Engineering", "Model Feature Engineering has policy constraints that need to be confirmed by Friday.", TRUE
+"segment caveats", "HAS", "Model Feature Engineering", "Model Feature Engineering has segment caveats that need to be confirmed by Friday.", TRUE
+"http://sharepoint/aml_(anti-money_laundering)_project/model_feature_engineering_spec", "CONTAINS_SPECIFICATION_FOR", "Model Feature Engineering", "The specification at http://sharepoint/aml_(anti-money_laundering)_project/model_feature_engineering_spec contains the feature engineering requirements for Model Feature Engineering.", FALSE
+"feature scope", "RECORDS", "Model Risk", "Model Risk records source-system lineage.", TRUE
+"exception trail", "REQUIRES", "Model Risk", "The SharePoint trail requires Model Risk approval for typology-update exceptions.", FALSE
+"owner", "OWNED_BY", "Model Risk", "The exclusion log is owned by Model Risk.", FALSE
+"edge cases", "SIGNED_OFF_BY", "Model Risk", "Record swaps are signed off by Model Risk.", FALSE
+"edge cases", "REQUIRES_APPROVAL_FROM", "Model Risk", "A feature swap requires approval from Model Risk.", FALSE
+"Investigations", "REQUIRES_CONFIRMATION_FROM", "Model Risk", "Model Risk must confirm who records swaps and who signs off on them for lineage exceptions.", FALSE
+"breakpoints by source", "REQUIRES_SIGN_OFF_FROM", "Model Risk", "Model Risk must sign off on the exclusion log.", FALSE
+"manual review queues", "REQUIRES_SIGN_OFF_FROM", "Model Risk", "Model Risk must sign off on the high-risk segment cutoff.", FALSE
+"initial feature list", "SIGN_OFFS", "Model Risk", "Model Risk signs off on the initial feature list.", FALSE
+"KYC cleanup", "REFERS_TO_SPEC", "Risk: Inconsistent KYC Records", "The KYC inconsistency review refers to the specification at http://sharepoint/aml_(anti-money_laundering)_project/risk:_inconsistent_kyc_records_spec for ownership and variance type flagging.", FALSE
+"Data Engineering", "CONFIRMS_FIXED_IN_BUILD", "Risk: Inconsistent KYC Records", "Data Engineering will confirm that owner, timestamp, and effective date are fixed in build, and also confirm before/after values are fixed in build by Friday.", TRUE
+"Incomplete Regulatory Coverage", "USED_TO_DEFINE_COVERAGE_GAPS", "Risk: Inconsistent KYC Records", "The risk:_incomplete_regulatory_coverage_spec is used to define coverage gaps in the KYC risk phase.", FALSE
+"CDD tuning", "HAS_INCONSISTENT_RECORDS", "Risk: Inconsistent KYC Records", "The CDD flow has inconsistent records that are causing KYC mismatches.", FALSE
+"regulator clarification", "LOCKED_AFTER", "Rules Config", "Open rule decisions must be made after the field matrix is locked.", FALSE
+"ownership/UBO", "IS_REQUIRED_FIELD_IN", "SAR Reporting Requirements", "Ownership/UBO is a required field in the SAR Reporting Requirements.", FALSE
+"Model Risk", "LEADS_STRICTER_CONTROL_PATH", "SAR Reporting Requirements", "Model Risk is leaning toward tightening the updated control expectations for SAR Reporting Requirements now, accepting a small rework hit for defensibility.", FALSE
+"full audit trail on source and last update", "IS_REQUIRED_FIELD_IN", "SAR Reporting Requirements", "Full audit trail on source and last update is a required field in the SAR Reporting Requirements.", FALSE
+"customer legal name", "IS_REQUIRED_FIELD_IN", "SAR Reporting Requirements", "Customer legal name is a required field in the SAR Reporting Requirements.", FALSE
+"DOB/incorporation date", "IS_REQUIRED_FIELD_IN", "SAR Reporting Requirements", "DOB/incorporation date is a required field in the SAR Reporting Requirements.", FALSE
+"risk rating", "IS_REQUIRED_FIELD_IN", "SAR Reporting Requirements", "Risk rating is a required field in the SAR Reporting Requirements.", FALSE
+"ID/tax ID", "IS_REQUIRED_FIELD_IN", "SAR Reporting Requirements", "ID/tax ID is a required field in the SAR Reporting Requirements.", FALSE
+"address", "IS_REQUIRED_FIELD_IN", "SAR Reporting Requirements", "Address is a required field in the SAR Reporting Requirements.", FALSE
+"engineering", "OWNERSHIP", "SAR Reporting Requirements", "engineering owns the SAR Reporting Requirements.", FALSE
+"engineering", "CONFIRMS", "SAR Reporting Requirements", "engineering must confirm the SAR Reporting Requirements spec.", FALSE
+"Model Risk", "CONFIRMS", "SAR Reporting Requirements", "Model Risk must confirm the SAR Reporting Requirements spec.", FALSE
+"Incomplete Regulatory Coverage", "IMPACTS", "SAR escalation", "Missed regulatory coverage impacts SAR escalation.", FALSE
+"Model Risk", "STAMPS_APPROVAL_ON", "SharePoint", "Model Risk stamps approval on the controlled entry in SharePoint.", FALSE
+"Data Engineering", "POSTS_TO", "SharePoint", "Data Engineering posts the controlled entry to SharePoint.", FALSE
+"regulatory-critical", "LOCKS", "address", "Can we lock that sequencing so we don’t stall remediation?", FALSE
+"Model Feature Engineering", "RISK", "alert quality", "Feature engineering risks alert noise.", FALSE
+"high-risk patterns", "PROTECTS", "alert quality", "Prioritizing high-risk corridors protects alert quality.", FALSE
+"Risk: Inconsistent KYC Records", "IMPACTS", "alert quality", "Inconsistent KYC records impact alert quality.", FALSE
+"Incomplete Regulatory Coverage", "IMPACTS", "alert quality", "Missed regulatory coverage impacts alert quality.", FALSE
+"Model Feature Engineering", "INCLUDES", "approved inputs", "Feature engineering includes approved inputs.", FALSE
+"Legal/Risk", "BRINGS", "audit trail controls", "Legal must bring audit trail controls to the working session.", FALSE
+"engineering", "FREEZES", "audit-trail fields", "Engineering must freeze the audit-trail schema first before validating outputs.", FALSE
+"engineering", "FREEZES", "audit-trail fields", "engineering must freeze the audit-trail schema by Friday.", TRUE
+"Model Risk", "CONFIRMS", "audit-trail fields", "Model Risk must confirm the audit-trail schema.", FALSE
+"engineering", "OWNERSHIP", "audit-trail fields", "engineering owns the audit-trail schema.", FALSE
+"Phase 2", "REQUIRES", "audit-trail fields", "Phase 2 patterns require an audit trail to prevent unauthorized inclusion.", FALSE
+"manual review queues", "REQUIRES_SIGN_OFF_FROM", "audit-trail fields", "DE must sign off on the high-risk segment cutoff.", FALSE
+"Investigations", "REQUIRES_CONFIRMATION_FROM", "audit-trail fields", "DE must confirm who records swaps and who signs off on them for lineage exceptions.", FALSE
+"breakpoints by source", "REQUIRES_SIGN_OFF_FROM", "audit-trail fields", "DE must sign off on the exclusion log.", FALSE
+"SAR Reporting Requirements", "REQUIRES", "audit-trail fields", "SAR Reporting Requirements requires audit trail completeness.", FALSE
+"partial-match", "IS_AUTO_ROUTED", "auto-routed", "Partial-match and overwritten cases are not auto-routed and require a manual triage step.", FALSE
+"critical referral path", "PAUSES_BASED_ON", "automation assumptions", "Leadership should pause on any automation assumptions until Legal, Ops, and the data team confirm open points against the spec.", FALSE
+"typology updates", "REQUIRES", "backup approver path", "Typology-update exceptions require a separate approval path.", FALSE
+"exception trail", "HAS_TAG", "backup approver path", "The SharePoint trail has entries tagged as 'exception' for typology-update exceptions.", FALSE
+"cutoff approval", "HAS_BACKUP_OWNER", "backup approver path", "The cutoff owner should have a backup owner to prevent gaps in ownership.", FALSE
+"exception trail", "REQUIRES_CONFIRMATION_BY", "backup approver path", "The exception trail format and backup approver path must be confirmed by someone, as waiting risks missing the confirmation.", FALSE
+"audit-trail fields", "FAILS_TO_DETECT", "bad rule mapping", "Audit trail checks alone will not catch a bad rule mapping.", FALSE
+"engineering", "CONFIRMS", "before/after values", "engineering confirms by Friday whether before/after values are discrete build fields.", TRUE
+"engineering", "CONFIRMS", "before/after values", "engineering confirms whether before/after values are fixed in build by Friday.", TRUE
+"Data Engineering", "CONFIRMS_FIXED_IN_BUILD", "before/after values", "Data Engineering will confirm that before/after values are fixed in build by Friday.", TRUE
+"minimum evidence pack", "INCLUDES", "blocked fields with known quality gaps", "The minimum evidence set includes impacted field IDs.", FALSE
+"Data Engineering", "ADDS", "blocked fields with known quality gaps", "Data Engineering adds the impacted-field list and draft update to the model_feature_engineering_spec.", FALSE
+"Model Feature Engineering", "INCLUDES", "blocked fields with known quality gaps", "Feature engineering includes blocked fields with known quality gaps.", FALSE
+"SAR Reporting Requirements", "REQUIRES", "blocker flags", "The SAR Reporting Requirements phase requires blocker flags on the spec by EOD Friday.", FALSE
+"backup approver path", "ASSOCIATED_WITH", "blocker reason", "The backup owner is associated with a reason code.", FALSE
+"engineering", "CONFIRMS", "blocker reason", "engineering confirms whether the reason is fixed in build by Friday.", FALSE
+"exception trail", "HAS_ATTRIBUTE", "blocker reason", "signed decision log has change reason.", FALSE
+"DataOwner", "OWNS", "breakpoints by source", "DataOwner owns the source hierarchy.", FALSE
+"DataOwner", "CONFIRMS", "breakpoints by source", "DataOwner must confirm the source hierarchy.", FALSE
+"DataOwner", "SPLITS_BY", "breakpoints by source", "DataOwner splits source breakpoints by intake, lifecycle, and legacy migration by Friday.", FALSE
+"engineering", "CONFIRMS", "build", "engineering confirms whether before/after values are fixed in build by Friday.", TRUE
+"backup approver path", "ASSOCIATED_WITH", "build", "The backup owner is associated with the record location.", FALSE
+"cutoff approval", "HAS_RECORD_LOCATION", "build", "The cutoff owner must be recorded in the record location in SharePoint by Friday.", FALSE
+"Data Engineering", "HAS", "case details", "Data Engineering will confirm the backup owner in SharePoint by Friday.", TRUE
+"unmapped values", "TRIGGERS", "case routing and escalation owners", "Unmapped cases escalate automatically after the SLA breach.", FALSE
+"Client Services", "CANNOT_PRESSURE_TEST", "case routing and escalation owners", "Client Services cannot pressure-test triage paths due to vague case routing and escalation owners.", FALSE
+"build moves forward", "DEPENDS_ON", "clean agreement", "Build moves forward depends on clean agreement.", FALSE
+"Legal/Risk", "NEEDS", "clean agreement", "Legal needs clean agreement before build moves forward.", FALSE
+"http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec", "DEPENDS_ON_HANDOFFS", "critical referral path", "The Investigation Workflow Definition depends on real investigator handoffs for validation of escalation scenarios.", FALSE
+"temporary control outside the model", "REQUIRES", "critical referral path", "The manual review fallback is required for the escalation matrix.", FALSE
+"high-risk patterns", "USED_TO_ALIGN", "critical referral path", "The high-risk jurisdictions are used to align the escalation matrix.", FALSE
+"SAR Reporting Requirements", "REQUIRES_CONFIRMATION_FROM", "critical referral path", "Legal must confirm which updated guidance items change the exception-handling rules in the SAR Reporting Requirements specification.", FALSE
+"http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec", "REQUIRES_CONFIRMATION_FROM", "critical referral path", "Legal must confirm the tier rules and owner handoffs in the Investigation Workflow Definition specification by EOD Friday.", TRUE
+"Model Feature Engineering", "DEPENDS_ON", "customer attributes", "The Model Feature Engineering phase depends on stabilizing the feature set around transaction history and customer attributes before lower-value work.", FALSE
+"engineering", "INCLUDES_IN", "customer legal name", "engineering includes field ID in the row-level matrix.", FALSE
+"minimum evidence pack", "INCLUDES", "cutoff approval", "The minimum evidence set includes approver.", FALSE
+"Data Engineering", "NAMES", "cutoff approval", "Data Engineering names the reason code format.", FALSE
+"Data Engineering", "NAMES", "cutoff approval", "Data Engineering names the approver.", FALSE
+"Data Engineering", "NAMES", "cutoff approval", "Data Engineering names the record location.", FALSE
+"Data Engineering", "NAMES", "cutoff approval", "Data Engineering names the backup.", FALSE
+"Model Risk", "CONFIRMS", "cutoff approval", "Model Risk confirms the cutoff approver name.", FALSE
+"Model Risk", "NAMES", "cutoff approval", "Model Risk names the cutoff approver in the investigation workflow definition spec.", FALSE
+"Model Risk", "SIGNS_OFF_ON", "cutoff approval", "Model Risk signs off on the cutoff.", FALSE
+"Model Risk", "NAMES", "cutoff approval", "Model Risk names the cutoff approver.", FALSE
+"Model Risk", "OWNERSHIP", "cutoff approval", "Model Risk owns the final approval.", FALSE
+"engineering", "CONFIRMS", "cutoff approval", "engineering must confirm the final approval.", FALSE
+"Investigations", "CONFIRMS_OWNER", "cutoff approval", "DE must confirm the owner of the cutoff approver in writing by Friday.", TRUE
+"Model Risk", "CONFIRMS", "cutoff approval", "Model Risk must confirm the cutoff approver in writing by Friday.", FALSE
+"Model Risk", "CONFIRMS_OWNER", "cutoff approval", "Model Risk must confirm the owner of the cutoff approver in writing by Friday.", TRUE
+"Model Risk", "SIGNS", "cutoff approval", "Model Risk signs the cutoff.", FALSE
+"Model Risk", "DROPS", "cutoff approval", "Model Risk drops the actual approver name in writing.", FALSE
+"CDD tuning", "REQUIRES", "cutoff approval", "The CDD flow requires approver ID for overrides.", FALSE
+"Data Engineering", "CONFIRMS", "cutoff approval", "Data Engineering is confirming the backup owner.", TRUE
+"Data Engineering", "CONFIRMS", "cutoff approval", "Data Engineering is confirming the cutoff record.", FALSE
+"Data Engineering", "CONFIRMS", "cutoff approval", "Data Engineering is confirming the approval trail.", FALSE
+"Data Engineering", "POSTS", "cutoff approval", "Please have Data Engineering post the named cutoff owner in SharePoint by Friday", FALSE
+"Data Engineering", "POSTS", "cutoff approval", "Please have Data Engineering post the named cutoff owner in SharePoint by Friday, plus the record location and backup owner!", FALSE
+"Legal/Risk", "BRINGS", "data gaps", "Legal must bring upstream data gaps to the working session.", FALSE
+"missing fields", "HAS_REMEDIATION_PATH", "data gaps", "The sync failure scenario includes two remediation paths.", FALSE
+"DataOwner", "SIGNS_OFF_ON", "data gaps", "DataOwner signs off on the two remediation paths.", FALSE
+"intake", "HAS_REMEDIATION_PATH", "data gaps", "The intake process includes two remediation paths.", FALSE
+"legacy-migration", "HAS_REMEDIATION_PATH", "data gaps", "The legacy migration process includes two remediation paths.", FALSE
+"reconciliation rule", "REQUIRES", "data validation rules", "Record reconciliation requires data validation rules.", FALSE
+"SAR Reporting Requirements", "HAS_GAP_WITH", "doc standards", "SAR Reporting Requirements has a gap between case-management mapping and the required narrative standards.", FALSE
+"Model Feature Engineering", "BREAKS", "downstream dependencies", "Feature engineering breaks downstream work if pushed ahead too fast.", FALSE
+"Legal/Risk", "BRINGS", "edge cases", "Legal must bring edge cases to the working session.", FALSE
+"edge cases", "INVOLVES", "edge cases", "A feature swap involves record swaps.", FALSE
+"minimum evidence pack", "INCLUDES", "effective date", "The minimum evidence set includes effective date.", FALSE
+"http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec", "DEPENDS_ON", "effective date", "case routing must be decided before Data, QA, and Reporting lock their work.", FALSE
+"engineering", "CONFIRMS", "effective date", "engineering confirms by Friday whether effective date is a discrete build field.", TRUE
+"engineering", "CONFIRMS", "effective date", "engineering confirms whether the before-after is fixed in build by Friday.", FALSE
+"engineering", "CONFIRMS", "effective date", "engineering confirms whether the effective date is fixed in build by Friday.", FALSE
+"engineering", "REQUIRES", "effective date", "engineering requires the decision log to be maintained for audit purposes.", FALSE
+"engineering", "REQUIRES", "effective date", "engineering requires the effective date to be stored only in the decision log.", FALSE
+"engineering", "STORES", "effective date", "engineering stores the effective date only in the decision log.", FALSE
+"engineering", "USES", "effective date", "engineering uses the build field for storing effective date.", FALSE
+"engineering", "REQUIRES", "effective date", "engineering requires the effective date to be locked before validation.", FALSE
+"engineering", "USES", "effective date", "engineering uses the decision log for storing effective date.", FALSE
+"Data Engineering", "REQUIRES", "effective date", "Data Engineering requires the build field to be populated before validation.", FALSE
+"engineering", "REQUIRES", "effective date", "engineering requires the effective date to be stored in the build field.", FALSE
+"engineering", "STORES", "effective date", "engineering stores the effective date in the build field.", FALSE
+"engineering", "CONFIRMS", "effective date", "Engineering must confirm the effective date in the build by Friday.", TRUE
+"Data Engineering", "HAS", "effective date", "Data Engineering will confirm the approval timestamp in SharePoint by Friday.", FALSE
+"engineering", "CONFIRMS", "effective date", "Engineering will confirm whether effective date is a discrete build field or log-only by Friday.", TRUE
+"SAR Reporting Requirements", "REQUIRES_INPUT_FROM", "engineering", "The SAR Reporting Requirements phase requires input from engineering.", FALSE
+"SAR Reporting Requirements", "REQUIRES_CONFIRMATION_FROM", "engineering", "Engineering must confirm which updated guidance items change the exception-handling rules in the SAR Reporting Requirements specification.", FALSE
+"engineering", "HAS", "engineering", "The five fields must have a hard confirm on build status by Friday.", TRUE
+"engineering", "CONFIRMS", "engineering", "engineering must provide a hard confirm on build status for those five fields by Friday.", TRUE
+"Data Engineering", "ADDS", "escalation", "Data Engineering adds the impacted-field list and draft update to the model_feature_engineering_spec.", FALSE
+"routing", "SEPARATED_BY", "escalation", "Logic, routing, and escalation are to be separated as distinct fields.", FALSE
+"logic", "SEPARATED_BY", "escalation", "Logic, routing, and escalation are to be separated as distinct fields.", FALSE
+"queue-ready", "REQUIRES", "escalation", "The queue-ready status requires a stable escalation.", FALSE
+"queue-ready", "REQUIRES", "escalation", "Queue-ready requires escalation.", FALSE
+"high-risk patterns", "PROTECTS", "escalation consistency", "Prioritizing high-risk corridors protects escalation consistency.", FALSE
+"Risk: Inconsistent KYC Records", "IMPACTS", "escalation consistency", "Inconsistent KYC records impact escalation consistency.", FALSE
+"high-risk patterns", "HAS_TAG", "escalation points", "High-risk items have escalation tags.", FALSE
+"Incomplete Regulatory Coverage", "IS_ISOLATED_BY", "escalation points", "Coverage gaps are isolated by escalation tags.", FALSE
+"Model Risk", "CONFIRMS", "escalation points", "Operations confirms the escalation points by Friday.", TRUE
+"escalation points", "OWNED_BY", "escalation points", "Leadership is not required to lock escalation points now.", FALSE
+"http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec", "VALIDATES_AGAINST_SCENARIOS", "escalation rules", "The Investigation Workflow Definition validates against escalation scenarios using the specification at http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec.", FALSE
+"unmapped values", "ROUTED_TO", "escalation rules", "Unmapped cases in the exception routing fallback are escalated.", FALSE
+"Data Engineering", "MAINTAINS", "escalation rules", "Data Engineering is maintaining the escalation logic.", FALSE
+"Incomplete Regulatory Coverage", "HAS_MISSING_JURISDICTIONS", "escalation rules", "Regulatory coverage has outstanding jurisdictions.", FALSE
+"DataOwner", "DEFINES", "evidence fields", "Compliance defines the override evidence fields this week", TRUE
+"evidence fields", "REQUIRED_FOR", "evidence fields", "The evidence bundle is required only for verified overrides.", TRUE
+"Investigation Workflow Definition Spec", "HAS_ESCALATION_MODEL", "evidence fields", "Investigation Workflow Definition has two escalation models under consideration: a single escalation route for all exceptions, or a split by risk tier with explicit owner handoffs for AML, Operations, and Legal.", FALSE
+"SAR Reporting Requirements", "REQUIRES", "evidence fields", "SAR Reporting Requirements requires override handling.", FALSE
+"Legal/Risk", "BRINGS", "exam-readiness concerns", "Legal must bring exam-readiness concerns to the working session.", FALSE
+"exception trail", "REQUIRES", "exception trail", "The SharePoint trail requires Compliance review for typology-update exceptions.", FALSE
+"typology updates", "REQUIRES", "exception trail", "Typology-update exceptions require a separate approval path.", FALSE
+"manual review queues", "TRIGGERS_AUTO_ESCALATION", "exception-fallback SLA", "Auto-escalation for manual review occurs only after a breach trigger.", FALSE
+"hold state", "TRIGGERS_AUTO_ESCALATION_AFTER", "exception-fallback SLA", "The manual review hold state triggers auto-escalation only after an SLA breach.", FALSE
+"exclusion handling", "HAS_ATTRIBUTE", "exceptions", "The exclusion path for Phase 2 patterns must include reason code.", FALSE
+"SharePoint", "HOSTS", "exclusion handling", "The exclusion path for Phase 2 patterns is to be added in SharePoint.", FALSE
+"Data Engineering", "ADD", "exclusion handling", "Compliance and Data Engineering are to add a separate exclusion path for Phase 2 patterns.", FALSE
+"Data Engineering", "LAYS_OUT", "exclusion handling", "Data Engineering lays out the exception mechanics by Friday.", TRUE
+"http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec", "CONTAINS", "exclusion handling", "The investigation workflow definition spec contains the controlled value set.", FALSE
+"Model Risk", "CONFIRMS", "exclusion handling", "Operations confirms the controlled list by Friday.", TRUE
+"immediate review", "INCLUDES", "experimental candidates", "The core list includes tracked candidates.", FALSE
+"Model Feature Engineering", "INCLUDES", "experimental candidates", "Feature engineering includes experimental candidates.", FALSE
+"owner", "HAS", "expiry date", "The fallback register has one expiry.", FALSE
+"expiry date", "HAS_ATTRIBUTE", "expiry date", "The fallback inventory has a typology gap.", FALSE
+"low-risk gaps", "INCLUDED_IN", "expiry date", "The low-risk gaps are included in the fallback inventory.", FALSE
+"expiry date", "HAS_ATTRIBUTE", "expiry date", "The fallback inventory has an expiry.", FALSE
+"high-risk patterns", "INCLUDED_IN", "expiry date", "The high-risk patterns are included in the fallback inventory.", FALSE
+"Data Engineering", "CONFIRMS", "fallback options", "Data Engineering confirms fallback options for approved inputs, experimental candidates, and blocked fields with known quality gaps.", FALSE
+"Model Feature Engineering", "RISK", "feature scope", "Feature engineering risks feature stability.", FALSE
+"SAR Reporting Requirements", "HANDLES", "feature scope", "SAR Reporting Requirements handles late-arriving transactions.", FALSE
+"Legal/Risk", "BRINGS", "filing criteria", "Legal must bring filing criteria to the working session.", FALSE
+"Incomplete Regulatory Coverage", "HAS_MISSING_CONTROL_MAPPINGS", "first pass", "Regulatory coverage has missing control mappings.", FALSE
+"owner", "MIRRORS", "frozen matrix", "Reporting mirror the exact wording before QA locks mappings", FALSE
+"Data Engineering", "POSTS", "frozen matrix", "Data Engineering posts the timestamped matrix.", FALSE
+"SAR Reporting Requirements", "HAS_DEFINITION_FOR", "full audit trail on source and last update", "SAR Reporting Requirements has definition for mandatory vs conditional fields.", FALSE
+"risk-first route", "LEADS_TO", "full rule-to-jurisdiction mapping", "The risk-first route leads to full rule-to-jurisdiction mapping.", FALSE
+"transaction patterns", "MAPS_TO", "full rule-to-jurisdiction mapping", "Transaction types map to full rule-to-jurisdiction mapping.", FALSE
+"jurisdictions", "MAPS_TO", "full rule-to-jurisdiction mapping", "Jurisdictions map to full rule-to-jurisdiction mapping.", FALSE
+"gaps turning into rework or compliance issues", "HAS_LINEAGE", "gaps turning into rework or compliance issues", "Field-level source definitions have source-system lineage attached.", FALSE
+"engineering", "OWNERSHIP", "golden record", "engineering owns the golden record rule.", FALSE
+"Model Risk", "CONFIRMS", "golden record", "Model Risk must confirm the golden record rule.", FALSE
+"DataOwner", "OWNS", "golden record", "DataOwner owns the golden record rule.", TRUE
+"DataOwner", "LOCKS", "golden record", "DataOwner must lock the golden record rule from the spec.", FALSE
+"Model Risk", "CONFIRMS", "hard-stop validation", "Model Risk must confirm the hard-stop rule for nulls.", FALSE
+"engineering", "OWNERSHIP", "hard-stop validation", "engineering owns the hard-stop rule for nulls.", FALSE
+"DataOwner", "OWNS", "hard-stop validation", "DataOwner owns the hard-stop rule for nulls.", FALSE
+"breakpoints by source", "DEPENDS_ON", "hard-stop validation", "The hard-stop rule for nulls depends on confirming the source hierarchy.", FALSE
+"intake", "DEPENDS_ON", "high-risk patterns", "New higher-risk patterns depend on source-field inconsistencies.", FALSE
+"queue-ready", "DEPENDS_ON", "high-risk patterns", "Queue-readiness depends on high-risk items.", FALSE
+"queue owner", "IMPACTED_BY", "high-risk patterns", "Review queues will feel the impact fastest if high-risk jurisdictions are not locked first.", FALSE
+"onboarding breakpoints", "IMPACTED_BY", "high-risk patterns", "Client onboarding will feel the impact fastest if high-risk jurisdictions are not locked first.", FALSE
+"http://sharepoint/aml_(anti-money_laundering)_project/model_feature_engineering_spec", "INCLUDES", "high-risk patterns", "The model_feature_engineering_spec must include high-risk typologies in scope.", FALSE
+"Legal/Risk", "PROVIDES_INPUT_ON", "high-risk patterns", "Legal provides input on priority jurisdictions for high-risk corridors.", FALSE
+"risk-first route", "PRIORITIZES", "high-risk patterns", "The risk-first route prioritizes high-risk corridors.", FALSE
+"data validation rules", "APPLIES_TO", "high-risk segments", "Data validation rules apply to the highest-risk customer segments.", FALSE
+"reconciliation rule", "APPLIES_TO", "high-risk segments", "Record reconciliation applies to the highest-risk customer segments.", FALSE
+"SAR Reporting Requirements", "LOGS", "high-risk segments", "SAR Reporting Requirements logs manual overrides.", FALSE
+"Model Feature Engineering", "PRIORITIZES", "highest-value items", "Model Feature Engineering prioritizes the highest-value items for early validation.", FALSE
+"Data Engineering", "CONFIRMS", "historical coverage cutoff", "Data Engineering is expected to confirm historical coverage before Friday.", TRUE
+"manual review queues", "DEPENDS_ON", "hold state", "The manual review hold state depends on a hold-state timer.", FALSE
+"hold state", "HAS_HOLD_STATE", "hold state", "unmapped items are placed in a manual review hold state.", FALSE
+"unmapped values", "ROUTED_TO", "hold state", "Unmapped cases in the exception routing fallback are held in state.", FALSE
+"Investigation Workflow Definition Spec", "REFERS_TO", "http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec", "The Investigation Workflow Definition Spec refers to the document at http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec.", FALSE
+"hold state", "DEFINED_IN", "http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec", "The hold-state timer and breach trigger are defined in the investigation workflow definition specification at http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec.", FALSE
+"SAR Reporting Requirements", "HAS_OPTION", "http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec", "SAR Reporting Requirements has option B: start with edge-case scenarios and audit trail checks upfront.", FALSE
+"Investigation Workflow Definition Spec", "HAS_ESCALATION_MODEL", "http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec", "Investigation Workflow Definition has two escalation models under consideration: a single escalation route for all exceptions, or a split by risk tier with explicit owner handoffs for AML, Operations, and Legal.", FALSE
+"Client Services", "SHOULD_WAIT_UNTIL", "http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec", "Client Services should wait until the handoff rules are settled before pressure-testing triage paths.", FALSE
+"exclusion handling", "IS_LOCKED_IN", "http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec", "The controlled value set is locked in the investigation workflow definition spec.", FALSE
+"Investigation Workflow Definition Spec", "STRESS_TESTED", "http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec", "The Investigation Workflow Definition spec will be stress-tested during a working session.", FALSE
+"Investigation Workflow Definition Spec", "USES_AS_WORKING_REFERENCE", "http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec", "Investigation Workflow Definition is using the spec at http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec as the working reference.", FALSE
+"transaction patterns", "POSTS_BLOCKERS_IN", "http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec", "Reporting posts blockers in http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec.", FALSE
+"transaction patterns", "CONFIRMS_STATUS_DEFINITIONS_IN", "http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec", "Reporting confirms status definitions in http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec.", FALSE
+"http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec", "HAS_SPEC", "http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec", "The Investigation Workflow Definition has a specification document located at http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec.", FALSE
+"http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec", "USES_SPEC_FOR_VALIDATION", "http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec", "The Investigation Workflow Definition uses the specification at http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec to validate escalation scenarios and real investigator handoffs.", FALSE
+"cutoff approval", "REFERS_TO", "http://sharepoint/aml_(anti-money_laundering)_project/model_feature_engineering_spec", "The cutoff owner must be confirmed in the model feature engineering specification on SharePoint by Friday.", FALSE
+"backup approver path", "REFERS_TO", "http://sharepoint/aml_(anti-money_laundering)_project/model_feature_engineering_spec", "The backup owner should be included in the model feature engineering specification on SharePoint.", FALSE
+"engineering", "POSTS", "http://sharepoint/aml_(anti-money_laundering)_project/model_feature_engineering_spec", "Engineering will post the mechanics and named approvers in the model_feature_engineering_spec SharePoint document by Friday.", TRUE
+"Model Risk", "POSTS", "http://sharepoint/aml_(anti-money_laundering)_project/model_feature_engineering_spec", "Model Risk will post the mechanics and named approvers in the model_feature_engineering_spec SharePoint document by Friday.", TRUE
+"Data Engineering", "POSTS", "http://sharepoint/aml_(anti-money_laundering)_project/model_feature_engineering_spec", "Data Engineering will post the mechanics and named approvers in the model_feature_engineering_spec SharePoint document by Friday.", TRUE
+"engineering", "REQUIRES_REVIEW", "http://sharepoint/aml_(anti-money_laundering)_project/model_feature_engineering_spec", "engineering must confirm the audit-trail fields are frozen in the build by Friday for the model_feature_engineering_spec.", TRUE
+"Model Feature Engineering", "USES", "http://sharepoint/aml_(anti-money_laundering)_project/model_feature_engineering_spec", "Model Feature Engineering uses the working spec located at http://sharepoint/aml_(anti-money_laundering)_project/model_feature_engineering_spec.", FALSE
+"Model Feature Engineering", "MAPPED_AGAINST", "http://sharepoint/aml_(anti-money_laundering)_project/model_feature_engineering_spec", "Model Feature Engineering is being mapped against alert quality, explainability, and the spec.", FALSE
+"Model Feature Engineering", "REFERS_TO", "http://sharepoint/aml_(anti-money_laundering)_project/model_feature_engineering_spec", "The Model Feature Engineering phase requires review of the spec at http://sharepoint/aml_(anti-money_laundering)_project/model_feature_engineering_spec.", FALSE
+"SAR Reporting Requirements", "HAS_SPEC", "http://sharepoint/aml_(anti-money_laundering)_project/sar_reporting_requirements_spec", "SAR Reporting Requirements is now 19% in, and I want to lock down the reporting logic early! Can Legal, Ops, and Data review the spec at http://sharepoint/aml_(anti-money_laundering)_project/sar_reporting_requirements_spec and flag any gaps in filing criteria, source-data mapping, or audit trail expectations?", FALSE
+"Model Risk", "CONFIRMS_APPROVER_IN_WRITING", "http://sharepoint/aml_(anti-money_laundering)_project/sar_reporting_requirements_spec", "Model Risk will confirm the cutoff approver name in writing for the SAR Reporting Requirements specification by Friday.", TRUE
+"Data Engineering", "POSTS_TO", "http://sharepoint/aml_(anti-money_laundering)_project/sar_reporting_requirements_spec", "Data Engineering will post the bundle including backup owner, record location, approval timestamp, and reason code to the SAR Reporting Requirements specification in SharePoint by Friday.", TRUE
+"regulatory-critical", "REQUIRES_REVIEW_OF", "http://sharepoint/aml_(anti-money_laundering)_project/sar_reporting_requirements_spec", "Legal must confirm whether the mapping in http://sharepoint/aml_(anti-money_laundering)_project/sar_reporting_requirements_spec needs a refresh before locking down.", FALSE
+"regulatory-critical", "REQUIRES_REVIEW_OF", "http://sharepoint/aml_(anti-money_laundering)_project/sar_reporting_requirements_spec", "Risk must confirm whether the mapping in http://sharepoint/aml_(anti-money_laundering)_project/sar_reporting_requirements_spec needs a refresh before locking down.", FALSE
+"SAR Reporting Requirements", "USES_AS_WORKING_REFERENCE", "http://sharepoint/aml_(anti-money_laundering)_project/sar_reporting_requirements_spec", "SAR Reporting Requirements is using the spec at http://sharepoint/aml_(anti-money_laundering)_project/sar_reporting_requirements_spec as the working reference.", FALSE
+"pending items", "IS_CALLED_OUT_AGAINST", "http://sharepoint/aml_(anti-money_laundering)_project/sar_reporting_requirements_spec", "Pending items are called out explicitly against the SAR reporting requirements spec.", FALSE
+"frozen matrix", "IS_LOCKED_IN", "http://sharepoint/aml_(anti-money_laundering)_project/sar_reporting_requirements_spec", "The frozen matrix is locked in the SAR reporting requirements spec.", FALSE
+"SAR Reporting Requirements", "USES_SPEC", "http://sharepoint/aml_(anti-money_laundering)_project/sar_reporting_requirements_spec", "SAR Reporting Requirements uses the specification at http://sharepoint/aml_(anti-money_laundering)_project/sar_reporting_requirements_spec.", FALSE
+"SharePoint", "HOSTS", "http://sharepoint/aml_(anti-money_laundering)_project/sar_reporting_requirements_spec", "SharePoint hosts the SAR reporting requirements spec.", FALSE
+"SAR Reporting Requirements", "HAS_SPEC", "http://sharepoint/aml_(anti-money_laundering)_project/sar_reporting_requirements_spec", "The SAR Reporting Requirements phase has a spec located at http://sharepoint/aml_(anti-money_laundering)_project/sar_reporting_requirements_spec.", FALSE
+"intake", "MUST_BE_CLEANED_BEFORE", "immediate review", "Source-field inconsistencies must be cleaned before the core list is frozen.", FALSE
+"no expiry", "TRIGGERS", "immediate review", "A high-risk row with no expiry triggers immediate review.", FALSE
+"high-risk patterns", "TRIGGERS", "immediate review", "A high-risk row with no owner, no expiry, or unclear regulatory mapping triggers immediate review.", FALSE
+"no owner", "TRIGGERS", "immediate review", "A high-risk row with no owner triggers immediate review.", FALSE
+"unclear regulatory mapping", "TRIGGERS", "immediate review", "A high-risk row with unclear regulatory mapping triggers immediate review.", FALSE
+"Phase 2", "EXCLUDES", "initial feature list", "Phase 2 excludes the initial feature list unless Compliance flags them as high-risk.", FALSE
+"intake", "CAUSED_BY", "intake", "The source records are caused by process drift.", FALSE
+"intake", "CAUSED_BY", "intake", "The source records are caused by bad source data.", FALSE
+"hard-stop validation", "DEPENDS_ON", "intake", "nulls hard-stop on July 17 mandatory fields, but only after Data labels intake miss vs sync failure.", FALSE
+"effective date", "NOT_STORED_IN", "intake", "The effective date is not stored in the build fields, only in the decision log.", FALSE
+"engineering", "MAKES_EXPLICIT", "intake", "engineering must make the controlled value set explicit in the spec with a single owner and spec note by Friday.", TRUE
+"engineering", "OWNERSHIP", "intake", "engineering owns the controlled value set.", FALSE
+"engineering", "CONFIRMS_OWNER", "intake", "engineering must confirm the owner of the controlled value set by Friday.", TRUE
+"Model Risk", "CONFIRMS", "intake", "Model Risk must confirm the controlled value set.", FALSE
+"cleanup queue", "HAS_INTAKE_RULES", "intake", "The remediation queue must have its intake rules confirmed by Friday.", TRUE
+"legacy-migration", "HAS_INTAKE_RULES", "intake", "The legacy remediation queue has intake rules.", FALSE
+"engineering", "POSTS", "jurisdictions", "engineering posts the row-level matrix by Thursday with field ID, owner, approval date, retrieval path, and build-gap vs approved-fallback status.", FALSE
+"Legal/Risk", "BLESSES", "jurisdictions", "Legal blesses jurisdiction-specific threshold changes.", FALSE
+"exclusion handling", "HAS_MAPPING_NOTE", "jurisdictions", "The controlled value set has a mapping note.", FALSE
+"http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec", "CONTAINS", "jurisdictions", "The investigation workflow definition spec contains the mapping note.", FALSE
+"engineering", "CONFIRMS", "log-only", "engineering confirms whether before/after values are log-only.", FALSE
+"log-only", "STAYS", "log-only", "Citation stays log-only unless Legal signs off on the final wording.", FALSE
+"engineering", "CONFIRMS", "log-only", "engineering confirms whether the citation is fixed in build by Friday.", FALSE
+"effective date", "IS_STORED_AS", "log-only", "effective date is stored as log-only if not a discrete build field.", FALSE
+"owner", "IS_STORED_AS", "log-only", "owner is stored as log-only if not a discrete build field.", FALSE
+"blocker flags", "IS_STORED_AS", "log-only", "citation is stored as log-only if not a discrete build field.", FALSE
+"Incomplete Regulatory Coverage", "IS_ISOLATED_BY", "logic", "Coverage gaps are isolated by logic.", FALSE
+"high-risk patterns", "HAS_TAG", "logic", "High-risk items have logic tags.", FALSE
+"engineering", "TAGS", "logic", "engineering tags the gap owner on every open row.", FALSE
+"queue-ready", "REQUIRES", "logic", "The queue-ready status requires a stable logic.", FALSE
+"queue-ready", "REQUIRES", "logic", "Queue-ready requires logic.", FALSE
+"SAR Reporting Requirements", "VALIDATES_AGAINST", "low-risk gaps", "SAR Reporting Requirements validates against audit trail checks.", FALSE
+"unmapped values", "ENTERS", "manual review queues", "Unmapped items enter a manual review hold state.", FALSE
+"unmapped values", "RESIDES_IN", "manual review queues", "Unmapped cases may sit in manual review until resolved.", FALSE
+"unmapped values", "ROUTED_TO", "manual review queues", "Unmapped cases in the exception routing fallback route to manual review.", FALSE
+"temporary control outside the model", "REQUIRES", "manual review queues", "A temporary control requires manual review until Legal/Risk blesses it.", FALSE
+"newer transaction patterns", "HAS_FALLBACK", "manual review queues", "The current fallback for newer transaction patterns is manual review queues.", FALSE
+"partial-match", "REQUIRES", "manual triage step", "Partial-match and overwritten cases require a manual triage step.", FALSE
+"minimum evidence pack", "INCLUDES", "minimum evidence pack", "The minimum evidence set includes rationale.", FALSE
+"minimum evidence pack", "INCLUDES", "minimum evidence pack", "The minimum evidence set includes an immutable decision log.", FALSE
+"minimum evidence pack", "INCLUDES", "minimum evidence pack", "The minimum evidence set includes a linked spec citation.", FALSE
+"Legal/Risk", "NAMES", "minimum evidence pack", "Legal should name the minimum evidence set today.", FALSE
+"DataOwner", "TAGS_BEFORE", "minimum evidence pack", "DataOwner must tag before Ops can code the two paths, which requires evidence bundle.", FALSE
+"CDD tuning", "REQUIRES", "minimum evidence pack", "The CDD flow requires evidence for overrides.", FALSE
+"Data Engineering", "CONFIRMS", "missing fields", "Data Engineering is expected to confirm any missing fields before Friday.", TRUE
+"current feature set with tighter thresholds", "ALTERNATIVE_TO", "new inputs for higher-risk transaction patterns", "The current feature set with tighter thresholds is an alternative to adding new inputs for higher-risk transaction patterns.", FALSE
+"blocked fields with known quality gaps", "DEPENDS_ON", "newer transaction patterns", "Newer inputs depend on unstable fields.", FALSE
+"build", "IS_CAUSED_BY", "newer transaction patterns", "Audit mess is caused by newer inputs.", FALSE
+"breakpoints by source", "HANDS_OFF", "newer transaction patterns", "The triage path includes source system breakpoints, then handoff exceptions, then manual overrides.", FALSE
+"newer transaction patterns", "HANDS_OFF", "newer transaction patterns", "The triage path includes source system breakpoints, then handoff exceptions, then manual overrides.", FALSE
+"Legal/Risk", "RANKS", "nice-to-have", "Legal/Risk can help rank which patterns are nice-to-have.", FALSE
+"CDD records", "HAS_ISSUE_WITH", "onboarding breakpoints", "Onboarding is involved in the issue with CDD records having missing or mismatched KYC fields.", FALSE
+"SAR Reporting Requirements", "DEPENDS_ON", "onboarding breakpoints", "SAR Reporting Requirements depends on threshold changes.", FALSE
+"DataOwner", "SHOULD_FLAG", "onboarding breakpoints", "DataOwner should flag onboarding breakpoints related to legacy-migration and onboarding exceptions.", FALSE
+"legacy-migration", "HAS_BREAKPOINTS", "onboarding breakpoints", "Legacy-migration has onboarding breakpoints.", FALSE
+"backup approver path", "HAS", "one owner", "The backup owner is a secondary owner alongside the primary owner.", FALSE
+"engineering", "CONFIRMS", "one owner", "Engineering must confirm the fixed owner in the build by Friday.", TRUE
+"Data Engineering", "CONFIRMS", "one owner", "Data Engineering is confirming the approval owner.", TRUE
+"exclusion handling", "HAS", "one owner", "The controlled code set has explicit owner/versioning.", FALSE
+"owner", "HAS", "one owner", "The fallback register has one owner.", FALSE
+"engineering", "CONFIRMS", "overwritten records", "Engineering will confirm whether before/after is a discrete build field or log-only by Friday.", TRUE
+"engineering", "CONFIRMS", "overwritten records", "Engineering must confirm the before/after values in the build by Friday.", TRUE
+"intake", "INCLUDES", "overwritten records", "Mismatches include nulls, partial matches, and overwritten fields.", FALSE
+"Investigation Workflow Definition Spec", "REQUIRES", "overwritten records", "The investigation_workflow_definition_spec requires one approved value set plus a mapping note before workflow freeze.", FALSE
+"expiry date", "LOGS_WHO_WHAT_CHANGED_IT", "overwritten records", "Manual overrides are logged with who/what changed it.", FALSE
+"lifecycle updates", "LOGS_WHO_WHAT_CHANGED_IT", "overwritten records", "Late-arriving transactions are logged with who/what changed it.", FALSE
+"DataOwner", "SHOULD_COUNT", "overwritten records", "DataOwner should count overwritten records by segment.", FALSE
+"rule exceptions", "HAS_OWNER", "owner", "Threshold changes have one owner.", FALSE
+"minimum evidence pack", "INCLUDES", "owner", "The minimum evidence set includes owner.", FALSE
+"exclusion handling", "HAS_ATTRIBUTE", "owner", "The exclusion path for Phase 2 patterns must include owner.", FALSE
+"Data Engineering", "NAMES", "owner", "Data Engineering names the owner.", FALSE
+"engineering", "INCLUDES_IN", "owner", "engineering includes approval date in the row-level matrix.", FALSE
+"engineering", "INCLUDES_IN", "owner", "engineering includes owner in the row-level matrix.", FALSE
+"engineering", "CONFIRMS", "owner", "engineering confirms by Friday whether owner is a discrete build field.", TRUE
+"Legal/Risk", "NAMES", "owner", "Legal should name the fallback owner today.", FALSE
+"engineering", "CONFIRMS", "owner", "engineering confirms whether the owner is fixed in build by Friday.", FALSE
+"legacy-migration", "HAS_OWNER", "owner", "The legacy remediation queue has an owner.", TRUE
+"doc standards", "HAS_OWNER", "owner", "Missing coverage items have an owner.", FALSE
+"expiry date", "HAS_ATTRIBUTE", "owner", "The fallback inventory has an owner.", FALSE
+"Model Risk", "CONFIRMS", "owner", "Model Risk confirms the cutoff owner by Friday.", TRUE
+"Legal/Risk", "TAGS_CRITICAL_ROWS_IN", "owner", "Legal/Risk is responsible for tagging critical rows in the register.", FALSE
+"Model Risk", "CONFIRMS", "owner", "Operations confirms the queue-ready patterns by Wednesday.", TRUE
+"Legal/Risk", "TAGS", "owner", "Legal tags critical rows in the fallback register.", FALSE
+"Regulatory Compliance Program", "USED", "owner", "The Regulatory Compliance Program used a fallback register with one owner, one expiry, and one risk rating.", FALSE
+"Data Engineering", "CONFIRMS", "owner", "Data Engineering confirms owners for approved inputs, experimental candidates, and blocked fields with known quality gaps.", FALSE
+"Data Engineering", "MAINTAINS", "owner", "Data Engineering is maintaining the decision log.", FALSE
+"engineering", "CONFIRMS", "owner", "Engineering will confirm whether owner is a discrete build field or log-only by Friday.", TRUE
+"exception trail", "HAS_ATTRIBUTE", "owner", "signed decision log has approver.", FALSE
+"expiry date", "LOGS_EVENT_TYPE", "ownership changes", "Manual overrides are logged with an event type.", FALSE
+"lifecycle updates", "LOGS_EVENT_TYPE", "ownership changes", "Late-arriving transactions are logged with an event type.", FALSE
+"intake", "INCLUDES", "partial-match", "Mismatches include nulls, partial matches, and overwritten fields.", FALSE
+"rule exceptions", "HAS_OWNER", "partial-match", "Threshold changes have a change-control owner.", FALSE
+"rule exceptions", "HAS_OWNER", "partial-match", "Threshold changes have a decision owner.", FALSE
+"owner", "HAS_OWNER", "partial-match", "The exclusion log has a change-control owner.", FALSE
+"Detected", "HAS_OWNER", "partial-match", "The high-risk segment cutoff has a decision owner.", FALSE
+"DataOwner", "SHOULD_COUNT", "partial-match", "DataOwner should count partial-match records by segment.", FALSE
+"Data Engineering", "POSTS", "pending items", "Data Engineering posts the separate gap list.", FALSE
+"SAR Reporting Requirements", "REQUIRES", "policy constraints", "SAR Reporting Requirements requires a control decision to be confirmed by EOD tomorrow.", TRUE
+"Data Engineering", "OWNS", "policy constraints", "DE owns the exclusion log mechanics.", FALSE
+"engineering", "CONFIRMS", "queue owner", "DE confirms the timestamp/reason-code owner in writing by Friday.", TRUE
+"manual review queues", "HOLDS_IF", "queue-ready", "Manual fallback holds if any of logic, routing, or escalation is missing from queue-ready.", FALSE
+"Rules Config", "LOCKED_BEFORE", "regulator clarification", "The field matrix must be locked before open rule decisions are made.", FALSE
+"Legal/Risk", "RANKS", "regulatory-critical", "Legal/Risk can help rank which patterns are regulatory-critical.", FALSE
+"owner", "HAS", "risk rating", "The fallback register has one risk rating.", FALSE
+"Legal/Risk", "TAGS", "risk-first route", "Legal tags only the regulatory-critical rows.", FALSE
+"Legal/Risk", "TAGS", "risk-first route", "Risk tags only the regulatory-critical rows.", FALSE
+"Legal/Risk", "TAGS", "risk-first route", "Legal tags the must-monitor corridors with regional exceptions that change scope.", FALSE
+"high-risk segments", "GUIDES", "risk-first route", "The risk-first route guides focus on the highest-risk customer segments.", FALSE
+"Incomplete Regulatory Coverage", "IS_ISOLATED_BY", "routing", "Coverage gaps are isolated by routing.", FALSE
+"high-risk patterns", "HAS_TAG", "routing", "High-risk items have routing tags.", FALSE
+"queue-ready", "REQUIRES", "routing", "The queue-ready status requires a stable routing.", FALSE
+"logic", "SEPARATED_BY", "routing", "Logic, routing, and escalation are to be separated as distinct fields.", FALSE
+"queue-ready", "REQUIRES", "routing", "Queue-ready requires routing.", FALSE
+"engineering", "CONFIRMS", "routing rules", "engineering must confirm the formal requirements checkpoint.", FALSE
+"Model Risk", "CONFIRMS", "routing rules", "Operations confirms the review checkpoints by Friday.", TRUE
+"engineering", "INCLUDES_IN", "rule exceptions", "engineering includes build-gap vs approved-fallback status in the row-level matrix.", FALSE
+"Data Engineering", "HAS", "rule exceptions", "Data Engineering will confirm the named cutoff owner in SharePoint by Friday.", TRUE
+"Data Engineering", "MAINTAINS", "rule exceptions", "Data Engineering is maintaining the threshold changes.", FALSE
+"jurisdictions", "SIGNS", "rule exceptions", "Legal signs the exception rule.", FALSE
+"Model Risk", "CONFIRMS", "rule exceptions", "Model Risk must confirm the exception rules before the field matrix is frozen.", FALSE
+"Model Risk", "CONFIRMS", "rule exceptions", "Model Risk must confirm the cutoff approver and threshold changes.", FALSE
+"jurisdictions", "USES", "rule exceptions", "jurisdiction-specific fields use a decision log for every threshold/exception change with owner, date, and rationale.", FALSE
+"Model Risk", "CONFIRMS", "rule exceptions", "Operations confirms the ownership by Friday.", TRUE
+"regulator clarification", "DEPENDS_ON", "rule exceptions", "The exception rules depend on the regulator clarification being frozen.", FALSE
+"newer transaction patterns", "HAS_FALLBACK", "rule exceptions", "The current fallback for newer transaction patterns is rule exceptions.", FALSE
+"Model Risk", "CONFIRMS_ALIGNMENT_WITH", "scoring approach", "Model Risk confirms alignment between the feature set and updated scoring logic.", FALSE
+"http://sharepoint/aml_(anti-money_laundering)_project/model_feature_engineering_spec", "DOCUMENTS", "scoring approach", "The scoring approach must be reviewed against the specification at http://sharepoint/aml_(anti-money_laundering)_project/model_feature_engineering_spec.", FALSE
+"Model Feature Engineering", "HAS_OPTION", "scoring approach", "The feature engineering process has two options for the scoring approach: keeping the current feature set with tighter thresholds or adding new inputs for higher-risk transaction patterns.", FALSE
+"legacy-migration", "HAS_SLA", "sla hooks", "The legacy remediation queue has an SLA.", TRUE
+"DataOwner", "TAGS", "source-control rules", "DataOwner tags a small sample by Friday", TRUE
+"Data Engineering", "WRITES", "source-control rules", "Data Engineering is writing the source-control rules.", FALSE
+"case-to-field logic", "DEPENDS_ON", "suspicious activity case flow", "The case-to-field logic depends on the suspicious activity case flow, especially for anything tied to it.", FALSE
+"engineering", "CONFIRMS", "swap recorder", "Engineering will confirm whether reason is a discrete build field or log-only by Friday.", TRUE
+"Data Engineering", "CONFIRMS", "swap recorder", "DE confirms the swap recorder.", FALSE
+"SAR Reporting Requirements", "HAS_OPTION", "temporary control outside the model", "SAR Reporting Requirements has option A: validate the spec against current automated outputs first.", FALSE
+"newer transaction patterns", "HAS_FALLBACK", "temporary control outside the model", "The current fallback for newer transaction patterns is a temporary control outside the model.", FALSE
+"http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec", "HAS_SEVERITY_THRESHOLDS", "threshold tuning", "The Investigation Workflow Definition includes severity thresholds that affect routing, evidence capture, and downstream compliance timing.", FALSE
+"http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec", "HAS_THRESHOLD_CHANGE_IMPACT", "threshold tuning", "Changes to the severity thresholds in the Investigation Workflow Definition affect routing, evidence capture, and downstream compliance timing.", FALSE
+"full rule-to-jurisdiction mapping", "FOLLOWS", "threshold tuning", "Full rule-to-jurisdiction mapping follows threshold tuning.", FALSE
+"full rule-to-jurisdiction mapping", "PRECEDES", "threshold tuning", "Full rule-to-jurisdiction mapping precedes threshold tuning.", FALSE
+"CDD records", "REFERENCED_IN", "tighter review path", "The CDD records issue is documented in the risk:_inconsistent_kyc_records_spec specification.", FALSE
+"http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec", "REFERENCED_IN", "tighter review path", "The Investigation Workflow Definition specification is referenced in the risk:_inconsistent_kyc_records_spec document.", FALSE
+"Risk: Inconsistent KYC Records", "HAS_SPECIFICATION", "tighter review path", "The inconsistent KYC records issue is documented in the risk:_inconsistent_kyc_records_spec specification.", FALSE
+"Model Feature Engineering", "MAPPED_AGAINST", "tighter review path", "Model Feature Engineering is being mapped against alert quality, explainability, and the spec.", FALSE
+"exclusion handling", "HAS_ATTRIBUTE", "timestamps", "The exclusion path for Phase 2 patterns must include timestamp.", FALSE
+"high-risk patterns", "GENERATES", "timestamps", "New higher-risk patterns generate noise.", FALSE
+"backup approver path", "ASSOCIATED_WITH", "timestamps", "The backup owner is associated with a timestamp.", FALSE
+"exception trail", "HAS_ATTRIBUTE", "timestamps", "signed decision log has immutable timestamps.", FALSE
+"engineering", "CONFIRMS", "timestamps", "Engineering will confirm whether timestamp is a discrete build field or log-only by Friday.", TRUE
+"engineering", "CONFIRMS", "timestamps", "Engineering must confirm the timestamp in the build by Friday.", TRUE
+"CDD tuning", "REQUIRES", "timestamps", "The CDD flow requires timestamp for overrides.", FALSE
+"downstream dependencies", "HAS", "top five candidate features", "The top five candidate features have downstream dependencies associated with them.", FALSE
+"expected lift", "HAS", "top five candidate features", "The top five candidate features have an expected lift associated with them.", FALSE
+"Model Risk", "PARTICIPATES_IN", "transaction history", "Operations participates in the working session.", FALSE
+"Model Feature Engineering", "DEPENDS_ON", "transaction history", "The Model Feature Engineering phase depends on stabilizing the feature set around transaction history and customer attributes before lower-value work.", FALSE
+"Model Risk", "CONFIRMS", "transaction patterns", "Operations confirms the reporting impacts by Friday.", TRUE
+"SAR Reporting Requirements", "HAS_GAP_WITH", "triage-to-investigation routing", "SAR Reporting Requirements has a gap between case-management mapping and the required narrative standards.", FALSE
+"engineering", "CONFIRMS", "trigger", "Engineering must confirm the reason in the build by Friday.", TRUE
+"Legal/Risk", "BRINGS", "trigger thresholds", "Legal must bring trigger thresholds to the working session.", FALSE
+"hold state", "HAS_HOLD_STATE_DURATION", "unmapped values", "The hold-state duration for unmapped cases must be explicitly defined.", FALSE
+"unmapped values", "HAS_FALLBACK", "unmapped values", "The exception routing fallback includes one controlled unmapped bucket.", FALSE
+"manual review queues", "HANDLES", "unmapped values", "The exception routing fallback handles unmapped values.", FALSE
