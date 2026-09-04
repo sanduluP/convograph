@@ -28,18 +28,38 @@ PY="${REPO_ROOT}/.venv/bin/python"
 [[ -x "$PY" ]] || { echo "❌ no repo venv — see requirements.txt"; exit 1; }
 
 # ── Where the 31 GB of FLUX weights live ─────────────────────────────────────
-# A SIBLING of the repo, never inside it. Two reasons, both of which have teeth:
+# NEVER inside the repo, and NEVER in $HOME. Three reasons, all of which bit us:
 #
 #   1. scripts/sync_to_cluster.sh rsyncs with --delete and excludes only
 #      .gitignore entries, .git/ and .venv/. A cache inside REPO_ROOT would be
 #      DELETED by the next sync and silently re-downloaded — 31 GB, every time.
-#   2. On unicorn, $HOME is 95% full (~93 GB free). HuggingFace defaults to
-#      ~/.cache/huggingface, which would put the weights on the nearly-full
-#      root filesystem instead of the 14 TB /scratch.
+#   2. On unicorn $HOME is ~95% full (~93 GB free), and HuggingFace defaults to
+#      ~/.cache/huggingface — the weights would land on the nearly-full root
+#      filesystem instead of the 14 TB /scratch.
+#   3. It is SHARED. Faris, Rahul and Priyabanta are all in group `dsa`, so one
+#      copy serves all three rather than three copies of 32 GB. The directory is
+#      setgid (2775) so anything created inside inherits the group; without that
+#      bit, a file one of us writes is unreadable to the other two.
 #
-# Override HF_HOME to point somewhere else; otherwise this is the safe default.
-export HF_HOME="${HF_HOME:-$(dirname "$REPO_ROOT")/hf-cache}"
+# (/scratch/huggingface is the machine-wide cache but is root-owned and not
+# writable by us, and we cannot create at the /scratch top level either.)
+#
+# Preference order: an explicit HF_HOME wins; then the shared dsa cache; then a
+# sibling of the repo, which works on any other host (Pegasus is a separate
+# filesystem island and has no /scratch/faris).
+DSA_SHARED_MODELS="/scratch/faris/models/huggingface"
+if [[ -n "${HF_HOME:-}" ]]; then
+  :                                          # caller decided; respect it
+elif [[ -d "$DSA_SHARED_MODELS" ]]; then
+  export HF_HOME="$DSA_SHARED_MODELS"
+else
+  export HF_HOME="$(dirname "$REPO_ROOT")/hf-cache"
+fi
 mkdir -p "$HF_HOME"
+
+# The HF token is deliberately NOT in HF_HOME: that directory is group-readable,
+# and a credential does not belong in a shared tree. It stays in the private
+# ~/.cache/huggingface/token, which the huggingface_hub library also checks.
 
 mkdir -p "$LOG_DIR" "$OUT_DIR"
 STAMP="$(date +%Y%m%d_%H%M%S)"
