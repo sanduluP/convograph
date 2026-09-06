@@ -23,45 +23,13 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOG_DIR="${REPO_ROOT}/logs"
-PY="${REPO_ROOT}/.venv/bin/python"
+# Where the venv, weights and code live. See that file — the short version is
+# DFKI's rule: code in $HOME, virtualenvs and model weights on scratch.
+source "$(dirname "${BASH_SOURCE[0]}")/lib/env_paths.sh"
 PORT="${FLUX_PORT:-8500}"
 PID_FILE="${LOG_DIR}/serve_flux_${PORT}.pid"   # port-scoped, like serve_vllm.sh
 
 mkdir -p "$LOG_DIR"
-
-# ── Where the 31 GB of FLUX weights live ─────────────────────────────────────
-# NEVER inside the repo, and NEVER in $HOME. Three reasons, all of which bit us:
-#
-#   1. scripts/sync_to_cluster.sh rsyncs with --delete and excludes only
-#      .gitignore entries, .git/ and .venv/. A cache inside REPO_ROOT would be
-#      DELETED by the next sync and silently re-downloaded — 31 GB, every time.
-#   2. On unicorn $HOME is ~95% full (~93 GB free), and HuggingFace defaults to
-#      ~/.cache/huggingface — the weights would land on the nearly-full root
-#      filesystem instead of the 14 TB /scratch.
-#   3. It is SHARED. Faris, Rahul and Priyabanta are all in group `dsa`, so one
-#      copy serves all three rather than three copies of 32 GB. The directory is
-#      setgid (2775) so anything created inside inherits the group; without that
-#      bit, a file one of us writes is unreadable to the other two.
-#
-# (/scratch/huggingface is the machine-wide cache but is root-owned and not
-# writable by us, and we cannot create at the /scratch top level either.)
-#
-# Preference order: an explicit HF_HOME wins; then the shared dsa cache; then a
-# sibling of the repo, which works on any other host (Pegasus is a separate
-# filesystem island and has no /scratch/faris).
-DSA_SHARED_MODELS="/scratch/faris/models/huggingface"
-if [[ -n "${HF_HOME:-}" ]]; then
-  :                                          # caller decided; respect it
-elif [[ -d "$DSA_SHARED_MODELS" ]]; then
-  export HF_HOME="$DSA_SHARED_MODELS"
-else
-  export HF_HOME="$(dirname "$REPO_ROOT")/hf-cache"
-fi
-mkdir -p "$HF_HOME"
-
-# The HF token is deliberately NOT in HF_HOME: that directory is group-readable,
-# and a credential does not belong in a shared tree. It stays in the private
-# ~/.cache/huggingface/token, which the huggingface_hub library also checks.
 
 if [[ "${1:-}" == "--stop" ]]; then
   if [[ -f "$PID_FILE" ]] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then

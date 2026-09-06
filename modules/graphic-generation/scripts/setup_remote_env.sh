@@ -15,7 +15,21 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-VENV="${REPO_ROOT}/.venv"
+# Where the venv, weights and code live. See that file — the short version is
+# DFKI's rule: code in $HOME, virtualenvs and model weights on scratch.
+source "$(dirname "${BASH_SOURCE[0]}")/lib/env_paths.sh"
+
+# env_paths.sh resolved VENV. On a host without the scratch tree it falls back
+# to ${REPO_ROOT}/.venv, so a laptop or a fresh machine still works.
+
+# Re-running this must not cost 10 minutes of reinstalling torch. If the venv
+# already exists AND imports torch, there is nothing to do — pass FORCE=1 to
+# rebuild deliberately.
+if [[ "${FORCE:-0}" != "1" ]] && "${VENV}/bin/python" -c "import torch" 2>/dev/null; then
+  echo "✅ venv already usable at ${VENV} — nothing to do (FORCE=1 to rebuild)"
+  "${VENV}/bin/python" -c "import torch; print('   torch', torch.__version__, 'cuda:', torch.cuda.is_available())"
+  exit 0
+fi
 
 echo "🐍 Creating venv at ${VENV}"
 python3 -m venv "${VENV}"
