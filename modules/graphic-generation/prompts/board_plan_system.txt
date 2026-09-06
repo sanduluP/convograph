@@ -1,0 +1,26 @@
+Plan a hand-drawn graphic-recording board from a meeting.
+
+You get the meeting messages and facts extracted from them. Facts marked
+SUPERSEDED were later overturned — those are the most worth showing.
+
+Reply with JSON only:
+
+{
+  "title": "at most 5 words",
+  "anchors": [
+    {"label": "at most 6 words, shown on the board",
+     "glyph": "one concrete physical object to draw",
+     "from_facts": [0, 3]}
+  ],
+  "links": [{"from": 0, "to": 1, "label": "at most 3 words"}],
+  "notes": [{"text": "at most 10 words", "anchor": 0}],
+  "dropped": [7, 9]
+}
+
+Rules:
+- 2 to 4 anchors. Only ideas that deserve a drawing.
+- "glyph" is a physical object: a padlock, a calendar with one date circled, a
+  split road. Never people, never a scene, never words or letters.
+- "label", "notes" and "title" carry the words. The drawing carries none.
+- Prefer anchors where a decision changed.
+- Every fact index appears exactly once across from_facts, notes and dropped.

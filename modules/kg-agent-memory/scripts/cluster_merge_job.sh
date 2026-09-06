@@ -52,6 +52,31 @@ GROUP_ID=${GROUP_ID:-gmb_finance_full}
 EXPECTED_WINDOWS=${EXPECTED_WINDOWS:-6002}
 DUMP_DIR=${DUMP_DIR:-"${FS_ROOT}/neo4j/dumps/${GROUP_ID}"}
 MERGED_ROOT=${MERGED_ROOT:-"${FS_ROOT}/neo4j/merged/${GROUP_ID}"}
+
+# WHICH shard tree to read. This used to be hardcoded to "shards", which was
+# fine while there was only one ingest configuration. There are now two:
+#
+#   shards/               the original run  (speakers kept -> the star graph)
+#   shards_speaker_free/  excluded_entity_types=["Speaker"]
+#
+# Merging group finance_speaker_free out of shards/ would open the ORIGINAL
+# stores, find no such group in them, and produce an empty merge - after writing
+# Neo4j config into those stores on the way. Hence the knob, and the guard below.
+STORE_PREFIX=${STORE_PREFIX:-shards}
+
+# Cheap sanity check on a mismatch that costs hours to discover otherwise: the
+# group id and the store tree have to be talking about the same experiment.
+case "${GROUP_ID}:${STORE_PREFIX}" in
+  *speaker_free*:shards)
+    echo "🚫 [merge] GROUP_ID='${GROUP_ID}' looks speaker-free but STORE_PREFIX='shards'"
+    echo "   is the ORIGINAL (star-graph) tree. You almost certainly want"
+    echo "   STORE_PREFIX=shards_speaker_free. Set it explicitly to override."
+    exit 1;;
+  gmb_finance_full:*speaker_free*|gmb_finance_nostitch:*speaker_free*)
+    echo "🚫 [merge] GROUP_ID='${GROUP_ID}' is an ORIGINAL group but STORE_PREFIX="
+    echo "   '${STORE_PREFIX}' is the speaker-free tree. Refusing to mix them."
+    exit 1;;
+esac
 # SKIP_EXPORT=1 reuses dumps from a previous attempt (phase 1 is the slow part).
 SKIP_EXPORT=${SKIP_EXPORT:-0}
 # STITCH=0 keeps cross-shard duplicate entities separate (union only).
@@ -73,6 +98,7 @@ PYEOF
 
 echo "🖥️  [merge] node=$(hostname)"
 echo "🧩 [merge] shards      : ${SHARD_LIST}"
+echo "📂 [merge] shard tree  : ${FS_ROOT}/neo4j/${STORE_PREFIX}/"
 echo "🏷️  [merge] group_id    : ${GROUP_ID}"
 echo "📁 [merge] dumps       : ${DUMP_DIR}"
 echo "📁 [merge] merged store: ${MERGED_ROOT}"
@@ -142,7 +168,7 @@ else
   echo "════════ phase 1/2  exporting shards ════════"
   mkdir -p "${DUMP_DIR}"
   for shard in ${SHARD_LIST}; do
-    SHARD_ROOT="${FS_ROOT}/neo4j/shards/${shard}"
+    SHARD_ROOT="${FS_ROOT}/neo4j/${STORE_PREFIX}/${shard}"
     if [[ ! -d "${SHARD_ROOT}/data" ]]; then
       echo "❌ [merge] no store for shard ${shard} at ${SHARD_ROOT}/data"; exit 1
     fi

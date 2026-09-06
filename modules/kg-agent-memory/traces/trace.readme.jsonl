@@ -1,0 +1,13 @@
+{"field":"hop","type":"int","example":1,"description":"Which stage produced this record: 1 cypher, 2 caption LLM, 3 FLUX. One line per hop, in order."}
+{"field":"stage","type":"str","example":"caption","description":"Human name for the hop: cypher | caption | flux."}
+{"field":"value","type":"str","example":"a padlock","description":"THE OUTPUT of this hop - the fact text, the caption, or the PNG path. This is the column to read when tracing what the data actually looked like."}
+{"field":"input","type":"str","example":"In the Orion rollout...","description":"What this hop received. Absent on hop 1, whose input is the cypher query itself."}
+{"field":"model","type":"str","example":"qwen3:4b-instruct","description":"Model that produced the value. Recorded because it is an experiment variable - a trace is only meaningful if you know which model made it."}
+{"field":"cypher","type":"str","example":"MATCH ()-[r:RELATES_TO...","description":"Hop 1 only. The exact query run, so the trace is reproducible."}
+{"field":"group_id","type":"str","example":"gmb_finance_full","description":"Hop 1 only. Which graph was read."}
+{"field":"facts_returned","type":"int","example":111258,"description":"Hop 1 only. How many facts the query matched before selection."}
+{"field":"fact_index","type":"int","example":0,"description":"Hop 1 only. Which fact of the result set was traced."}
+{"field":"valid_at","type":"str|null","example":"2024-07-04T00:00:00Z","description":"Hop 1 only. When the fact became true."}
+{"field":"invalid_at","type":"str|null","example":"2024-07-11T00:00:00Z","description":"Hop 1 only. When it was SUPERSEDED. Non-null means the conversation later overturned it - the most interesting facts to draw."}
+{"field":"seconds","type":"float","example":2.52,"description":"Wall time for this hop. The reason the trace exists as much as the strings are."}
+{"field":"bytes","type":"int","example":634000,"description":"Hop 3 only. Size of the PNG produced."}

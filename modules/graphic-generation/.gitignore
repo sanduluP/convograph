@@ -16,3 +16,7 @@ models/
 # Model weights — never committed, never rsynced.
 hf-cache/
 .hf-cache/
+
+# Staging file run_on_unicorn.sh copies in so rsync ships the captions.
+# Transient - deleted at the end of every run.
+.captions_batch.txt

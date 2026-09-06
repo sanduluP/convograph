@@ -46,6 +46,23 @@ KG_PYTHON = os.path.join(KG_MODULE, ".venv", "bin", "python")
 OUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output")
 
 sys.path.insert(0, IMG_MODULE)
+
+# kg_to_caption reads OLLAMA_HOST / CAPTION_MODEL at IMPORT time, so these have
+# to be set before the import below. Default to the hosted model on unicorn's
+# H100 rather than a laptop ollama: this machine has no NVIDIA GPU, and one
+# 4B-model call on its CPU costs seconds where the H100 costs 0.28 s. A real
+# environment variable still wins, so the laptop fallback is one export away.
+os.environ.setdefault("OLLAMA_HOST", "http://localhost:11435")
+os.environ.setdefault("CAPTION_MODEL", "qwen3:4b-instruct")
+
+# Prefer the warm FLUX server too. Without this the code silently falls back to
+# the rsync-and-ssh path, which still carries the ORIGINAL author's account as
+# its default — so the failure surfaces as "Permission denied for sandulu",
+# which says nothing about the real cause (no FLUX_SERVER_URL set).
+# A real environment variable still wins; _generate_images_via_server() probes
+# /health and falls back cleanly if nothing is listening.
+os.environ.setdefault("FLUX_SERVER_URL", "http://localhost:8500")
+
 import kg_to_caption  # noqa: E402  (stdlib-only, safe to import cross-module)
 import compose_board  # noqa: E402  (needs PIL, ui/requirements.txt provides it)
 
@@ -59,6 +76,35 @@ class PipelineError(RuntimeError):
 def _log(cb: ProgressCB, msg: str) -> None:
     if cb:
         cb(msg)
+
+
+def _facts_from_existing_graph(group_id: str, limit: int, cb: ProgressCB) -> dict:
+    """Read facts from a graph module 2 ALREADY built. Extracts nothing.
+
+    Module 2's extraction is the slow, expensive stage — minutes per transcript,
+    and a benchmark-quality graph needs the 30B model on the cluster rather than
+    the 4B we serve for the UI. Module 3 does not need to re-derive any of it: a
+    graph full of facts already exists, so treat it as FIXED INPUT and go
+    straight to captions and images.
+
+    This is also the shape module 3 was always meant to have — a cypher query
+    against the temporal KG, not a transcript box. Re-running extraction later
+    is just choosing the other branch in run_pipeline().
+    """
+    _log(cb, f"🗄️  reading existing graph (group_id={group_id}) — no extraction")
+    proc = subprocess.run(
+        [KG_PYTHON, os.path.join(KG_MODULE, "ui_ingest.py"),
+         "--query-only", "--group-id", group_id, "--limit", str(limit)],
+        cwd=KG_MODULE, capture_output=True, text=True, timeout=300,
+    )
+    if proc.returncode != 0:
+        raise PipelineError(f"reading the graph failed:\n{proc.stderr[-4000:]}")
+    try:
+        return json.loads(proc.stdout.strip().splitlines()[-1])
+    except (json.JSONDecodeError, IndexError) as exc:
+        raise PipelineError(
+            f"query produced no parseable JSON — stdout tail:\n{proc.stdout[-2000:]}"
+        ) from exc
 
 
 def _ingest(text: str, group_id: str, cb: ProgressCB) -> dict:
@@ -251,32 +297,49 @@ def _generate_images(captions: list[str], cb: ProgressCB) -> list[str]:
 
 
 def run_pipeline(
-    text: str,
+    text: str = "",
     group_id: Optional[str] = None,
     max_facts: int = 6,
     columns: int = 3,
     progress_cb: ProgressCB = None,
+    existing_group_id: Optional[str] = None,
 ) -> dict:
     """Returns {"board_path": ..., "entries": [...]} — entries is what actually
     went on the board (image path, caption, timestamp, label), for a UI that
     wants to show more than just the file path."""
-    if not text or not text.strip():
-        raise PipelineError("no transcript text provided")
-
     stamp = time.strftime("%Y%m%d_%H%M%S")
-    group_id = group_id or f"ui_{stamp}"
 
-    ingest_result = _ingest(text, group_id, progress_cb)
-    facts = ingest_result.get("facts", [])
-    _log(progress_cb, f"   {ingest_result.get('episodes', '?')} episode(s) → {len(facts)} fact(s) extracted")
-    if not facts:
-        raise PipelineError(
-            "the KG extraction produced zero facts — the transcript may be too "
-            "short/vague for the extraction model, or the model missed it "
-            "entirely (see README's note on 3B-model extraction quality)"
-        )
-
-    selected = _select_facts(facts, max_facts)
+    if existing_group_id:
+        # Module 2's output is treated as FIXED INPUT. Nothing is extracted.
+        group_id = existing_group_id
+        # Ask for exactly what the board needs: the query ranks facts the
+        # conversation later overturned first, so a limit is a selection, not a
+        # truncation.
+        ingest_result = _facts_from_existing_graph(
+            existing_group_id, max_facts, progress_cb)
+        facts = ingest_result.get("facts", [])
+        _log(progress_cb, f"   {len(facts)} fact(s) read from the existing graph")
+        if not facts:
+            raise PipelineError(
+                f"group '{existing_group_id}' has no facts. Check the group_id — "
+                f"a typo here looks exactly like an empty graph."
+            )
+        # Already ranked and limited by the query; re-selecting would undo that.
+        selected = facts
+    else:
+        if not text or not text.strip():
+            raise PipelineError("no transcript text provided")
+        group_id = group_id or f"ui_{stamp}"
+        ingest_result = _ingest(text, group_id, progress_cb)
+        facts = ingest_result.get("facts", [])
+        _log(progress_cb, f"   {ingest_result.get('episodes', '?')} episode(s) → {len(facts)} fact(s) extracted")
+        if not facts:
+            raise PipelineError(
+                "the KG extraction produced zero facts — the transcript may be too "
+                "short/vague for the extraction model, or the model missed it "
+                "entirely (see README's note on 3B-model extraction quality)"
+            )
+        selected = _select_facts(facts, max_facts)
     _log(progress_cb, f"   using {len(selected)} of {len(facts)} facts "
                        f"({sum(1 for f in selected if f.get('invalid_at'))} superseded)")
 

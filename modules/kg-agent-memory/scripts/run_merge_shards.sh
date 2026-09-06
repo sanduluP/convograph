@@ -36,6 +36,8 @@ echo "🧩 merge shards → one graph   $(date '+%Y-%m-%d %H:%M:%S')"
 echo "════════════════════════════════════════════════════════════════"
 
 GROUP_ID=${GROUP_ID:-gmb_finance_full}
+# Which shard tree the merge reads. See cluster_merge_job.sh.
+STORE_PREFIX=${STORE_PREFIX:-shards}
 SHARD_LIST=${SHARD_LIST:-"s1 s2 s3 s4 s5 s6 s7 s8"}
 EXPECTED_WINDOWS=${EXPECTED_WINDOWS:-6002}
 WALLTIME=${WALLTIME:-6}
@@ -43,7 +45,7 @@ FORCE=${FORCE:-0}
 
 # ── Guard: no ingest job may still hold a shard store ────────────────────────
 if command -v squeue >/dev/null 2>&1; then
-  RUNNING=$(squeue -u "${USER}" -h -o '%j %T' 2>/dev/null | grep -E '^gmb_s[0-9]+ ' || true)
+  RUNNING=$(squeue -u "${USER}" -h -o '%j %T' 2>/dev/null | grep -E '^(gmb_s[0-9]+|speaker_free_s[0-9]+) ' || true)
   if [[ -n "${RUNNING}" ]]; then
     echo "🚫 refusing to submit — these ingest jobs still hold shard stores:"
     echo "${RUNNING}" | sed 's/^/     /'
@@ -70,6 +72,7 @@ fi
 PARTITIONS=${PARTITIONS:-"batch,L40S-DSA,L40S,L40S-AV,H100,H100-RP,H100-PCI,H200,H200-PCI,B200"}
 
 echo "🏷️  group    : ${GROUP_ID}"
+echo "📂 tree     : neo4j/${STORE_PREFIX}/"
 echo "🧩 shards   : ${SHARD_LIST}"
 echo "🪟 windows  : ${EXPECTED_WINDOWS} expected"
 echo "⏱️  walltime : ${WALLTIME} h   (0 GPUs)"
@@ -77,6 +80,7 @@ echo "🌐 partitions: ${PARTITIONS}"
 echo ""
 
 GROUP_ID="${GROUP_ID}" \
+  STORE_PREFIX="${STORE_PREFIX}" \
 SHARD_LIST="${SHARD_LIST}" \
 EXPECTED_WINDOWS="${EXPECTED_WINDOWS}" \
 MERGED_ROOT="${MERGED_ROOT:-}" \

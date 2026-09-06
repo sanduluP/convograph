@@ -136,23 +136,58 @@ st.subheader("📝 Transcript")
 if "transcript" not in st.session_state:
     st.session_state.transcript = ""
 
-btn_col, count_col = st.columns([1, 4])
-with btn_col:
-    if st.button("Load example"):
-        st.session_state.transcript = EXAMPLE_TRANSCRIPT
-
-text = st.text_area(
-    "Paste the meeting transcript here",
-    height=200,
-    key="transcript",
-    placeholder="User_9 (Business Analyst): Yes, lock it into the spec today...",
+# ── where the facts come from ─────────────────────────────────────────────────
+# Two sources, and the second is the one module 3 was always meant to have.
+#
+#   Existing graph  a cypher query against a KG module 2 already built. Seconds,
+#                   and it is the real contract between the modules.
+#   New transcript  runs module 2's extraction first. Minutes, and a
+#                   benchmark-quality graph needs the 30B model on the cluster,
+#                   not the 4B we serve for the UI.
+#
+# Existing is the DEFAULT because iterating on module 3 does not require
+# re-deriving module 2's output every time.
+source = st.radio(
+    "Where should the facts come from?",
+    ["🗄️ Existing knowledge graph", "📝 New transcript (runs extraction)"],
+    horizontal=True,
+    help="Module 3's real input is a cypher query over an existing temporal KG. "
+         "Extraction is only needed when the graph does not exist yet.",
 )
-with count_col:
-    words = len(text.split())
-    st.caption(f"{words} words" + ("" if words else " — paste a transcript or load the example"))
+use_existing = source.startswith("🗄️")
 
-if st.button("Generate board", type="primary", disabled=not text.strip()):
-    steps = ["Ingesting into the temporal KG", "Generating captions + images", "Composing the canvas"]
+if use_existing:
+    existing_group_id = st.text_input(
+        "group_id in Neo4j",
+        value="gmb_finance_full",
+        help="Facts the conversation later OVERTURNED are ranked first — those "
+             "are the ones worth drawing.",
+    )
+    st.caption("No extraction. The query ranks superseded facts first, so "
+               "'max decisions' selects rather than truncates.")
+    text = ""
+    ready = bool(existing_group_id.strip())
+else:
+    existing_group_id = None
+    btn_col, count_col = st.columns([1, 4])
+    with btn_col:
+        if st.button("Load example"):
+            st.session_state.transcript = EXAMPLE_TRANSCRIPT
+
+    text = st.text_area(
+        "Paste the meeting transcript here",
+        height=200,
+        key="transcript",
+        placeholder="User_9 (Business Analyst): Yes, lock it into the spec today...",
+    )
+    with count_col:
+        words = len(text.split())
+        st.caption(f"{words} words" + ("" if words else " — paste a transcript or load the example"))
+    ready = bool(text.strip())
+    st.caption("⏳ Extraction is the slow stage — Graphiti makes ~10-20 LLM calls "
+               "per episode.")
+
+if st.button("Generate board", type="primary", disabled=not ready):
     with st.status("Running the pipeline...", expanded=True) as status:
         lines: list[str] = []
         log_area = st.empty()
@@ -163,7 +198,11 @@ if st.button("Generate board", type="primary", disabled=not text.strip()):
 
         try:
             result = run_pipeline(
-                text, max_facts=int(max_facts), columns=int(columns), progress_cb=_progress,
+                text,
+                max_facts=int(max_facts),
+                columns=int(columns),
+                progress_cb=_progress,
+                existing_group_id=existing_group_id if use_existing else None,
             )
             status.update(label="Done", state="complete", expanded=False)
             st.session_state.last_result = result
