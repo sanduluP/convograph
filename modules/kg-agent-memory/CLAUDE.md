@@ -54,10 +54,16 @@ every time. `ollama show` lists `thinking` among its capabilities — it is the
 even with `think: false` and an assistant-turn example showing the exact format.
 `qwen2.5:3b-instruct` fixed it immediately.
 
-⚠️ **Not verified:** whether the cluster's `Qwen3-4B-Instruct-2507` behaves the
-same way. It almost certainly does NOT — that is a separate, later release with
+✅ **VERIFIED 2026-09-06:** the Instruct build does NOT have this problem.
+ollama's `qwen3:4b-instruct`, served on unicorn, answers directly (`'OK'`) and
+plans a whole board in 4 s. The failure is specific to the hybrid `qwen3:4b`
+tag. The same trap exists one API away: SAIA's `openai-gpt-oss-120b` returned
+`content: null` with `finish_reason=length` at `max_tokens=20`, having spent the
+whole budget in its `reasoning` channel.
+
+(Original note: it almost certainly does NOT — that is a separate, later release with
 thinking removed, and it would probably have worked. The failure here was
-specific to the ollama `qwen3:4b` tag, not to Qwen3-4B-Instruct.
+specific to the ollama `qwen3:4b` tag, not to Qwen3-4B-Instruct.)
 
 The lesson to carry is narrower than "avoid Qwen3": **check whether a model tag
 is a reasoning/hybrid build before using it for a short-output task**, because
