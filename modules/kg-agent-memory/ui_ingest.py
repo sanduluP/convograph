@@ -362,8 +362,33 @@ async def ingest(text: str, group_id: str) -> dict:
     lines = [ln for ln in text.splitlines() if ln.strip()]
     windows = _windows(lines, WINDOW_LINES)
 
+    # ── speaker exclusion, the SAME mechanism the cluster ingest uses ────────
+    # Measured on the merged full-Finance graph: 94.1% of 111,258 facts start at
+    # a person and only 0.4% join two domain concepts — a star around the twelve
+    # speakers, not a map of the domain. That is fatal for a board, because the
+    # lines BETWEEN concepts are what a graphic recording is made of.
+    #
+    # This is NOT done by removing names from the text. That was tried and moved
+    # person-rooted facts from 89.6% to 90.4%, i.e. nothing: the model ignores
+    # the hint. `excluded_entity_types` is enforced in graphiti-core's CODE — an
+    # excluded node is dropped before it enters the graph, and edge extraction
+    # then runs against the surviving entity list, so a speaker-rooted fact
+    # becomes impossible to emit rather than merely discouraged.
+    #
+    # Imported lazily and from the ONE place it is defined (the retriever used by
+    # the cluster jobs) so the UI path and the cluster path cannot drift into two
+    # different definitions of "speaker-free".
+    episode_kwargs: dict = {}
+    if os.getenv("GRAPHITI_EXCLUDE_SPEAKERS", "0") == "1":
+        from graphiti_retriever import _speaker_exclusion  # noqa: PLC0415
+        et, ex = _speaker_exclusion()
+        episode_kwargs = {"entity_types": et, "excluded_entity_types": ex}
+        print("[ui_ingest] 🚫 SPEAKER EXCLUSION ON — speakers will not become nodes",
+              file=sys.stderr, flush=True)
+
     prev_uuids: list[str] = []
     now = datetime.now(timezone.utc)
+    total = len(windows)
     for i, window in enumerate(windows):
         if not window:
             continue
@@ -375,8 +400,14 @@ async def ingest(text: str, group_id: str) -> dict:
             reference_time=now,
             group_id=group_id,
             previous_episode_uuids=prev_uuids,
+            **episode_kwargs,
         )
         prev_uuids = [res.episode.uuid]
+        # Progress on stderr, never stdout — stdout carries the single JSON line
+        # the orchestrator parses, and an extra line there breaks the caller.
+        # An 80-window phase takes minutes; a silent minutes-long run is
+        # indistinguishable from a hung one.
+        print(f"[ui_ingest] window {i + 1}/{total}", file=sys.stderr, flush=True)
 
     facts = await _read_facts(graphiti, group_id)
     await graphiti.close()

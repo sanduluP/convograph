@@ -1,0 +1,66 @@
+{
+  "channel": "Treasury Management System Implementation",
+  "phase": "Production Deployment Readiness",
+  "topics": [
+    {
+      "topic": "Deployment and Operations Readiness",
+      "messages": 401
+    }
+  ],
+  "participants": [
+    {
+      "author": "User_1",
+      "role": "Business Analyst",
+      "messages": 101
+    },
+    {
+      "author": "User_3",
+      "role": "Product Owner/Manager",
+      "messages": 100
+    },
+    {
+      "author": "User_2",
+      "role": "Client Services Lead",
+      "messages": 97
+    },
+    {
+      "author": "User_12",
+      "role": "Compliance Officer",
+      "messages": 90
+    },
+    {
+      "author": "User_13",
+      "role": "Compliance Officer",
+      "messages": 11
+    },
+    {
+      "author": "User_4",
+      "role": "IT Systems Lead",
+      "messages": 1
+    },
+    {
+      "author": "User_7",
+      "role": "Data Analyst",
+      "messages": 1
+    }
+  ],
+  "revisions": [
+    {
+      "msg_node": "Msg_6499",
+      "timestamp": "2025-07-11T16:49:10",
+      "author": "User_1",
+      "decision_label": {
+        "decision_content": "@ProjectManager I\u2019m thinking we may need to adjust the plan slightly based on the coverage gaps we just found\u2014  \n\nThe original call to proceed with a full dry run only after backup bridge coverage, ro",
+        "decision_category": "resource",
+        "phase_progress_at_decision": 0.3000900205761317,
+        "linked_to_msg": "Msg_2669",
+        "original_decision_content": "The team had decided to proceed with a full dry run only after named primary/backup bridge coverage, rollback authority, and evidence ownership were frozen in the spec.",
+        "generation_time_label": true
+      },
+      "original_decision": "The team had decided to proceed with a full dry run only after named primary/backup bridge coverage, rollback authority, and evidence ownership were frozen in the spec.",
+      "changed_to": "@ProjectManager I\u2019m thinking we may need to adjust the plan slightly based on the coverage gaps we just found\u2014  \n\nThe original call to proceed with a full dry run only after backup bridge coverage, ro"
+    }
+  ],
+  "n_messages": 401,
+  "n_decision_points": 263
+}

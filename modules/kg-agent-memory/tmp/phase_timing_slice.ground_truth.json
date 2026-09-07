@@ -1,0 +1,50 @@
+{
+  "channel": "Treasury Management System Implementation",
+  "phase": "Production Deployment Readiness",
+  "topics": [
+    {
+      "topic": "Deployment and Operations Readiness",
+      "messages": 25
+    }
+  ],
+  "participants": [
+    {
+      "author": "User_2",
+      "role": "Client Services Lead",
+      "messages": 7
+    },
+    {
+      "author": "User_3",
+      "role": "Product Owner/Manager",
+      "messages": 6
+    },
+    {
+      "author": "User_12",
+      "role": "Compliance Officer",
+      "messages": 5
+    },
+    {
+      "author": "User_1",
+      "role": "Business Analyst",
+      "messages": 4
+    },
+    {
+      "author": "User_13",
+      "role": "Compliance Officer",
+      "messages": 1
+    },
+    {
+      "author": "User_4",
+      "role": "IT Systems Lead",
+      "messages": 1
+    },
+    {
+      "author": "User_7",
+      "role": "Data Analyst",
+      "messages": 1
+    }
+  ],
+  "revisions": [],
+  "n_messages": 25,
+  "n_decision_points": 13
+}
