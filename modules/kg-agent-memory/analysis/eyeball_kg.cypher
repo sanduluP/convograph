@@ -16,7 +16,9 @@
 //    RELATES_TO   (:Entity)->(:Entity)    — an extracted FACT. The English
 //                 sentence lives on `fact`. `valid_at` = when it became true,
 //                 `invalid_at` = when it was SUPERSEDED (null = still current).
-//                 That invalid_at field is the whole bi-temporal story.
+//                 That invalid_at field is the whole bi-temporal story — and it
+//                 is also the JOIN KEY back to the fact that replaced it, since
+//                 Graphiti sets old.invalid_at = new.valid_at. See query 3.
 // ============================================================================
 
 
@@ -39,16 +41,103 @@ LIMIT 25;
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 3. THE BI-TEMPORAL QUERY — facts that were later SUPERSEDED.
+// 3. THE BI-TEMPORAL QUERY — facts that were later SUPERSEDED,
+//    AND the fact that replaced each one.
+//
 //    These are the ~18k facts BM25 cannot represent at all: the graph knows
-//    they USED to be true and knows when they stopped being true.
+//    they USED to be true, when they stopped, and — with the join below — what
+//    replaced them.
+//
+//    HOW THE SUCCESSOR IS FOUND, since Graphiti stores no pointer to it.
+//    An EntityEdge has valid_at / invalid_at / expired_at and nothing naming its
+//    replacement. But invalidation does, literally
+//    (graphiti_core/utils/maintenance/edge_operations.py:569):
+//
+//        edge.invalid_at = resolved_edge.valid_at
+//
+//    The NEW fact's valid_at is copied into the OLD fact's invalid_at. So the
+//    successor is joined on EXACT timestamp equality — not on "the next fact
+//    afterwards", which would be a guess.
+//
+//    The shared-endpoint requirement is NOT optional. On the timestamp alone,
+//    95% of rows match SEVERAL candidates and the widest matches 113, because
+//    many edges carry the same valid_at. Requiring the successor to touch one of
+//    the same two entities is what makes the answer meaningful.
+//
+//    MEASURED on the whole of gmb_finance_full (query 3c, 2026-09-07):
+//        18,450 superseded facts
+//        15,737 with a recoverable successor  =  85.3%
+//         2,713 unknown                       ->  superseded_by IS NULL
+//    Of a 300-row sample, 52% resolved to the same entity pair and 39% to a
+//    fact sharing one entity.
+//
+//    Nulls are returned rather than guessed. A candidate sharing no entity is a
+//    coincidental timestamp collision, and calling it a successor would put a
+//    false revision history in front of a reader.
+//
+//    Needs Neo4j 5.23+ for OPTIONAL CALL. Re-check the numbers any time with
+//        bash scripts/run_check_supersession.sh --group-id <group>
 // ─────────────────────────────────────────────────────────────────────────────
 MATCH (a:Entity)-[r:RELATES_TO]->(b:Entity)
 WHERE r.invalid_at IS NOT NULL
-RETURN a.name AS subject, r.fact AS fact, b.name AS object,
-       r.valid_at AS became_true, r.invalid_at AS superseded_at
+OPTIONAL CALL (r, a, b) {
+    MATCH (x:Entity)-[s:RELATES_TO]->(y:Entity)
+    WHERE s.valid_at = r.invalid_at            // the exact copy described above
+      AND s.uuid <> r.uuid                     // never itself
+      AND s.group_id = r.group_id              // never across experiments
+      AND (x.uuid IN [a.uuid, b.uuid]          // must touch one of the same
+           OR y.uuid IN [a.uuid, b.uuid])      // two entities
+    RETURN s,
+           CASE WHEN x.uuid = a.uuid AND y.uuid = b.uuid THEN 'same-pair'
+                WHEN x.uuid = b.uuid AND y.uuid = a.uuid THEN 'same-pair-reversed'
+                ELSE 'shares-entity' END AS confidence
+    ORDER BY confidence, s.created_at          // strongest match wins, then oldest
+    LIMIT 1
+}
+RETURN a.name           AS subject,
+       r.fact           AS fact_that_was_replaced,
+       b.name           AS object,
+       r.valid_at       AS became_true,
+       r.invalid_at     AS superseded_at,
+       s.fact           AS superseded_by,      // null = no successor identified
+       confidence       AS successor_confidence
 ORDER BY r.invalid_at DESC
 LIMIT 25;
+
+
+// 3b. Only the rows where we KNOW what replaced the fact — the clean
+//     before/after pairs. This is the shape to put in a paper or a demo.
+MATCH (a:Entity)-[r:RELATES_TO]->(b:Entity)
+WHERE r.invalid_at IS NOT NULL
+MATCH (x:Entity)-[s:RELATES_TO]->(y:Entity)
+WHERE s.valid_at = r.invalid_at
+  AND s.uuid <> r.uuid
+  AND s.group_id = r.group_id
+  AND x.uuid = a.uuid AND y.uuid = b.uuid      // same pair only: the strongest tier
+RETURN a.name AS subject, b.name AS object,
+       r.fact AS before, s.fact AS after,
+       r.valid_at AS before_from, r.invalid_at AS changed_at
+ORDER BY r.invalid_at DESC
+LIMIT 25;
+
+
+// 3c. How much revision history is actually recoverable, as one row.
+//     Run this before quoting any number from 3 or 3b.
+MATCH ()-[r:RELATES_TO]->()
+WHERE r.invalid_at IS NOT NULL
+WITH count(*) AS superseded
+MATCH (a:Entity)-[r:RELATES_TO]->(b:Entity)
+WHERE r.invalid_at IS NOT NULL
+OPTIONAL CALL (r, a, b) {
+    MATCH (x:Entity)-[s:RELATES_TO]->(y:Entity)
+    WHERE s.valid_at = r.invalid_at AND s.uuid <> r.uuid AND s.group_id = r.group_id
+      AND (x.uuid IN [a.uuid, b.uuid] OR y.uuid IN [a.uuid, b.uuid])
+    RETURN s LIMIT 1
+}
+RETURN superseded,
+       count(s)                                   AS with_known_successor,
+       superseded - count(s)                      AS successor_unknown,
+       round(100.0 * count(s) / superseded, 1)    AS pct_recoverable;
 
 
 // ─────────────────────────────────────────────────────────────────────────────
