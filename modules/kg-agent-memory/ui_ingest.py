@@ -307,6 +307,53 @@ async def query_only(group_id: str, limit: int | None = None,
             "source": "existing-graph", "mode": "facts"}
 
 
+async def list_groups() -> dict:
+    """Every group_id in the store, with what the UI needs to rank them.
+
+    WHY THIS EXISTS: the UI used to ask for a group_id in a text box, defaulting
+    to the one graph that existed. Nothing stops there being many - every UI
+    ingest writes a fresh ui_<stamp> group, and a module 1 meeting will be one
+    more. The dropdown that replaces the text box has to come from the database,
+    not from a hardcoded string, or the second graph is invisible.
+
+    RANKING: superseded facts first. The whole point of a temporal KG is showing
+    what CHANGED, so the group with the most overturned decisions is the most
+    worth drawing, and the UI auto-runs on the first entry - so this order is
+    a product decision, not cosmetics. Ties break on episode count, then name,
+    so the default is stable across page loads.
+
+    Two queries, both aggregates done IN THE DATABASE. gmb_finance_full alone
+    has 111,258 fact edges; pulling them client-side to count took 44 s in
+    _read_window_run's first attempt, and this runs on every fresh page load.
+    """
+    graphiti = _build_client()
+    erecords, _, _ = await graphiti.driver.execute_query(
+        "MATCH (e:Episodic) WHERE e.group_id IS NOT NULL "
+        "RETURN e.group_id AS gid, count(e) AS episodes"
+    )
+    frecords, _, _ = await graphiti.driver.execute_query(
+        "MATCH ()-[r:RELATES_TO]->() WHERE r.fact IS NOT NULL AND r.group_id IS NOT NULL "
+        "RETURN r.group_id AS gid, count(r) AS facts, "
+        "       sum(CASE WHEN r.invalid_at IS NOT NULL THEN 1 ELSE 0 END) AS superseded"
+    )
+    await graphiti.close()
+
+    by_gid: dict[str, dict] = {}
+    for r in erecords:
+        by_gid.setdefault(r["gid"], {"group_id": r["gid"], "episodes": 0,
+                                     "facts": 0, "superseded": 0})
+        by_gid[r["gid"]]["episodes"] = int(r["episodes"])
+    for r in frecords:
+        by_gid.setdefault(r["gid"], {"group_id": r["gid"], "episodes": 0,
+                                     "facts": 0, "superseded": 0})
+        by_gid[r["gid"]]["facts"] = int(r["facts"])
+        by_gid[r["gid"]]["superseded"] = int(r["superseded"])
+
+    groups = sorted(by_gid.values(),
+                    key=lambda g: (-g["superseded"], -g["episodes"], g["group_id"]))
+    return {"groups": groups}
+
+
 async def ingest(text: str, group_id: str) -> dict:
     prompts_override.apply_overrides()
     graphiti = _build_client()
@@ -343,7 +390,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--text-file",
                         help="Transcript to ingest. Not needed with --query-only.")
-    parser.add_argument("--group-id", required=True)
+    parser.add_argument("--group-id",
+                        help="Required for everything except --list-groups.")
+    parser.add_argument("--list-groups", action="store_true",
+                        help="Print every group_id in the store with its episode, "
+                             "fact and superseded-fact counts, most superseded "
+                             "first. Reads nothing else; the UI builds its "
+                             "dropdown from this.")
     parser.add_argument("--query-only", action="store_true",
                         help="Do NOT extract. Read the facts of an EXISTING group "
                              "and return them. This is how module 3 is meant to be "
@@ -366,6 +419,12 @@ def main() -> None:
     args = parser.parse_args()
 
     _load_env_file(args.env_file)
+
+    if args.list_groups:
+        print(json.dumps(asyncio.run(list_groups())))
+        return
+    if not args.group_id:
+        parser.error("--group-id is required unless --list-groups is given")
 
     if args.query_only:
         result = asyncio.run(query_only(args.group_id, args.limit, args.windows,

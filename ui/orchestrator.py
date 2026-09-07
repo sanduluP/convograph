@@ -107,6 +107,36 @@ def _ensure_tunnels(cb: ProgressCB = None) -> None:
             _log(cb, f"   {line.rstrip()}")
 
 
+def list_groups(cb: ProgressCB = None) -> list[dict]:
+    """Every group_id module 2 has in the store, most superseded facts first.
+
+    The UI builds its group dropdown from this and auto-runs on the first entry,
+    so the ORDER is the default choice. It is decided in ui_ingest.list_groups
+    (one place, in the database), not here. Each entry is
+    {group_id, episodes, facts, superseded}.
+    """
+    if not os.path.exists(KG_PYTHON):
+        raise PipelineError(
+            f"module 2's venv not found at {KG_PYTHON} — run "
+            f"`python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt` "
+            f"inside {KG_MODULE}"
+        )
+    _log(cb, "🗄️  listing graphs in Neo4j")
+    proc = subprocess.run(
+        [KG_PYTHON, os.path.join(KG_MODULE, "ui_ingest.py"), "--list-groups"],
+        cwd=KG_MODULE, capture_output=True, text=True, timeout=120,
+    )
+    if proc.returncode != 0:
+        raise PipelineError(f"listing graphs failed:\n{proc.stderr[-4000:]}")
+    try:
+        return json.loads(proc.stdout.strip().splitlines()[-1])["groups"]
+    except (json.JSONDecodeError, IndexError, KeyError) as exc:
+        raise PipelineError(
+            f"group listing produced no parseable JSON — stdout tail:\n"
+            f"{proc.stdout[-2000:]}"
+        ) from exc
+
+
 def _facts_from_existing_graph(group_id: str, limit: int, cb: ProgressCB) -> dict:
     """Read facts from a graph module 2 ALREADY built. Extracts nothing.
 

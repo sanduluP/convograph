@@ -33,11 +33,9 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from orchestrator import PipelineError, run_content_map, run_pipeline  # noqa: E402
-
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                "..", "modules", "graphic-generation"))
-import board_plan  # noqa: E402  (for the model picker's options)
+from orchestrator import (  # noqa: E402
+    PipelineError, list_groups, run_content_map, run_pipeline,
+)
 
 EXCALIDRAW_VERSION = "0.18.0"
 REACT_VERSION = "18.3.1"
@@ -112,38 +110,41 @@ with st.sidebar:
     is_map = board_style.startswith("🧭")
 
     if is_map:
-        # Named for module 2's windowing on purpose: one window is one 5-message
-        # episode today, and becomes "one meeting" once module 1 lands.
-        windows = st.slider(
-            "Windows fed to the planner", min_value=1, max_value=8, value=2,
-            help="How many CONTIGUOUS 5-message episodes the planner sees. One "
-                 "fact alone carries no context; a window does. The run with the "
-                 "most superseded facts is chosen.",
-        )
-        max_facts = st.slider(
-            "Max facts handed to the planner", min_value=5, max_value=120, value=40,
-            help="Fact edges are reused across episodes, so 2 windows can pull "
-                 "back 150+ facts without a cap. Superseded ones come first.",
-        )
+        # Defaults are the measured-good settings, so the auto-run needs no
+        # input at all; the knobs stay one click away for ablations.
+        with st.expander("Advanced", expanded=False):
+            # Named for module 2's windowing on purpose: one window is one 5-message
+            # episode today, and becomes "one meeting" once module 1 lands.
+            windows = st.slider(
+                "Windows fed to the planner", min_value=1, max_value=8, value=2,
+                help="How many CONTIGUOUS 5-message episodes the planner sees. One "
+                     "fact alone carries no context; a window does. The run with the "
+                     "most superseded facts is chosen.",
+            )
+            max_facts = st.slider(
+                "Max facts handed to the planner", min_value=5, max_value=120, value=40,
+                help="Fact edges are reused across episodes, so 2 windows can pull "
+                     "back 150+ facts without a cap. Superseded ones come first.",
+            )
 
-        # The planner model is an EXPERIMENT VARIABLE, so it belongs in the UI.
-        # Measured 2026-09-06 on one window / 40 facts: the local 4B produced an
-        # invalid link index and a reused fact; qwen3-30b was clean in 2.5 s;
-        # gpt-oss-120b was clean in 28.6 s.
-        MODEL_CHOICES = {
-            "qwen3-30b-a3b-instruct-2507 (SAIA, default)":
-                ("saia", "qwen3-30b-a3b-instruct-2507"),
-            "openai-gpt-oss-120b (SAIA, slower)":
-                ("saia", "openai-gpt-oss-120b"),
-            "qwen3:4b-instruct (unicorn, no API key)":
-                ("ollama", "qwen3:4b-instruct"),
-        }
-        choice = st.selectbox(
-            "Planner model", list(MODEL_CHOICES),
-            help="SAIA needs SAIA_API_KEY in a git-ignored .env. The unicorn "
-                 "option needs only the tunnel on port 11435.",
-        )
-        provider, planner_model = MODEL_CHOICES[choice]
+            # The planner model is an EXPERIMENT VARIABLE, so it belongs in the UI.
+            # Measured 2026-09-06 on one window / 40 facts: the local 4B produced an
+            # invalid link index and a reused fact; qwen3-30b was clean in 2.5 s;
+            # gpt-oss-120b was clean in 28.6 s.
+            MODEL_CHOICES = {
+                "qwen3-30b-a3b-instruct-2507 (SAIA, default)":
+                    ("saia", "qwen3-30b-a3b-instruct-2507"),
+                "openai-gpt-oss-120b (SAIA, slower)":
+                    ("saia", "openai-gpt-oss-120b"),
+                "qwen3:4b-instruct (unicorn, no API key)":
+                    ("ollama", "qwen3:4b-instruct"),
+            }
+            choice = st.selectbox(
+                "Planner model", list(MODEL_CHOICES),
+                help="SAIA needs SAIA_API_KEY in a git-ignored .env. The unicorn "
+                     "option needs only the tunnel on port 11435.",
+            )
+            provider, planner_model = MODEL_CHOICES[choice]
         columns = 3          # unused by the content map, kept for the call site
     else:
         provider = planner_model = None
@@ -157,37 +158,6 @@ with st.sidebar:
             "Grid columns", min_value=1, max_value=6, value=3,
             help="How many images per row on the composed canvas.",
         )
-
-    st.divider()
-    # Two DIFFERENT models, routinely confused, so name both and say when each
-    # one actually runs:
-    #
-    #   planner     picked above. Plans the board from a window. Always runs.
-    #   Graphiti    builds the temporal KG. Runs ONLY on the "new transcript"
-    #               path — reading an existing graph is cypher, no LLM at all.
-    #
-    # The extraction backend used to be shown unconditionally, which implied the
-    # default path depends on it. It does not.
-    if is_map:
-        st.caption("Board planner")
-        st.code(f"{board_plan.PROVIDERS[provider]['base_url']}\n{planner_model}",
-                language=None)
-
-    st.caption("KG extraction (Graphiti) — only on the *new transcript* path")
-    st.code(
-        os.environ.get("GRAPHITI_LLM_BASE_URL", "http://localhost:11435/v1")
-        + "\n" + os.environ.get("GRAPHITI_LLM_MODEL", "qwen3:4b-instruct"),
-        language=None,
-    )
-    st.caption(
-        "⚠️ Not how the benchmark graphs were built. `gmb_finance_full` and the "
-        "speaker-free shards were extracted on **Pegasus** by vLLM serving "
-        "`Qwen3-30B-A3B-Instruct-2507-FP8` "
-        "(`modules/kg-agent-memory/scripts/cluster_ingest_job.sh`). The model "
-        "above is a laptop convenience for ad-hoc extraction only — a 4B is not "
-        "good enough to build a graph worth measuring. Reading an existing "
-        "graph calls no LLM at all."
-    )
 
 # ── header ────────────────────────────────────────────────────────────────────
 st.title("Convograph")
@@ -235,16 +205,45 @@ source = st.radio(
 use_existing = source.startswith("🗄️")
 
 if use_existing:
-    existing_group_id = st.text_input(
-        "group_id in Neo4j",
-        value="gmb_finance_full",
-        help="Facts the conversation later OVERTURNED are ranked first — those "
-             "are the ones worth drawing.",
-    )
-    st.caption("No extraction. The query ranks superseded facts first, so "
-               "'max decisions' selects rather than truncates.")
+    # The graphs come FROM THE DATABASE, not from a hardcoded default. There
+    # used to be one graph and a text box pre-filled with its name; every UI
+    # ingest adds a ui_<stamp> group and module 1 will add meetings, so the
+    # list has to be discovered. Ranked most-superseded-first by the backend,
+    # and the FIRST entry is what auto-runs on page load, so that order is the
+    # default board. Cached: this hits AuraDB, and Streamlit reruns this whole
+    # script on every widget change.
+    @st.cache_data(ttl=300, show_spinner="Listing graphs in Neo4j...")
+    def _cached_groups() -> list[dict]:
+        return list_groups()
+
+    try:
+        groups = _cached_groups()
+    except PipelineError as exc:
+        groups = []
+        st.error(f"Could not list graphs in Neo4j:\n\n{exc}")
+
+    if groups:
+        # One tab per graph, drawn as a segmented control rather than st.tabs
+        # ON PURPOSE: Streamlit executes the body of EVERY st.tabs pane on each
+        # rerun, so real tabs would draw every graph's board on page load - N
+        # planner calls and 4N FLUX images. A segmented control looks the same
+        # but tells us which one is selected, so exactly one board is drawn:
+        # the first (most superseded) by default, another only when clicked.
+        gids = [g["group_id"] for g in groups]
+        stats = {g["group_id"]: f"{g['episodes']} episodes · {g['facts']} facts · "
+                                f"{g['superseded']} superseded" for g in groups}
+        existing_group_id = st.segmented_control(
+            "Knowledge graph", gids, default=gids[0], selection_mode="single",
+            label_visibility="collapsed",
+            help="Every group_id in Neo4j, most superseded facts first. The "
+                 "first is drawn on load; click another to draw it.",
+        ) or gids[0]     # deselecting everything falls back to the default
+        st.caption(stats[existing_group_id])
+    else:
+        # Fallback so a Neo4j hiccup does not leave the page with no controls.
+        existing_group_id = st.text_input("group_id in Neo4j", value="gmb_finance_full")
     text = ""
-    ready = bool(existing_group_id.strip())
+    ready = bool((existing_group_id or "").strip())
 else:
     existing_group_id = None
     btn_col, count_col = st.columns([1, 4])
@@ -265,8 +264,32 @@ else:
     st.caption("⏳ Extraction is the slow stage — Graphiti makes ~10-20 LLM calls "
                "per episode.")
 
-if st.button("Generate board", type="primary", disabled=not ready):
-    with st.status("Running the pipeline...", expanded=True) as status:
+# ── when to run ───────────────────────────────────────────────────────────────
+# Existing graph: NO button. The board is drawn on page load and redrawn when
+# any input changes. Streamlit reruns this whole script on every widget touch,
+# so the guard is the input tuple: the same inputs never run the pipeline
+# twice, and a failed tuple is remembered too, so a broken run does not
+# re-fire on every click - the user gets an explicit Retry instead.
+#
+# New transcript: the button STAYS. Extraction is minutes of SAIA calls and
+# writes a new group into the shared store; that must never happen because
+# someone scrolled past a text box.
+run_key = (
+    is_map, use_existing,
+    existing_group_id if use_existing else text,
+    int(windows), int(max_facts), provider, planner_model, int(columns),
+)
+
+if use_existing:
+    stale = ready and st.session_state.get("last_key") != run_key
+    if not stale and st.session_state.get("last_failed_key") == run_key:
+        stale = st.button("Retry", type="primary")
+    should_run = stale
+else:
+    should_run = st.button("Generate board", type="primary", disabled=not ready)
+
+if should_run:
+    with st.status("Drawing the board...", expanded=True) as status:
         lines: list[str] = []
         log_area = st.empty()
 
@@ -295,66 +318,44 @@ if st.button("Generate board", type="primary", disabled=not ready):
                 )
             status.update(label="Done", state="complete", expanded=False)
             st.session_state.last_result = result
+            st.session_state.last_key = run_key
+            st.session_state.pop("last_failed_key", None)
         except PipelineError as exc:
             status.update(label="Failed", state="error", expanded=True)
             st.error(str(exc))
+            # Remember the failure so this exact input does not auto-fire again
+            # on the next widget touch; the last good board stays on screen.
+            st.session_state.last_key = run_key
+            st.session_state.last_failed_key = run_key
 
 # ── output ────────────────────────────────────────────────────────────────────
 if st.session_state.get("last_result"):
     result = st.session_state.last_result
     st.subheader("🗂️ Board")
 
-    # A content-map result carries a plan; a grid result carries entries. The
-    # tab is named for whichever it is rather than showing an empty pane.
+    # Canvas only. The planner's decisions (which facts each node came from,
+    # the glyph sent to FLUX, what was dropped, validation warnings) used to be
+    # a second tab here; they are research-side detail, and every run already
+    # writes the same information to plan.json in its run directory, so the
+    # page shows the board and points at the folder.
     plan = result.get("plan")
-    tab_canvas, tab_details = st.tabs(
-        ["Canvas", "The plan" if plan else "Decisions used"])
-    with tab_canvas:
-        if plan:
-            st.caption(
-                f"{result['provider']}/{result['model']} · "
-                f"{result['windows']} window(s) · planned in "
-                f"{result['plan_seconds']}s · "
-                + ("plan validates clean" if not result["validation"]
-                   else f"⚠️ {len(result['validation'])} plan problem(s)")
-            )
-            st.caption(f"📁 `{result['run_dir']}`")
-        with open(result["board_path"]) as fh:
-            scene = json.load(fh)
-        render_excalidraw(scene)
-        with st.expander("If the canvas above is blank"):
-            st.markdown(
-                f"The live embed loads Excalidraw from a CDN in your browser — if "
-                f"that failed to load (offline, blocked script, etc.), open the "
-                f"file directly instead:\n\n"
-                f"```\ncode {result['board_path']}\n```\n\n"
-                f"or drag it into [excalidraw.com](https://excalidraw.com)."
-            )
-
-    with tab_details:
-        if plan:
-            # Show what the LLM decided, and — the part that makes it traceable
-            # — which facts each anchor came from.
-            st.markdown(f"### {plan.get('title', '')}")
-            facts = plan.get("_facts", [])
-            for i, anchor in enumerate(plan.get("anchors", [])):
-                st.markdown(f"**{i}. {anchor.get('label', '')}**")
-                st.caption(f"glyph sent to FLUX: *{anchor.get('glyph', '')}*")
-                for fi in anchor.get("from_facts", []):
-                    if isinstance(fi, int) and 0 <= fi < len(facts):
-                        st.write(f"– [{fi}] {facts[fi]['fact']}")
-                st.divider()
-            if plan.get("links"):
-                st.markdown("**Links**")
-                for l in plan["links"]:
-                    st.write(f"{l.get('from')} → {l.get('to')} · *{l.get('label','')}*")
-            st.caption(f"{len(plan.get('dropped', []))} fact(s) dropped as not "
-                       f"worth drawing")
-            for problem in result.get("validation", []):
-                st.warning(problem)
-        else:
-            for i, entry in enumerate(result["entries"], 1):
-                st.markdown(f"**{entry.get('label', i)}**")
-                st.write(entry["caption"])
-                st.caption(entry.get("timestamp") or "no timestamp")
-                st.divider()
+    if plan:
+        st.caption(
+            f"{result['provider']}/{result['model']} · "
+            f"{result['windows']} window(s) · planned in "
+            f"{result['plan_seconds']}s · "
+            + ("plan validates clean" if not result["validation"]
+               else f"⚠️ {len(result['validation'])} plan problem(s)")
+            + f" · 📁 `{result['run_dir']}`"
+        )
+    with open(result["board_path"]) as fh:
+        scene = json.load(fh)
+    render_excalidraw(scene)
+    with st.expander("If the canvas above is blank"):
+        st.markdown(
+            f"The live embed loads Excalidraw from a CDN in your browser — if "
+            f"that failed to load (offline, blocked script, etc.), open the "
+            f"file directly instead:\n\n"
+            f"```\ncode {result['board_path']}\n```\n\n"
+            f"or drag it into [excalidraw.com](https://excalidraw.com)."
+        )
