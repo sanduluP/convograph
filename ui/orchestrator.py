@@ -510,6 +510,46 @@ def _write_plan_readme(run_dir: str) -> None:
         json.dump(PLAN_README, fh, indent=2)
 
 
+def _write_prompt(run_dir: str, messages: list[dict], raw_reply: str) -> None:
+    """Persist the EXACT prompt the planner received, plus its raw reply.
+
+    Written as plain .txt in a prompt/ subfolder rather than embedded in
+    plan.json, because the point is to READ it — count the facts the model saw,
+    check whether they are intelligible, see whether the conversation text
+    survived. A 40 KB string inside a JSON field is not readable.
+
+    full.txt is what actually goes over the wire, in order, with the role
+    banners the API applies — that is the artefact to reason about when a board
+    comes out wrong.
+    """
+    d = os.path.join(run_dir, "prompt")
+    os.makedirs(d, exist_ok=True)
+    for msg in messages:
+        with open(os.path.join(d, f"{msg['role']}.txt"), "w") as fh:
+            fh.write(msg["content"])
+    with open(os.path.join(d, "full.txt"), "w") as fh:
+        for msg in messages:
+            fh.write(f"{'=' * 78}\n=== {msg['role'].upper()}\n{'=' * 78}\n")
+            fh.write(msg["content"].rstrip() + "\n\n")
+    if raw_reply:
+        with open(os.path.join(d, "reply_raw.txt"), "w") as fh:
+            fh.write(raw_reply)
+
+    chars = sum(len(m["content"]) for m in messages)
+    with open(os.path.join(d, "README.md"), "w") as fh:
+        fh.write(
+            "# The prompt this run sent to the board planner\n\n"
+            "| file | what it is |\n|---|---|\n"
+            "| `full.txt` | every message in order — what actually went over the wire |\n"
+            "| `system.txt` | the standing instructions (`prompts/board_plan_system.txt`) |\n"
+            "| `user.txt` | this run's input: the meeting messages, then the indexed facts |\n"
+            "| `reply_raw.txt` | the model's reply before JSON extraction |\n\n"
+            f"Total prompt: **{chars:,} characters** (~{chars // 4:,} tokens).\n\n"
+            "The fact indices in `user.txt` are the same ones `plan.json` refers to "
+            "in `anchors[].from_facts`, `notes[].fact` and `dropped`, so a board "
+            "element can be traced to the exact line the planner read.\n")
+
+
 def run_content_map(
     group_id: str,
     text: str = "",
@@ -606,6 +646,9 @@ def run_content_map(
     t0 = time.time()
     plan = board_plan.plan_board(episode_texts, facts, provider=provider, model=model)
     plan_secs = time.time() - t0
+    # Built a second time rather than returned from plan_board, so persisting the
+    # prompt can never change what was actually sent. build_messages is pure.
+    messages = board_plan.build_messages(episode_texts, facts)
 
     # A flawed plan is still rendered. The point of this stage is looking at
     # results, and a board that is 90% right teaches more than an exception.
@@ -639,6 +682,7 @@ def run_content_map(
     with open(os.path.join(run_dir, "plan.json"), "w") as fh:
         json.dump(plan, fh, indent=2)
     _write_plan_readme(run_dir)
+    _write_prompt(run_dir, messages, plan.get("_raw_reply", ""))
 
     # ── hop 3: one pictogram per anchor ─────────────────────────────────────
     # The glyph, NOT the label: FLUX draws wordless objects and letters as

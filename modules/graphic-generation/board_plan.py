@@ -192,15 +192,26 @@ def _render_input(episode_texts: list[dict], facts: list[dict]) -> str:
     return "\n".join(parts)
 
 
+def build_messages(episode_texts: list[dict], facts: list[dict]) -> list[dict]:
+    """The EXACT messages the planner will receive.
+
+    Split out of plan_board so a caller can persist the prompt verbatim. What
+    the model was shown is the first thing you need when a board comes out wrong
+    — how many facts it actually saw, whether they were readable, whether the
+    conversation text made it in — and reconstructing it afterwards from the
+    inputs is guesswork the moment anything upstream changes.
+    """
+    return [{"role": "system", "content": open(PROMPT_FILE).read()},
+            {"role": "user", "content": _render_input(episode_texts, facts)}]
+
+
 def plan_board(episode_texts: list[dict], facts: list[dict],
                provider: str = DEFAULT_PROVIDER, model: str | None = None) -> dict:
     """Return the board plan. Raises on a reply that is not usable JSON."""
     model = model or PROVIDERS[provider]["default_model"]
-    system = open(PROMPT_FILE).read()
-    user = _render_input(episode_texts, facts)
+    messages = build_messages(episode_texts, facts)
 
-    raw = _chat([{"role": "system", "content": system},
-                 {"role": "user", "content": user}], provider, model)
+    raw = _chat(messages, provider, model)
     plan = _extract_json(raw)
 
     # Normalise: downstream rendering should never have to guess whether a key
@@ -208,6 +219,7 @@ def plan_board(episode_texts: list[dict], facts: list[dict],
     plan.setdefault("title", "")
     for k in ("anchors", "links", "notes", "dropped"):
         plan.setdefault(k, [])
+    plan["_raw_reply"] = raw
     plan["_provider"] = provider
     plan["_model"] = model
     plan["_n_facts_in"] = len(facts)
