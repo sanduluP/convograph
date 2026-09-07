@@ -49,24 +49,14 @@ mkdir -p "${LOG_DIR}"
     exit 1
   fi
 
-  # Fail EARLY and legibly on a dead tunnel. Without this the failure surfaces
-  # minutes later as a urllib timeout inside the image step, which says nothing
-  # about the actual cause. A stale tunnel is the single most common way this
-  # breaks: the port stays bound while the connection is dead, so `ss` looks
-  # healthy and only a real request finds out.
-  echo "🔌 checking the hosted models..."
-  if curl -sf --max-time 5 http://localhost:8500/health >/dev/null 2>&1; then
-    echo "   ✅ FLUX      http://localhost:8500"
-  else
-    echo "   ⚠️  FLUX      http://localhost:8500 unreachable — the run will fall"
-    echo "                back to rsync+ssh (one model load, ~70 s slower)"
-  fi
-  if curl -sf --max-time 5 http://localhost:11435/api/tags >/dev/null 2>&1; then
-    echo "   ✅ ollama    http://localhost:11435"
-  else
-    echo "   ⚠️  ollama    http://localhost:11435 unreachable — only matters if"
-    echo "                you pass --provider ollama"
-  fi
+  # Open the tunnels rather than complaining that they are shut. tunnels.sh is
+  # idempotent and probes the SERVICES (a dead tunnel keeps its port bound, so a
+  # port check reports healthy while every request hangs), so the normal path is
+  # that nobody ever types an -L line.
+  bash "${REPO_ROOT}/scripts/tunnels.sh" start || {
+    echo "⚠️  continuing anyway — FLUX will fall back to rsync+ssh, and the run"
+    echo "    will fail outright if the embedder is needed."
+  }
 
   echo "⚙️  running..."
   # -u so the log updates live and `tail -f` is useful mid-run.

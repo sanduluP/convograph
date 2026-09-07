@@ -78,6 +78,35 @@ def _log(cb: ProgressCB, msg: str) -> None:
         cb(msg)
 
 
+def _ensure_tunnels(cb: ProgressCB = None) -> None:
+    """Open the two SSH tunnels if they are not already answering.
+
+    Called at the top of every entry point so nobody has to remember a -L line —
+    including someone driving the Streamlit UI, who has no terminal in front of
+    them at all. tunnels.sh is idempotent and probes the SERVICES rather than the
+    ports (a dead tunnel keeps its port bound, so a port check reports healthy
+    while every request hangs), so calling this always is cheap and safe.
+
+    Never fatal: FLUX has an rsync+ssh fallback, and a run that only reads an
+    existing graph needs no tunnel at all. Set CONVOGRAPH_NO_TUNNEL=1 to skip —
+    for anyone running ON unicorn, where the services are already local.
+    """
+    if os.getenv("CONVOGRAPH_NO_TUNNEL"):
+        return
+    script = os.path.join(REPO_ROOT, "scripts", "tunnels.sh")
+    if not os.path.exists(script):
+        return
+    try:
+        proc = subprocess.run(["bash", script, "start"], capture_output=True,
+                              text=True, timeout=60)
+    except subprocess.TimeoutExpired:
+        _log(cb, "   ⚠️  tunnel setup timed out — continuing")
+        return
+    for line in proc.stdout.splitlines():
+        if line.strip():
+            _log(cb, f"   {line.rstrip()}")
+
+
 def _facts_from_existing_graph(group_id: str, limit: int, cb: ProgressCB) -> dict:
     """Read facts from a graph module 2 ALREADY built. Extracts nothing.
 
@@ -308,6 +337,7 @@ def run_pipeline(
     went on the board (image path, caption, timestamp, label), for a UI that
     wants to show more than just the file path."""
     stamp = time.strftime("%Y%m%d_%H%M%S")
+    _ensure_tunnels(progress_cb)
 
     if existing_group_id:
         # Module 2's output is treated as FIXED INPUT. Nothing is extracted.
@@ -487,6 +517,7 @@ def run_content_map(
     import preview_board       # noqa: PLC0415
 
     stamp = time.strftime("%Y%m%d_%H%M%S")
+    _ensure_tunnels(progress_cb)
     provider = provider or board_plan.DEFAULT_PROVIDER
     model = model or board_plan.PROVIDERS[provider]["default_model"]
 
