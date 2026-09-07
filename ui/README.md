@@ -6,9 +6,13 @@ every decision (and what it superseded) laid out on a grid, ready to open and
 rearrange by hand.
 
 ```
-[text box]                    (audio uploader is shown but NOT wired —
-    │                          modules/asr-diarization is still a scaffold,
-    ▼                          see its README)
+[browser mic / audio upload]──▶ ui/module1.py ──▶ modules/asr-diarization
+    │                           (ffmpeg 16k mono → Docker: Sortformer +
+    │                            multitalker ASR → speaker-tagged lines;
+    │                            server needs NO microphone — st.audio_input
+    │                            records in the browser. GPU: ~5.5 GB)
+    ▼
+[text box]
 modules/kg-agent-memory/ui_ingest.py     (module 2's own venv)
     │  transcript -> Graphiti episode(s) -> facts (+ which got superseded)
     ▼

@@ -5,12 +5,13 @@ rendered live in this same page.
 
     streamlit run ui/app.py
 
-Input is meant to be optional between audio and text, but module 1
-(modules/asr-diarization) is a scaffold with no code yet (see its README) —
-so the audio uploader below is shown but NOT wired to the pipeline. Only the
-text box feeds orchestrator.run_pipeline(). This is a UI-shape decision, not
-an oversight: wiring audio later is a callback change in this file only, once
-module 1 exists.
+Input is audio or text. Audio (browser-mic recording or an uploaded file —
+the server itself needs no microphone) goes through module 1
+(modules/asr-diarization: Sortformer diarization + multitalker ASR, via
+module1.py in this folder) and fills the same transcript box the text path
+uses, so orchestrator.run_pipeline() is fed identically either way.
+Module 1's transcription needs the GPU (~5.5 GB) and its Docker image built —
+see that module's README.
 
 THE LIVE CANVAS
 ----------------
@@ -33,6 +34,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import module1  # noqa: E402
 from orchestrator import PipelineError, run_pipeline  # noqa: E402
 
 EXCALIDRAW_VERSION = "0.18.0"
@@ -121,16 +123,59 @@ st.caption(
 )
 
 # ── inputs ────────────────────────────────────────────────────────────────────
+# Audio goes through module 1 (Sortformer diarization + multitalker ASR, in its
+# own Docker image) and lands in the SAME transcript box the text path uses, so
+# everything below this expander is untouched. The mic widget records in the
+# BROWSER — the machine running this app needs no microphone or sound card.
 with st.expander("🎙️ Meeting audio", expanded=False):
+    mic_audio = st.audio_input("Record from your microphone") \
+        if hasattr(st, "audio_input") else None
     audio_file = st.file_uploader(
-        "Upload audio (not wired yet)", type=["wav", "mp3", "m4a"], key="audio",
+        "…or upload a recording", type=["wav", "mp3", "m4a"], key="audio",
     )
-    if audio_file is not None:
-        st.warning(
-            "modules/asr-diarization is a scaffold — there's no transcription "
-            "backend yet, so this file won't be used. Paste the transcript as "
-            "text below instead."
-        )
+    picked = mic_audio or audio_file  # mic wins if both are present
+
+    if st.button("Transcribe (who said what)", disabled=picked is None):
+        with st.status("Running module 1...", expanded=True) as m1_status:
+            m1_lines: list[str] = []
+            m1_log = st.empty()
+
+            def _m1_progress(msg: str) -> None:
+                m1_lines.append(msg)
+                m1_log.code("\n".join(m1_lines), language=None)
+
+            try:
+                m1_result = module1.transcribe(
+                    picked.getvalue(),
+                    getattr(picked, "name", "recording.wav"),
+                    progress_cb=_m1_progress,
+                )
+                st.session_state.m1_transcript_json = m1_result.transcript_json
+                st.session_state.m1_speakers = m1_result.speakers
+                m1_status.update(label="Transcribed", state="complete", expanded=False)
+            except module1.Module1Error as exc:
+                m1_status.update(label="Failed", state="error", expanded=True)
+                st.error(str(exc))
+
+    # Renaming speakers only re-renders text lines — no re-transcription.
+    if st.session_state.get("m1_transcript_json"):
+        st.markdown("**Name the speakers** (roles welcome, e.g. `Sarah (PM)`):")
+        name_cols = st.columns(len(st.session_state.m1_speakers))
+        names = {
+            spk: col.text_input(spk, key=f"m1_name_{spk}")
+            for spk, col in zip(st.session_state.m1_speakers, name_cols)
+        }
+        try:
+            preview = module1.to_text(st.session_state.m1_transcript_json, names)
+            st.text_area("Preview", preview, height=120, disabled=True)
+            if st.button("Use this transcript ⬇️"):
+                # Safe: we are above the transcript text_area, so its widget
+                # has not been instantiated yet on this run.
+                st.session_state.transcript = preview
+                st.success("Filled the transcript box below — switch the fact "
+                           "source to '📝 New transcript' and generate.")
+        except module1.Module1Error as exc:
+            st.error(str(exc))
 
 st.subheader("📝 Transcript")
 if "transcript" not in st.session_state:
