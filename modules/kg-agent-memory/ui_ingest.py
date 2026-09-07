@@ -65,9 +65,10 @@ def _load_env_file(path: str) -> None:
 def _build_client() -> Graphiti:
     llm_config = LLMConfig(
         api_key=os.getenv("GRAPHITI_LLM_API_KEY", "ollama"),
-        model=os.getenv("GRAPHITI_LLM_MODEL", "qwen2.5:3b-instruct"),
-        small_model=os.getenv("GRAPHITI_LLM_MODEL", "qwen2.5:3b-instruct"),
-        base_url=os.getenv("GRAPHITI_LLM_BASE_URL", "http://localhost:11434/v1"),
+        model=os.getenv("GRAPHITI_LLM_MODEL", "qwen3-30b-a3b-instruct-2507"),
+        small_model=os.getenv("GRAPHITI_LLM_MODEL", "qwen3-30b-a3b-instruct-2507"),
+        base_url=os.getenv("GRAPHITI_LLM_BASE_URL",
+                           "https://chat-ai.academiccloud.de/v1"),
         temperature=float(os.getenv("GRAPHITI_TEMPERATURE", "0.2")),
         max_tokens=4096,
     )
@@ -76,9 +77,9 @@ def _build_client() -> Graphiti:
     )
     embedder = OpenAIEmbedder(config=OpenAIEmbedderConfig(
         api_key=os.getenv("GRAPHITI_EMBED_API_KEY", "ollama"),
-        embedding_model=os.getenv("GRAPHITI_EMBED_MODEL", "bge-m3:latest"),
+        embedding_model=os.getenv("GRAPHITI_EMBED_MODEL", "bge-m3"),
         embedding_dim=int(os.getenv("GRAPHITI_EMBED_DIM", "1024")),
-        base_url=os.getenv("GRAPHITI_EMBED_BASE_URL", "http://localhost:11434/v1"),
+        base_url=os.getenv("GRAPHITI_EMBED_BASE_URL", "http://localhost:11435/v1"),
     ))
     cross_encoder = OpenAIRerankerClient(config=llm_config)
 
@@ -108,8 +109,21 @@ def _build_client() -> Graphiti:
         os.environ["NEO4J_URI"], os.environ["NEO4J_USER"], os.environ["NEO4J_PASSWORD"],
         database=os.getenv("NEO4J_DATABASE", "neo4j"),
     )
+    # max_coroutines is passed EXPLICITLY rather than left to graphiti-core's
+    # SEMAPHORE_LIMIT environment variable, because that variable is read at
+    # IMPORT time (graphiti_core/helpers.py:38) and this module loads its .env
+    # inside main() — long after `from graphiti_core import Graphiti` at the top
+    # of this file. Setting it in .env alone would be read as 20 and silently
+    # ignored. The constructor argument overrides it and cannot be sequenced
+    # wrong.
+    #
+    # Why 4: extraction runs against SAIA, and measured 2026-09-07 SAIA serves 4
+    # concurrent requests cleanly but loses roughly 3 of 8 at eight — as empty
+    # HTTP 500s, not 429, so no client backs off and it surfaces as extraction
+    # simply failing. graphiti-core's default of 20 sits far past that.
     return Graphiti(graph_driver=driver, llm_client=llm_client,
-                     embedder=embedder, cross_encoder=cross_encoder)
+                     embedder=embedder, cross_encoder=cross_encoder,
+                     max_coroutines=int(os.getenv("SEMAPHORE_LIMIT", "4")))
 
 
 def _windows(lines: list[str], size: int) -> list[list[str]]:
