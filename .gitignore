@@ -25,3 +25,6 @@ build/
 # external tools against and share with the team. They are small, and the exact
 # bytes matter — "regenerate it from the script" is not the same artifact once a
 # selection heuristic changes.
+
+# Run logs — rule 3 tees every run here. Local record, not shared state.
+logs/

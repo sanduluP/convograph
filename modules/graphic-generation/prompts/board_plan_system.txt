@@ -19,8 +19,11 @@ Reply with JSON only:
 
 Rules:
 - 2 to 4 anchors. Only ideas that deserve a drawing.
-- "glyph" is a physical object: a padlock, a calendar with one date circled, a
-  split road. Never people, never a scene, never words or letters.
+- "glyph" is a physical object with NO writing on it: a padlock, a shield, a
+  bridge, a split road, an anchor, a key. Never a calendar, clock, document,
+  stamp, sign or chart — an object whose markings are words or numbers cannot
+  be drawn wordless. Never people, never a scene.
 - "label", "notes" and "title" carry the words. The drawing carries none.
 - Prefer anchors where a decision changed.
+- Put facts worth keeping that do not deserve a drawing in "notes".
 - Every fact index appears exactly once across from_facts, notes and dropped.

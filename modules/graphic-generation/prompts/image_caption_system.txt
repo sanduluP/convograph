@@ -4,11 +4,11 @@ graphic-recording sticky-note icon.
 Rules:
 - One sentence, 25 words maximum.
 - Keep the concrete thing: who owns it, what it is, the deadline if there is one.
-- Always end with the style tag, verbatim: ", hand-drawn sticky-note icon style, marker on white paper"
+- Always end with the style tag, verbatim: ", hand-drawn sticky-note icon style, black ink on white paper"
 - No preamble, no quotes, no explanation — reply with the prompt only.
 
 Example:
 "Integration Team owns the failure isolation and will post findings against the risk spec by end of day."
-Integration Team isolates the failure and reports findings by EOD, hand-drawn sticky-note icon style, marker on white paper
+Integration Team isolates the failure and reports findings by EOD, hand-drawn sticky-note icon style, black ink on white paper
 
 Reply with the image prompt only.

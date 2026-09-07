@@ -29,8 +29,8 @@ PROVIDERS
 ---------
 Any OpenAI-compatible chat endpoint, so the model is an experiment variable:
 
-    ollama   local or the hosted one on unicorn   (default)
-    saia     GWDG Academic Cloud - gpt-oss-120b, qwen3-30b, ...
+    saia     GWDG Academic Cloud - qwen3-30b (default), gpt-oss-120b, ...
+    ollama   local, or the one we host on unicorn's H100
 
 This is deliberately swappable: planning a whole board is a much harder task
 than compressing one sentence, so whether a 4B suffices is a question to
@@ -81,9 +81,17 @@ PROVIDERS = {
     "saia": {
         "base_url": "https://chat-ai.academiccloud.de/v1",
         "api_key_env": "SAIA_API_KEY",
-        "default_model": "openai-gpt-oss-120b",
+        "default_model": "qwen3-30b-a3b-instruct-2507",
     },
 }
+
+# Which provider a caller gets when it does not choose. Measured 2026-09-06 on
+# one window of 40 facts: the local 4B returned a plan with an invalid link
+# index and a reused fact (4.0 s); qwen3-30b-a3b-instruct-2507 validated clean
+# in 2.5 s; openai-gpt-oss-120b validated clean but took 28.6 s. The 30B was
+# both the fastest and correct, so it is the default. Planning a whole board
+# is a harder task than compressing one sentence - a 4B does not cover it.
+DEFAULT_PROVIDER = os.getenv("BOARD_PLAN_PROVIDER", "saia")
 
 
 def _chat(messages: list[dict], provider: str, model: str,
@@ -178,7 +186,7 @@ def _render_input(episode_texts: list[dict], facts: list[dict]) -> str:
 
 
 def plan_board(episode_texts: list[dict], facts: list[dict],
-               provider: str = "ollama", model: str | None = None) -> dict:
+               provider: str = DEFAULT_PROVIDER, model: str | None = None) -> dict:
     """Return the board plan. Raises on a reply that is not usable JSON."""
     model = model or PROVIDERS[provider]["default_model"]
     system = open(PROMPT_FILE).read()
@@ -199,6 +207,23 @@ def plan_board(episode_texts: list[dict], facts: list[dict],
     return plan
 
 
+# Words that mean the drawing would contain WRITING. A glyph is a wordless
+# object; any of these in it means FLUX will be asked to render letters, and
+# what it renders is gibberish ("Seclany / SeeLLine / Sronniinge", 2026-09-06).
+# "sign" is here bare, not just as "sign saying": a blank sign is an invitation
+# for the model to invent text on it.
+BANNED_IN_GLYPH = ("text", "texts", "word", "words", "label", "labels",
+                   "writing", "written", "sign", "signs", "caption",
+                   "captions", "letter", "letters")
+
+
+WRITING_BEARING = ("calendar", "clock", "document", "paper", "book",
+                   "newspaper", "receipt", "certificate", "invoice",
+                   "contract", "form", "ticket", "stamp", "poster",
+                   "banner", "screen", "monitor", "dashboard",
+                   "spreadsheet", "chart", "graph", "note", "notebook")
+
+
 def validate(plan: dict, n_facts: int) -> list[str]:
     """Return human-readable problems with a plan. Empty list = clean.
 
@@ -217,9 +242,14 @@ def validate(plan: dict, n_facts: int) -> list[str]:
                 problems.append(f"anchor {i} has no {key}")
         # The one rule that matters most: the drawing must carry no words.
         g = (a.get("glyph") or "").lower()
-        for banned in ("text", "word", "label", "writing", "sign saying", "caption"):
-            if banned in g:
+        for banned in BANNED_IN_GLYPH:
+            # \b so "sign" does not fire on "design"/"assign"/"signature".
+            if re.search(rf"\b{banned}\b", g):
                 problems.append(f"anchor {i} glyph mentions '{banned}' — it must be wordless")
+        for obj in WRITING_BEARING:
+            if re.search(rf"\b{obj}s?\b", g):
+                problems.append(f"anchor {i} glyph is a {obj} — objects defined by "
+                                f"their markings come back with invented letters")
 
     for l in plan.get("links", []):
         for end in ("from", "to"):
@@ -241,3 +271,22 @@ def validate(plan: dict, n_facts: int) -> list[str]:
     if oob:
         problems.append(f"fact indices out of range: {sorted(oob)[:5]}")
     return problems
+
+
+# The style tag appended to every glyph before it reaches FLUX. Short on purpose:
+# the shape of the caption is what decided the outcome on 2026-09-06, not its
+# length. "no text" is load-bearing - without it FLUX letters the image with
+# gibberish. The word "marker" is deliberately absent: it made FLUX draw a
+# marker PEN in the frame rather than adopt a marker-drawn LOOK.
+GLYPH_STYLE = ("hand-drawn black ink pictogram, isolated on plain white, "
+               "no text, no letters, no numbers")
+
+
+def glyph_to_prompt(glyph: str) -> str:
+    """One anchor's glyph -> the exact string sent to FLUX.
+
+    Kept here rather than in the renderer because it is part of PLANNING what
+    the board says: the plan owns both halves of the split (words -> canvas
+    text, glyph -> diffusion prompt), so both halves are readable in one file.
+    """
+    return f"{' '.join(glyph.split())}, {GLYPH_STYLE}"

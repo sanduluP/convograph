@@ -374,3 +374,226 @@ def run_pipeline(
     _log(progress_cb, f"✅ wrote {out_path} — canvas {debug['width']:.0f}x{debug['height']:.0f}")
 
     return {"board_path": out_path, "entries": entries}
+
+
+# ─── the CONTENT MAP path (hops 2b + 4) ─────────────────────────────────────
+# run_pipeline() above is the ORIGINAL shape: one fact -> one caption -> one
+# image, laid out as a grid. It stays because it is what produced every board
+# before 2026-09-06 and is the thing the redesign is measured against.
+#
+# What follows is the redesign. The differences are the whole point:
+#
+#   run_pipeline()                     run_content_map()
+#   ------------------------------     ---------------------------------------
+#   one fact -> one caption            a WINDOW of messages + facts -> one PLAN
+#   caption does words AND drawing     plan splits them: labels/notes = text,
+#                                        glyph = the only thing FLUX sees
+#   N images in a grid (a gallery)     2-4 nodes + labelled arrows (a MAP)
+#   no model choice                    provider/model is an experiment variable
+#   output flat in ui/output/          one folder per run, holding the plan,
+#                                        the images, the board and a preview
+
+def _window_run(group_id: str, windows: int, max_facts: int,
+                cb: ProgressCB) -> dict:
+    """A CONTIGUOUS run of `windows` episodes: their raw messages AND facts.
+
+    The raw messages are the reason this exists. A lone fact carries no context
+    ("Waiting one week too long on a setup-question spike caused the fix to
+    become a training scramble" is not interpretable alone), so the planner is
+    given the conversation the facts came from, not just the facts.
+    """
+    _log(cb, f"🗄️  reading {windows} window(s) from group '{group_id}' "
+             f"(≤{max_facts} facts) — module 2 output is FIXED INPUT, "
+             f"nothing is extracted")
+    proc = subprocess.run(
+        [KG_PYTHON, os.path.join(KG_MODULE, "ui_ingest.py"),
+         "--query-only", "--group-id", group_id,
+         "--windows", str(windows), "--max-facts", str(max_facts)],
+        cwd=KG_MODULE, capture_output=True, text=True, timeout=600,
+    )
+    if proc.returncode != 0:
+        raise PipelineError(f"reading the graph failed:\n{proc.stderr[-4000:]}")
+    try:
+        return json.loads(proc.stdout.strip().splitlines()[-1])
+    except (json.JSONDecodeError, IndexError) as exc:
+        raise PipelineError(
+            f"query produced no parseable JSON — stdout tail:\n{proc.stdout[-2000:]}"
+        ) from exc
+
+
+# Every field of plan.json, documented next to it. Written in the SAME step
+# that writes the plan, never "later": in three months the difference between
+# _n_facts_in and len(_facts) is the difference between reading a result and
+# reverse-engineering one.
+PLAN_README = {
+    "title": "str — the board headline, drawn as canvas text. LLM-authored, <=5 words.",
+    "anchors": "list — the nodes. Each is {label, glyph, from_facts}.",
+    "anchors[].label": "str — the words drawn under the node's pictogram. Canvas TEXT, never sent to FLUX.",
+    "anchors[].glyph": "str — a wordless physical object. The ONLY field FLUX sees, via board_plan.glyph_to_prompt().",
+    "anchors[].from_facts": "list[int] — indices into _facts. This is the traceability link back to the temporal KG.",
+    "links": "list — {from, to, label}: from/to are ANCHOR indices, label is drawn on the arrow. These make it a map.",
+    "notes": "list — {text, anchor}: <=10 words drawn inside that anchor's card.",
+    "dropped": "list[int] — fact indices the planner judged not worth drawing. Not a failure; being selective is the job.",
+    "_provider": "str — 'saia' or 'ollama'. See board_plan.PROVIDERS.",
+    "_model": "str — the exact planner model. The ablation variable.",
+    "_n_facts_in": "int — how many facts the planner was given. Equals len(_facts).",
+    "_windows": "int — contiguous 5-message episodes fed to the planner.",
+    "_group_id": "str — the Neo4j group the facts came from.",
+    "_plan_seconds": "float — wall-clock for the single planning call.",
+    "_validation": "list[str] — problems board_plan.validate() found. NON-BLOCKING: a flawed plan is still rendered, on purpose.",
+    "_facts": "list — the exact facts handed to the planner, in index order, each {fact, valid_at, invalid_at}. invalid_at non-null = the conversation later overturned it.",
+}
+
+
+def _write_plan_readme(run_dir: str) -> None:
+    with open(os.path.join(run_dir, "plan.readme.json"), "w") as fh:
+        json.dump(PLAN_README, fh, indent=2)
+
+
+def run_content_map(
+    group_id: str,
+    text: str = "",
+    windows: int = 2,
+    max_facts: int = 40,
+    provider: Optional[str] = None,
+    model: Optional[str] = None,
+    progress_cb: ProgressCB = None,
+) -> dict:
+    """Window -> board plan -> pictograms -> ONE content map. Returns a dict
+    with the run directory and everything in it.
+
+    Pass `text` to extract first (module 1's transcript -> a new graph), or
+    leave it empty to read a group module 2 already built.
+
+    EVERY run gets its OWN directory, named for the model and window count:
+
+        ui/output/<provider>-<model>_w<N>_<stamp>/
+            plan.json          what the LLM decided, with its own provenance
+            board.excalidraw   the canvas
+            preview.png        an approximate raster, so the board can be
+                               judged without opening the app
+            images/000.png     one pictogram per anchor
+
+    Flat output was actively costing us: yesterday's three-model ablation left
+    nothing on disk but images whose model of origin could not be recovered, so
+    this morning there was no plan to look at. A run that cannot be told apart
+    from another run is not a measurement.
+    """
+    # Imported here, not at module import: these live in module 3's directory
+    # (already on sys.path above) and only the content-map path needs them.
+    import board_plan          # noqa: PLC0415
+    import render_board        # noqa: PLC0415
+    sys.path.insert(0, os.path.join(IMG_MODULE, "analysis"))
+    import preview_board       # noqa: PLC0415
+
+    stamp = time.strftime("%Y%m%d_%H%M%S")
+    provider = provider or board_plan.DEFAULT_PROVIDER
+    model = model or board_plan.PROVIDERS[provider]["default_model"]
+
+    # ── hop 0 (optional): extraction ────────────────────────────────────────
+    # A transcript means the graph does not exist yet, so module 2 has to run
+    # before there is anything to window over. This is the module 1 -> board
+    # path: ASR/diarization -> pipeline/transcript_to_ui_text.py -> this box.
+    # It is NOT the default, because re-deriving module 2's output on every
+    # module-3 iteration is exactly the cost the --query-only path removed.
+    if text and text.strip():
+        group_id = group_id or f"ui_{stamp}"
+        ingested = _ingest(text, group_id, progress_cb)
+        _log(progress_cb, f"   {ingested.get('episodes', '?')} episode(s) → "
+                          f"{len(ingested.get('facts', []))} fact(s) extracted")
+        # Ask for no more windows than were actually created, or the query
+        # silently returns fewer and the run dir's name lies about its input.
+        windows = min(windows, max(1, int(ingested.get("episodes") or 1)))
+
+    # ── hop 1: the window ───────────────────────────────────────────────────
+    run = _window_run(group_id, windows, max_facts, progress_cb)
+    episode_texts = run.get("episode_texts", [])
+    facts = run.get("facts", [])
+    if not facts:
+        raise PipelineError(
+            f"group '{group_id}' returned no facts. Check the group_id — a typo "
+            f"looks exactly like an empty graph."
+        )
+    superseded = sum(1 for f in facts if f.get("invalid_at"))
+    _log(progress_cb, f"   {len(episode_texts)} episode(s) from w{run.get('window_start')}, "
+                      f"{len(facts)} fact(s), {superseded} superseded")
+
+    # ── hop 2: the plan ─────────────────────────────────────────────────────
+    _log(progress_cb, f"🧭 planning the board — {provider}/{model}")
+    t0 = time.time()
+    plan = board_plan.plan_board(episode_texts, facts, provider=provider, model=model)
+    plan_secs = time.time() - t0
+
+    # A flawed plan is still rendered. The point of this stage is looking at
+    # results, and a board that is 90% right teaches more than an exception.
+    problems = board_plan.validate(plan, len(facts))
+    if problems:
+        _log(progress_cb, f"   ⚠️  plan has {len(problems)} validation problem(s) "
+                          f"— rendering anyway:")
+        for p in problems:
+            _log(progress_cb, f"      - {p}")
+    else:
+        _log(progress_cb, f"   ✅ plan validates clean in {plan_secs:.1f}s")
+
+    anchors = plan.get("anchors", [])
+    _log(progress_cb, f"   \"{plan.get('title', '')}\" — {len(anchors)} anchor(s), "
+                      f"{len(plan.get('links', []))} link(s), "
+                      f"{len(plan.get('notes', []))} note(s), "
+                      f"{len(plan.get('dropped', []))} fact(s) dropped")
+
+    run_dir = os.path.join(
+        OUT_DIR, f"{provider}-{model}_w{windows}_{stamp}".replace("/", "-"))
+    os.makedirs(os.path.join(run_dir, "images"), exist_ok=True)
+
+    plan["_windows"] = windows
+    plan["_group_id"] = group_id
+    plan["_plan_seconds"] = round(plan_secs, 2)
+    plan["_validation"] = problems
+    plan["_facts"] = facts            # the exact input, so a plan's fact indices
+                                      # stay resolvable months from now
+    with open(os.path.join(run_dir, "plan.json"), "w") as fh:
+        json.dump(plan, fh, indent=2)
+    _write_plan_readme(run_dir)
+
+    # ── hop 3: one pictogram per anchor ─────────────────────────────────────
+    # The glyph, NOT the label: FLUX draws wordless objects and letters as
+    # gibberish, so only the glyph is ever allowed near it.
+    prompts = [board_plan.glyph_to_prompt(a.get("glyph", "")) for a in anchors]
+    image_paths = _generate_images(prompts, progress_cb) if prompts else []
+
+    kept = []
+    for i, path in enumerate(image_paths):
+        if not path:
+            kept.append(None)
+            continue
+        dest = os.path.join(run_dir, "images", f"{i:03d}.png")
+        with open(path, "rb") as src, open(dest, "wb") as dst:
+            dst.write(src.read())      # copied INTO the run dir so the folder is
+                                       # self-contained and survives a cleanup
+        kept.append(dest)
+
+    # ── hop 4: the canvas ───────────────────────────────────────────────────
+    _log(progress_cb, f"🧩 drawing the content map — {len(anchors)} node(s), "
+                      f"{sum(1 for k in kept if k)} pictogram(s)")
+    board_path = os.path.join(run_dir, "board.excalidraw")
+    scene = render_board.build_scene(plan, kept)
+    debug = scene.pop("_layout_debug")
+    with open(board_path, "w") as fh:
+        json.dump(scene, fh, indent=2)
+
+    # A preview and a structural check, so a broken board is caught here rather
+    # than when someone opens it in the app.
+    preview_path = os.path.join(run_dir, "preview.png")
+    preview_board.render(scene, preview_path)
+    issues = preview_board.check(scene)
+    for issue in issues:
+        _log(progress_cb, f"   ⚠️  layout: {issue}")
+
+    _log(progress_cb, f"✅ {board_path} — canvas {debug['canvas'][0]}x{debug['canvas'][1]}")
+    return {
+        "run_dir": run_dir, "board_path": board_path,
+        "preview_path": preview_path, "plan": plan,
+        "provider": provider, "model": model, "windows": windows,
+        "plan_seconds": round(plan_secs, 2),
+        "validation": problems, "layout_issues": issues, "debug": debug,
+    }

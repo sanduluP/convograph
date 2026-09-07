@@ -33,7 +33,11 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from orchestrator import PipelineError, run_pipeline  # noqa: E402
+from orchestrator import PipelineError, run_content_map, run_pipeline  # noqa: E402
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                "..", "modules", "graphic-generation"))
+import board_plan  # noqa: E402  (for the model picker's options)
 
 EXCALIDRAW_VERSION = "0.18.0"
 REACT_VERSION = "18.3.1"
@@ -90,25 +94,99 @@ def render_excalidraw(scene: dict, height: int = 640) -> None:
 # ── sidebar: settings ────────────────────────────────────────────────────────
 with st.sidebar:
     st.header("⚙️ Settings")
-    max_facts = st.slider(
-        "Max decisions to render", min_value=1, max_value=12, value=6,
-        help="Caps how many decisions from the KG get turned into images. "
-             "Superseded/revised decisions are prioritized first.",
+
+    # Two board shapes, and they are genuinely different pipelines - not a
+    # display option. See orchestrator.run_content_map's header comment.
+    #
+    #   Content map   a WINDOW of the conversation -> one LLM plan -> 2-4 nodes
+    #                 joined by labelled arrows. Words are canvas text, drawings
+    #                 are wordless. This is the graphic recording.
+    #   Image grid    one fact -> one caption -> one image, laid out in a grid.
+    #                 The original shape, kept as the thing to compare against.
+    board_style = st.radio(
+        "Board style",
+        ["🧭 Content map", "🖼️ Image grid (original)"],
+        help="A content map draws relations between ideas. The image grid draws "
+             "one picture per fact with no relations — it is the baseline.",
     )
-    columns = st.slider(
-        "Grid columns", min_value=1, max_value=6, value=3,
-        help="How many images per row on the composed canvas.",
-    )
+    is_map = board_style.startswith("🧭")
+
+    if is_map:
+        # Named for module 2's windowing on purpose: one window is one 5-message
+        # episode today, and becomes "one meeting" once module 1 lands.
+        windows = st.slider(
+            "Windows fed to the planner", min_value=1, max_value=8, value=2,
+            help="How many CONTIGUOUS 5-message episodes the planner sees. One "
+                 "fact alone carries no context; a window does. The run with the "
+                 "most superseded facts is chosen.",
+        )
+        max_facts = st.slider(
+            "Max facts handed to the planner", min_value=5, max_value=120, value=40,
+            help="Fact edges are reused across episodes, so 2 windows can pull "
+                 "back 150+ facts without a cap. Superseded ones come first.",
+        )
+
+        # The planner model is an EXPERIMENT VARIABLE, so it belongs in the UI.
+        # Measured 2026-09-06 on one window / 40 facts: the local 4B produced an
+        # invalid link index and a reused fact; qwen3-30b was clean in 2.5 s;
+        # gpt-oss-120b was clean in 28.6 s.
+        MODEL_CHOICES = {
+            "qwen3-30b-a3b-instruct-2507 (SAIA, default)":
+                ("saia", "qwen3-30b-a3b-instruct-2507"),
+            "openai-gpt-oss-120b (SAIA, slower)":
+                ("saia", "openai-gpt-oss-120b"),
+            "qwen3:4b-instruct (unicorn, no API key)":
+                ("ollama", "qwen3:4b-instruct"),
+        }
+        choice = st.selectbox(
+            "Planner model", list(MODEL_CHOICES),
+            help="SAIA needs SAIA_API_KEY in a git-ignored .env. The unicorn "
+                 "option needs only the tunnel on port 11435.",
+        )
+        provider, planner_model = MODEL_CHOICES[choice]
+        columns = 3          # unused by the content map, kept for the call site
+    else:
+        provider = planner_model = None
+        windows = 2
+        max_facts = st.slider(
+            "Max decisions to render", min_value=1, max_value=12, value=6,
+            help="Caps how many decisions from the KG get turned into images. "
+                 "Superseded/revised decisions are prioritized first.",
+        )
+        columns = st.slider(
+            "Grid columns", min_value=1, max_value=6, value=3,
+            help="How many images per row on the composed canvas.",
+        )
+
     st.divider()
-    st.caption("KG-extraction backend")
+    # Two DIFFERENT models, routinely confused, so name both and say when each
+    # one actually runs:
+    #
+    #   planner     picked above. Plans the board from a window. Always runs.
+    #   Graphiti    builds the temporal KG. Runs ONLY on the "new transcript"
+    #               path — reading an existing graph is cypher, no LLM at all.
+    #
+    # The extraction backend used to be shown unconditionally, which implied the
+    # default path depends on it. It does not.
+    if is_map:
+        st.caption("Board planner")
+        st.code(f"{board_plan.PROVIDERS[provider]['base_url']}\n{planner_model}",
+                language=None)
+
+    st.caption("KG extraction (Graphiti) — only on the *new transcript* path")
     st.code(
-        os.environ.get("GRAPHITI_LLM_BASE_URL", "http://localhost:11434/v1")
-        + "\n" + os.environ.get("GRAPHITI_LLM_MODEL", "qwen2.5:3b-instruct"),
+        os.environ.get("GRAPHITI_LLM_BASE_URL", "http://localhost:11435/v1")
+        + "\n" + os.environ.get("GRAPHITI_LLM_MODEL", "qwen3:4b-instruct"),
         language=None,
     )
     st.caption(
-        "Set via GRAPHITI_LLM_BASE_URL / GRAPHITI_LLM_MODEL env vars before "
-        "launching — see ui/README.md for the local-vs-cluster tradeoff."
+        "⚠️ Not how the benchmark graphs were built. `gmb_finance_full` and the "
+        "speaker-free shards were extracted on **Pegasus** by vLLM serving "
+        "`Qwen3-30B-A3B-Instruct-2507-FP8` "
+        "(`modules/kg-agent-memory/scripts/cluster_ingest_job.sh`). The model "
+        "above is a laptop convenience for ad-hoc extraction only — a 4B is not "
+        "good enough to build a graph worth measuring. Reading an existing "
+        "graph calls no LLM at all."
     )
 
 # ── header ────────────────────────────────────────────────────────────────────
@@ -197,13 +275,24 @@ if st.button("Generate board", type="primary", disabled=not ready):
             log_area.code("\n".join(lines), language=None)
 
         try:
-            result = run_pipeline(
-                text,
-                max_facts=int(max_facts),
-                columns=int(columns),
-                progress_cb=_progress,
-                existing_group_id=existing_group_id if use_existing else None,
-            )
+            if is_map:
+                result = run_content_map(
+                    group_id=(existing_group_id or "") if use_existing else "",
+                    text="" if use_existing else text,
+                    windows=int(windows),
+                    max_facts=int(max_facts),
+                    provider=provider,
+                    model=planner_model,
+                    progress_cb=_progress,
+                )
+            else:
+                result = run_pipeline(
+                    text,
+                    max_facts=int(max_facts),
+                    columns=int(columns),
+                    progress_cb=_progress,
+                    existing_group_id=existing_group_id if use_existing else None,
+                )
             status.update(label="Done", state="complete", expanded=False)
             st.session_state.last_result = result
         except PipelineError as exc:
@@ -215,8 +304,21 @@ if st.session_state.get("last_result"):
     result = st.session_state.last_result
     st.subheader("🗂️ Board")
 
-    tab_canvas, tab_details = st.tabs(["Canvas", "Decisions used"])
+    # A content-map result carries a plan; a grid result carries entries. The
+    # tab is named for whichever it is rather than showing an empty pane.
+    plan = result.get("plan")
+    tab_canvas, tab_details = st.tabs(
+        ["Canvas", "The plan" if plan else "Decisions used"])
     with tab_canvas:
+        if plan:
+            st.caption(
+                f"{result['provider']}/{result['model']} · "
+                f"{result['windows']} window(s) · planned in "
+                f"{result['plan_seconds']}s · "
+                + ("plan validates clean" if not result["validation"]
+                   else f"⚠️ {len(result['validation'])} plan problem(s)")
+            )
+            st.caption(f"📁 `{result['run_dir']}`")
         with open(result["board_path"]) as fh:
             scene = json.load(fh)
         render_excalidraw(scene)
@@ -230,8 +332,29 @@ if st.session_state.get("last_result"):
             )
 
     with tab_details:
-        for i, entry in enumerate(result["entries"], 1):
-            st.markdown(f"**{entry.get('label', i)}**")
-            st.write(entry["caption"])
-            st.caption(entry.get("timestamp") or "no timestamp")
-            st.divider()
+        if plan:
+            # Show what the LLM decided, and — the part that makes it traceable
+            # — which facts each anchor came from.
+            st.markdown(f"### {plan.get('title', '')}")
+            facts = plan.get("_facts", [])
+            for i, anchor in enumerate(plan.get("anchors", [])):
+                st.markdown(f"**{i}. {anchor.get('label', '')}**")
+                st.caption(f"glyph sent to FLUX: *{anchor.get('glyph', '')}*")
+                for fi in anchor.get("from_facts", []):
+                    if isinstance(fi, int) and 0 <= fi < len(facts):
+                        st.write(f"– [{fi}] {facts[fi]['fact']}")
+                st.divider()
+            if plan.get("links"):
+                st.markdown("**Links**")
+                for l in plan["links"]:
+                    st.write(f"{l.get('from')} → {l.get('to')} · *{l.get('label','')}*")
+            st.caption(f"{len(plan.get('dropped', []))} fact(s) dropped as not "
+                       f"worth drawing")
+            for problem in result.get("validation", []):
+                st.warning(problem)
+        else:
+            for i, entry in enumerate(result["entries"], 1):
+                st.markdown(f"**{entry.get('label', i)}**")
+                st.write(entry["caption"])
+                st.caption(entry.get("timestamp") or "no timestamp")
+                st.divider()

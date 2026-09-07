@@ -342,13 +342,20 @@ def main() -> None:
                              "messages AND their facts - instead of loose facts. "
                              "One episode is a 5-message window (~13 facts). The "
                              "run with the most superseded facts is chosen.")
+    parser.add_argument("--max-facts", type=int, default=40,
+                        help="Cap how many facts a WINDOW run returns (--limit "
+                             "is the equivalent for plain fact mode, which "
+                             "window mode ignores). Fact edges are reused across "
+                             "episodes, so 2 windows can pull back 150+ facts "
+                             "without this - superseded ones come first.")
     parser.add_argument("--env-file", default=os.path.join(os.path.dirname(__file__), ".env"))
     args = parser.parse_args()
 
     _load_env_file(args.env_file)
 
     if args.query_only:
-        result = asyncio.run(query_only(args.group_id, args.limit, args.windows))
+        result = asyncio.run(query_only(args.group_id, args.limit, args.windows,
+                                        args.max_facts))
     else:
         if not args.text_file:
             parser.error("--text-file is required unless --query-only is given")
