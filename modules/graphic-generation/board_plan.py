@@ -49,9 +49,16 @@ PROMPT_FILE = os.path.join(os.path.dirname(__file__), "prompts", "board_plan_sys
 # The SAIA key lives ONLY in git-ignored .env files - never in a tracked file.
 # The vault's .env is the canonical home (the Obsidian repo has a GitHub remote,
 # so a key written into a NOTE would be published; the .env is git-ignored).
+# Order matters: first hit wins, and _load_keys() never overwrites an exported
+# value. The MODULE 2 .env is listed because that is the one file we hand to a
+# new teammate — it already carries the Neo4j and Graphiti settings, so making it
+# carry the planner's key too means one file to copy instead of three.
+# The vault is Faris's own canonical copy and does not exist on anyone else's
+# machine, so it must not be the only place this is found.
 _ENV_CANDIDATES = [
-    os.path.expanduser("~/Documents/Obsidian Vault/.env"),
+    os.path.join(os.path.dirname(__file__), "..", "kg-agent-memory", ".env"),
     os.path.join(os.path.dirname(__file__), "..", "..", ".env"),
+    os.path.expanduser("~/Documents/Obsidian Vault/.env"),
 ]
 
 
@@ -273,6 +280,15 @@ def validate(plan: dict, n_facts: int) -> list[str]:
     return problems
 
 
+# DO NOT add "no shading, no texture" here. Tried 2026-09-07 to fix pictograms
+# that looked cream-tinted in the preview; measurement showed the tint was never
+# in the images (19/19 had a border mean of 254.8/255, stdev 0.5) and the added
+# phrase produced the only real defect we have seen — FLUX filled the surround
+# with black marker strokes, border mean 188 with stdev 110. The lesson is not
+# about these two words: a pictogram defect judged by eye off a preview is a
+# guess, and prompt edits at n=1 are roulette. Measure first
+# (analysis/check_pictograms.py), then change one thing.
+#
 # The style tag appended to every glyph before it reaches FLUX. Short on purpose:
 # the shape of the caption is what decided the outcome on 2026-09-06, not its
 # length. "no text" is load-bearing - without it FLUX letters the image with

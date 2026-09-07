@@ -487,6 +487,7 @@ def run_content_map(
     max_facts: int = 40,
     provider: Optional[str] = None,
     model: Optional[str] = None,
+    dedupe_facts: bool = True,
     progress_cb: ProgressCB = None,
 ) -> dict:
     """Window -> board plan -> pictograms -> ONE content map. Returns a dict
@@ -515,6 +516,11 @@ def run_content_map(
     import render_board        # noqa: PLC0415
     sys.path.insert(0, os.path.join(IMG_MODULE, "analysis"))
     import preview_board       # noqa: PLC0415
+    # Module 2 owns the redundancy measure, and there is exactly one
+    # implementation of it. It is stdlib-only, so importing it here costs
+    # nothing and cannot drag graphiti-core into the UI's venv.
+    sys.path.insert(0, os.path.join(KG_MODULE, "analysis"))
+    import fact_redundancy     # noqa: PLC0415
 
     stamp = time.strftime("%Y%m%d_%H%M%S")
     _ensure_tunnels(progress_cb)
@@ -549,6 +555,22 @@ def run_content_map(
     _log(progress_cb, f"   {len(episode_texts)} episode(s) from w{run.get('window_start')}, "
                       f"{len(facts)} fact(s), {superseded} superseded")
 
+    # ── hop 1b: collapse restatements ───────────────────────────────────────
+    # Graphiti decomposes a listing sentence into one fact per item AND keeps
+    # the combined one, so a narrow window arrives ~2x redundant (measured
+    # 2026-09-07: 40 facts, 19 distinct ideas at 2 windows). The planner was
+    # already discarding these — its "dropped" list was mostly duplicates — but
+    # it was spending its attention, and its 2-4 anchor budget, choosing between
+    # restatements of the same sentence. Giving it distinct ideas instead makes
+    # "dropped" mean "judged not worth drawing" rather than "was a duplicate".
+    raw_n = len(facts)
+    if dedupe_facts:
+        facts, removed = fact_redundancy.dedupe(facts)
+        if removed:
+            _log(progress_cb, f"   ♻️  collapsed {removed} restatement(s) → "
+                              f"{len(facts)} distinct idea(s) "
+                              f"({raw_n / len(facts):.2f}x redundant)")
+
     # ── hop 2: the plan ─────────────────────────────────────────────────────
     _log(progress_cb, f"🧭 planning the board — {provider}/{model}")
     t0 = time.time()
@@ -582,6 +604,8 @@ def run_content_map(
     plan["_validation"] = problems
     plan["_facts"] = facts            # the exact input, so a plan's fact indices
                                       # stay resolvable months from now
+    plan["_facts_before_dedupe"] = raw_n
+    plan["_deduped"] = bool(dedupe_facts)
     with open(os.path.join(run_dir, "plan.json"), "w") as fh:
         json.dump(plan, fh, indent=2)
     _write_plan_readme(run_dir)
