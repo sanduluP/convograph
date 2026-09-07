@@ -23,7 +23,8 @@
 #
 #  Usage:
 #      bash scripts/run_open_merged_kg.sh              # stitched merge (default)
-#      STORE=nostitch bash scripts/run_open_merged_kg.sh
+#      STORE=nostitch     bash scripts/run_open_merged_kg.sh
+#      STORE=speaker_free bash scripts/run_open_merged_kg.sh
 #      SKIP_SYNC=1    bash scripts/run_open_merged_kg.sh   # already downloaded
 # =============================================================================
 
@@ -40,7 +41,12 @@ STORE="${STORE:-full}"
 case "${STORE}" in
   full)     REMOTE_STORE="/fscratch/abuali/neo4j/merged/gmb_finance_full" ;;
   nostitch) REMOTE_STORE="/fscratch/abuali/neo4j/merged/gmb_finance_nostitch" ;;
-  *) echo "❌ unknown STORE='${STORE}' (expected: full | nostitch)"; exit 1 ;;
+  # The speaker-free corpus: the same conversations re-ingested with speaker
+  # names stripped from the text. Its group_id is finance_speaker_free, NOT
+  # gmb_finance_* - mixing those up reads the wrong graph and looks like a
+  # result rather than a mistake, which is why the merge job grew its own guard.
+  speaker_free) REMOTE_STORE="/fscratch/abuali/neo4j/merged/finance_speaker_free" ;;
+  *) echo "❌ unknown STORE='${STORE}' (expected: full | nostitch | speaker_free)"; exit 1 ;;
 esac
 
 # Where the store lands locally, and what the container is called. Both are
