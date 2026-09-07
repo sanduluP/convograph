@@ -279,6 +279,7 @@ whether the model handles *your* audio before investing in the plumbing.
 | `object.__init__() takes exactly one argument` | PyTorch/Lhotse version clash — you changed the base image away from `25.10` |
 | `401` or `gated repo` when downloading | `HF_TOKEN` is not set, or you have not accepted the model licence on Hugging Face |
 | Build hangs on `pip install` | Normal. NeMo has many dependencies; give it 10+ minutes |
+| `CUDA error: out of memory` while `free -g` shows plenty *available* | GB10 unified-memory quirk: CUDA won't reclaim page cache (e.g. another model server's mmap'd weights). Fix: `sync && sudo sh -c 'echo 3 > /proc/sys/vm/drop_caches'`. Module 1 itself needs ~1 GB (diarize) / ~5.5 GB (transcribe) — measured |
 
 ## Other ASR sources
 
