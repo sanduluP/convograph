@@ -764,7 +764,15 @@ def run_content_map(
     # ── hop 3: one pictogram per anchor ─────────────────────────────────────
     # The glyph, NOT the label: FLUX draws wordless objects and letters as
     # gibberish, so only the glyph is ever allowed near it.
-    prompts = [board_plan.glyph_to_prompt(a.get("glyph", "")) for a in anchors]
+    prompts = []
+    for a in anchors:
+        drawn, replaced = board_plan.safe_glyph(a.get("glyph", ""))
+        if replaced:
+            _log(progress_cb, f"   🔁 glyph {a.get('glyph')!r} → {drawn!r} "
+                              f"(a {replaced} comes back covered in invented letters)")
+            a["_glyph_drawn"] = drawn
+            a["_glyph_replaced"] = replaced
+        prompts.append(board_plan.glyph_to_prompt(a.get("glyph", "")))
     image_paths = _generate_images(prompts, progress_cb) if prompts else []
 
     kept = []

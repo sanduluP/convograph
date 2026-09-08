@@ -403,6 +403,42 @@ GLYPH_STYLE = ("hand-drawn black ink pictogram, isolated on plain white, "
                "no text, no letters, no numbers")
 
 
+# Wordless stand-ins, by what the banned object was FOR. The planner keeps
+# reaching for a stamp or a document because those are what "approval" and
+# "spec" look like in an office; the substitute has to carry the same meaning
+# without markings, or the anchor loses its point.
+GLYPH_SUBSTITUTES = {
+    "stamp": "a wax seal", "document": "a folded map", "paper": "a folded map",
+    "certificate": "a rosette", "contract": "a handshake carved in stone",
+    "calendar": "an hourglass", "clock": "an hourglass",
+    "chart": "a mountain range", "graph": "a mountain range",
+    "sign": "a signpost with blank arms", "poster": "a blank banner",
+    "screen": "a window frame", "monitor": "a window frame",
+    "dashboard": "a ship's wheel", "spreadsheet": "a grid of tiles",
+    "book": "a closed chest", "notebook": "a closed chest",
+    "receipt": "a ribbon", "invoice": "a ribbon", "ticket": "a key",
+    "form": "an empty basket", "newspaper": "a folded map",
+    "note": "a pinned leaf", "banner": "a blank banner",
+}
+
+
+def safe_glyph(glyph: str) -> tuple[str, str | None]:
+    """(glyph to draw, what was replaced). Substitutes a writing-bearing object.
+
+    validate() already FLAGS these, but flagging does not stop the prompt
+    reaching FLUX — and an object defined by its markings comes back covered in
+    invented letters, which is the one failure this whole design exists to
+    avoid. Measured 2026-09-06: "a calendar with one date circled" produced a
+    box reading "b.13". The planner keeps choosing them anyway, prompt or not,
+    so the substitution happens on OUR side where it is guaranteed.
+    """
+    g = " ".join((glyph or "").split())
+    for obj, sub in GLYPH_SUBSTITUTES.items():
+        if re.search(rf"\b{obj}s?\b", g.lower()):
+            return sub, obj
+    return g, None
+
+
 def glyph_to_prompt(glyph: str) -> str:
     """One anchor's glyph -> the exact string sent to FLUX.
 
@@ -410,4 +446,4 @@ def glyph_to_prompt(glyph: str) -> str:
     the board says: the plan owns both halves of the split (words -> canvas
     text, glyph -> diffusion prompt), so both halves are readable in one file.
     """
-    return f"{' '.join(glyph.split())}, {GLYPH_STYLE}"
+    return f"{safe_glyph(glyph)[0]}, {GLYPH_STYLE}"
