@@ -407,29 +407,60 @@ async def ingest(text: str, group_id: str) -> dict:
     prev_uuids: list[str] = []
     now = datetime.now(timezone.utc)
     total = len(windows)
+    skipped: list[int] = []
+    consecutive = 0
+    # One bad window must not kill the run. ~0.6% of windows fail a REPETITION
+    # LOOP in the extraction model: it gets stuck, one JSON string grows to ~16 KB
+    # and the parse dies inside it (measured corpus-wide: 38 of 6,002, always at
+    # char ~16,3xx). That is content behaviour, not an outage, and it is not
+    # fixable with a bigger token budget - the cluster runs at 8192 and fails at
+    # the same position a 4096 run does.
+    #
+    # The cluster ingest has always skipped these; this path did not, so a single
+    # window could end an 81-window job - or a user's board generation, since the
+    # UI calls the same function.
+    MAX_CONSECUTIVE = int(os.getenv("GRAPHITI_MAX_CONSECUTIVE_FAILURES", "5"))
     for i, window in enumerate(windows):
         if not window:
             continue
-        res = await graphiti.add_episode(
-            name=f"{group_id}_w{i}",
-            episode_body="\n".join(window),
-            source=EpisodeType.message,
-            source_description="UI-submitted transcript",
-            reference_time=now,
-            group_id=group_id,
-            previous_episode_uuids=prev_uuids,
-            **episode_kwargs,
-        )
+        print(f"[ui_ingest] window {i + 1}/{total} …", file=sys.stderr, flush=True)
+        try:
+            res = await graphiti.add_episode(
+                name=f"{group_id}_w{i}",
+                episode_body="\n".join(window),
+                source=EpisodeType.message,
+                source_description="UI-submitted transcript",
+                reference_time=now,
+                group_id=group_id,
+                previous_episode_uuids=prev_uuids,
+                **episode_kwargs,
+            )
+        except Exception as exc:                                   # noqa: BLE001
+            skipped.append(i)
+            consecutive += 1
+            print(f"[ui_ingest] ⚠️  window {i + 1}/{total} FAILED, skipping "
+                  f"({type(exc).__name__}: {str(exc)[:120]})",
+                  file=sys.stderr, flush=True)
+            # A RUN of failures is different from scattered ones: it means the
+            # endpoint or the network died, and continuing would quietly produce
+            # a holey graph that looks complete.
+            if consecutive >= MAX_CONSECUTIVE:
+                raise RuntimeError(
+                    f"{consecutive} consecutive windows failed - this is an "
+                    f"endpoint or network problem, not bad content. "
+                    f"Skipped so far: {skipped}") from exc
+            continue
+        consecutive = 0
         prev_uuids = [res.episode.uuid]
-        # Progress on stderr, never stdout — stdout carries the single JSON line
-        # the orchestrator parses, and an extra line there breaks the caller.
-        # An 80-window phase takes minutes; a silent minutes-long run is
-        # indistinguishable from a hung one.
-        print(f"[ui_ingest] window {i + 1}/{total}", file=sys.stderr, flush=True)
+
+    if skipped:
+        print(f"[ui_ingest] ⚠️  {len(skipped)}/{total} window(s) skipped: {skipped}",
+              file=sys.stderr, flush=True)
 
     facts = await _read_facts(graphiti, group_id)
     await graphiti.close()
-    return {"group_id": group_id, "episodes": len(windows), "facts": facts,
+    return {"group_id": group_id, "episodes": len(windows) - len(skipped),
+            "windows_total": total, "windows_skipped": skipped, "facts": facts,
             "source": "fresh-ingest"}
 
 
