@@ -91,20 +91,46 @@ def fetch(limit: int = 900):
     with drv.session() as s:
         edges = [(r["src"], r["tgt"]) for r in s.run(SAMPLE_CYPHER, limit=limit)]
         pairs = [(kind(r["src"]), kind(r["tgt"])) for r in s.run(CENSUS_CYPHER)]
+        # Counted, never hardcoded: this script now runs against more than one
+        # graph, and a subtitle quoting another graph's totals is a figure that
+        # lies quietly.
+        counts = {r["label"]: r["n"] for r in s.run(
+            "MATCH (n) WHERE labels(n)[0] IN ['Entity','Episodic'] "
+            "RETURN labels(n)[0] AS label, count(*) AS n")}
     drv.close()
 
     from collections import Counter
     c = Counter(pairs)
     total = sum(c.values())
+    # Every row that carries weight, not a hand-picked four. The original list
+    # showed 4 of the 9 possible (kind, kind) pairs, so on a graph where the
+    # others are large the bars visibly failed to sum to the total — 24.2% of
+    # facts shown out of 100% on the speaker-free graph. Anything at or above
+    # 1% is drawn; the rest is honestly labelled "other".
+    named = {
+        ("person", "other"):    "person \u2192 fragment/doc",
+        ("person", "concept"):  "person \u2192 concept",
+        ("person", "person"):   "person \u2192 person",
+        ("concept", "concept"): "concept \u2192 concept",
+        ("concept", "other"):   "concept \u2192 fragment/doc",
+        ("other", "other"):     "fragment \u2192 fragment",
+        ("other", "concept"):   "fragment \u2192 concept",
+        ("concept", "person"):  "concept \u2192 person",
+        ("other", "person"):    "fragment \u2192 person",
+    }
+    rows = [(named.get(k, str(k)), n) for k, n in c.most_common()]
+    shown = [(lbl, n) for lbl, n in rows if n / max(1, total) >= 0.01]
+    rest = total - sum(n for _, n in shown)
+    if rest > 0:
+        shown.append(("other pairs", rest))
+
     census = {
         "facts": total,
         "person_rooted": sum(n for (a, _), n in c.items() if a == "person"),
-        "rows": [
-            ("person \u2192 fragment/doc", c[("person", "other")]),
-            ("person \u2192 concept",      c[("person", "concept")]),
-            ("person \u2192 person",       c[("person", "person")]),
-            ("concept \u2192 concept",     c[("concept", "concept")]),
-        ],
+        "concept_concept": c[("concept", "concept")],
+        "entities": counts.get("Entity", 0),
+        "episodes": counts.get("Episodic", 0),
+        "rows": shown,
     }
     return edges, census
 
@@ -152,9 +178,14 @@ def main() -> None:
     ax1.set_title("1  A random slice of the graph", fontsize=13.5, fontweight="bold",
                   color=C_TEXT, loc="left", pad=14)
     # Annotation sits OUTSIDE the data area, under the panel, never over the nodes.
-    ax1.text(0.5, -0.04,
-             f"{len(people)} speakers (red) anchor almost everything.  "
-             "Concepts rarely touch each other.",
+    # Same rule as the headline: describe what is drawn, not what we expected.
+    _pr = 100.0 * census["person_rooted"] / max(1, census["facts"])
+    _note = (f"{len(people)} speakers (red) anchor almost everything.  "
+             "Concepts rarely touch each other."
+             if _pr >= 60 else
+             f"{len(people)} speaker(s) appear in this sample.  "
+             "Most edges now join concepts to each other.")
+    ax1.text(0.5, -0.04, _note,
              transform=ax1.transAxes, ha="center", va="top",
              fontsize=10, color=C_MUTED)
 
@@ -162,7 +193,16 @@ def main() -> None:
     total = census["facts"]
     # Colour by whether a SPEAKER sits at the origin: red = person-rooted (the
     # problem), blue = a genuine concept-to-concept link (what we want more of).
-    rows = [(lab, n, C_CONCEPT if lab.startswith("concept") else C_PERSON)
+    # Colour by WHAT THE BAR MEANS, not by the first word of its label. The
+    # rule that matters here is "does this fact involve a speaker": red is our
+    # reserved status colour and belongs to the thing the figure is about.
+    # Keying on lab.startswith("concept") painted `fragment → concept` red and
+    # `concept → fragment` blue, which keys nothing at all.
+    def _bar_colour(lab: str) -> str:
+        return C_PERSON if "person" in lab else (
+            C_CONCEPT if "concept" in lab else C_MUTED)
+
+    rows = [(lab, n, _bar_colour(lab))
             for lab, n in census["rows"]]
     labels = [f"{lab}   {n:,}  ({100*n/total:.1f} %)" for lab, n, _ in rows]
     ypos = range(len(rows))
@@ -191,12 +231,25 @@ def main() -> None:
     top_pt, gap_pt = 20.0, 21.0
     y_title = 1.0 - top_pt / fig_h_pt
     y_sub = y_title - gap_pt / fig_h_pt
-    fig.suptitle("The knowledge graph is a star around its speakers",
-                 fontsize=17, fontweight="bold", color=C_TEXT, x=0.045,
+    # The headline STATES THE RESULT, so it cannot contradict the panel beneath
+    # it. The original was hardcoded to "a star around its speakers" and stayed
+    # that way when rendered against the speaker-free graph, where only 21% of
+    # facts start at a person — a figure asserting the opposite of its own data.
+    pr = 100.0 * census["person_rooted"] / max(1, census["facts"])
+    cc = 100.0 * census["concept_concept"] / max(1, census["facts"])
+    if pr >= 60:
+        headline = "The knowledge graph is a star around its speakers"
+    elif pr >= 30:
+        headline = "Speakers still anchor much of the graph"
+    else:
+        headline = "Excluding speakers turns the star into a map of concepts"
+    fig.suptitle(headline, fontsize=17, fontweight="bold", color=C_TEXT, x=0.045,
                  ha="left", y=y_title)
-    sub = ("Graphiti extraction over the full GroupMemBench Finance domain — "
-           "30,000 messages, 5,810 episodes, 11,589 nodes. "
-           "Panel 1 samples 900 random facts; panel 2 counts all of them.")
+    sub = (f"Graphiti extraction over the GroupMemBench Finance domain — "
+           f"{census['episodes']:,} episodes, "
+           f"{census['entities']:,} entities, {census['facts']:,} facts. "
+           f"{pr:.1f}% of facts start at a person; {cc:.1f}% join two concepts. "
+           f"Panel 1 samples {len(edges)} random facts; panel 2 counts all of them.")
     fig.text(0.045, y_sub, textwrap.fill(sub, 128), fontsize=10.5,
              color=C_MUTED, ha="left", va="top")
 
