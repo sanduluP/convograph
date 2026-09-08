@@ -113,6 +113,37 @@ with st.sidebar:
         # Defaults are the measured-good settings, so the auto-run needs no
         # input at all; the knobs stay one click away for ablations.
         with st.expander("Advanced", expanded=False):
+            # WHAT THE PLANNER SEES — the choice that matters most on this page.
+            #
+            #   window  2 episodes, ~40 facts, picked by POSITION in the graph.
+            #           The board describes whichever five minutes it was handed.
+            #   digest  five cypher queries over the whole meeting, picked by what
+            #           the graph says MATTERED. Same prompt size (8.8 KB against
+            #           9.2 KB), far more coverage.
+            #
+            # Off by default only because the digest is new and the window path is
+            # what every existing board was made with.
+            use_digest = st.checkbox(
+                "🧪 Plan from a whole-meeting digest",
+                value=False,
+                help="Five cypher queries — what changed, what it was about, who "
+                     "was there, what was settled, what is still open — instead of "
+                     "a two-window slice. Adds ~4 s.",
+            )
+            episode_limit = 0
+            if use_digest:
+                # A group can be a whole CORPUS. gmb_finance_full is six weeks of
+                # several parallel projects, and digesting all of it summarises a
+                # corpus rather than a meeting — which reads impressive and means
+                # nothing. The cap is how you take one meeting-sized slice.
+                episode_limit = st.slider(
+                    "Episodes to digest", min_value=0, max_value=400, value=80,
+                    step=20,
+                    help="0 = the whole group. Use a cap when the group is a "
+                         "corpus rather than one meeting.",
+                )
+                st.caption("The window sliders below are ignored in digest mode.")
+
             # Named for module 2's windowing on purpose: one window is one 5-message
             # episode today, and becomes "one meeting" once module 1 lands.
             windows = st.slider(
@@ -306,6 +337,8 @@ if should_run:
                     max_facts=int(max_facts),
                     provider=provider,
                     model=planner_model,
+                    use_digest=bool(use_digest),
+                    episode_limit=int(episode_limit),
                     progress_cb=_progress,
                 )
             else:
