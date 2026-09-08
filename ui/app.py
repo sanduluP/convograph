@@ -179,7 +179,12 @@ with st.sidebar:
             provider, planner_model = MODEL_CHOICES[choice]
         columns = 3          # unused by the content map, kept for the call site
     else:
+        # The grid path has no planner and no digest, but run_key reads these
+        # unconditionally — leaving them undefined here is a NameError the
+        # moment someone picks the other board style.
         provider = planner_model = None
+        use_digest = False
+        episode_limit = 0
         windows = 2
         max_facts = st.slider(
             "Max decisions to render", min_value=1, max_value=12, value=6,
@@ -314,28 +319,29 @@ else:
                "per episode.")
 
 # ── when to run ───────────────────────────────────────────────────────────────
-# Existing graph: NO button. The board is drawn on page load and redrawn when
-# any input changes. Streamlit reruns this whole script on every widget touch,
-# so the guard is the input tuple: the same inputs never run the pipeline
-# twice, and a failed tuple is remembered too, so a broken run does not
-# re-fire on every click - the user gets an explicit Retry instead.
+# ONE BUTTON, both paths. Drawing on page load was tried and is worse: the run
+# fires before anyone can touch a control, so every setting in Advanced - which
+# graph, digest or window, how many episodes - could only ever affect the SECOND
+# board. The first board, the one people actually look at and judge, was always
+# built from defaults nobody chose. It also spends SAIA calls and GPU time on
+# every page refresh, whether or not anyone wanted a board.
 #
-# New transcript: the button STAYS. Extraction is minutes of SAIA calls and
-# writes a new group into the shared store; that must never happen because
-# someone scrolled past a text box.
+# The input tuple still guards against Streamlit's rerun-on-every-widget: the
+# same inputs never run the pipeline twice, so touching a slider after a run
+# does not silently redraw.
 run_key = (
     is_map, use_existing,
     existing_group_id if use_existing else text,
     int(windows), int(max_facts), provider, planner_model, int(columns),
+    bool(use_digest), int(episode_limit),
 )
 
-if use_existing:
-    stale = ready and st.session_state.get("last_key") != run_key
-    if not stale and st.session_state.get("last_failed_key") == run_key:
-        stale = st.button("Retry", type="primary")
-    should_run = stale
-else:
-    should_run = st.button("Generate board", type="primary", disabled=not ready)
+clicked = st.button("🖍️ Generate board", type="primary", disabled=not ready)
+# A click on inputs that already produced this exact board is a no-op rather
+# than a re-run; the result is still on screen below.
+should_run = clicked and st.session_state.get("last_key") != run_key
+if clicked and not should_run:
+    st.info("This board is already drawn below — change a setting to draw a new one.")
 
 if should_run:
     with st.status("Drawing the board...", expanded=True) as status:
