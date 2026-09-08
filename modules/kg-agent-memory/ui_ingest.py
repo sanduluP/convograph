@@ -453,9 +453,25 @@ async def ingest(text: str, group_id: str) -> dict:
         consecutive = 0
         prev_uuids = [res.episode.uuid]
 
+    # A holey graph is the dangerous outcome, not a loud failure: it loads, it
+    # answers queries, and it draws a board. Nothing about it says a third of the
+    # meeting is missing. Measured 2026-09-08: this phase at 12-line windows lost
+    # 9 of its first 15 and would have produced a confident, half-blind board.
+    # So the loss rate is REPORTED as a rate, and refused past a point.
     if skipped:
-        print(f"[ui_ingest] ⚠️  {len(skipped)}/{total} window(s) skipped: {skipped}",
-              file=sys.stderr, flush=True)
+        rate = len(skipped) / max(1, total)
+        print(f"[ui_ingest] ⚠️  {len(skipped)}/{total} window(s) skipped "
+              f"({rate:.0%}): {skipped}", file=sys.stderr, flush=True)
+        max_loss = float(os.getenv("GRAPHITI_MAX_SKIP_RATE", "0.15"))
+        if rate > max_loss:
+            raise RuntimeError(
+                f"{rate:.0%} of windows failed extraction ({len(skipped)}/{total}) "
+                f"— above the {max_loss:.0%} ceiling, so this graph is too "
+                f"incomplete to summarise the meeting. The usual cause is an "
+                f"episode size that makes the extraction reply long enough to "
+                f"trigger the repetition loop: try UI_INGEST_WINDOW_LINES=5. "
+                f"Raise GRAPHITI_MAX_SKIP_RATE to accept it anyway."
+            )
 
     facts = await _read_facts(graphiti, group_id)
     await graphiti.close()
