@@ -48,7 +48,15 @@ TEXT_FILE="${TEXT_FILE:?set TEXT_FILE to the phase transcript (analysis/extract_
 GROUP_ID="${GROUP_ID:?set GROUP_ID — it is how the UI will name this graph}"
 FS_ROOT="${FS_ROOT:-/fscratch/abuali}"
 CHAT_PORT="${CHAT_PORT:-8000}"
-EMBED_PORT="${EMBED_PORT:-8001}"
+# 8100, NOT 8001. vLLM's V1 engine opens an internal engine-core socket on the
+# port just above its API port, so a chat server on 8000 takes 8001 for itself
+# and the embedder then dies with "OSError: [Errno 98] Address already in use" —
+# a collision between two halves of the SAME job, which reads like a stale
+# process from someone else's run. Verified on serv-3313:
+#     :8000  vllm             (the API server)
+#     :8001  VLLM::EngineCor  (its engine core)
+# A wide separation costs nothing and removes the whole class.
+EMBED_PORT="${EMBED_PORT:-8100}"
 CHAT_MODEL_DIR="${CHAT_MODEL_DIR:-${FS_ROOT}/models/Qwen3-30B-A3B-Instruct-2507-FP8}"
 EMBED_MODEL_DIR="${EMBED_MODEL_DIR:-${FS_ROOT}/models/bge-m3}"
 MODEL_ID="${MODEL_ID:-Qwen/$(basename "${CHAT_MODEL_DIR}")}"
@@ -161,6 +169,16 @@ if n:
              f"Pick a new GROUP_ID, or delete that group first.")
 print("✅ [job] group '${GROUP_ID}' is empty — safe to write")
 PYEOF
+
+for port in "${CHAT_PORT}" "${EMBED_PORT}"; do
+  if ss -ltn 2>/dev/null | grep -q ":${port} "; then
+    echo "❌ [job] port ${port} is already in use on $(hostname):"
+    ss -ltnp 2>/dev/null | grep ":${port} " | sed 's/^/     /' || true
+    echo "   Another job is on this node, or a previous run leaked a server."
+    echo "   Resubmit with CHAT_PORT/EMBED_PORT set to free ports."
+    exit 1
+  fi
+done
 
 cleanup() {
   echo "🧹 [job] stopping vLLM …"
