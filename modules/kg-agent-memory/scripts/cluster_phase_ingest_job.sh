@@ -32,7 +32,17 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 REPO_ROOT="$(pwd)"
-PY="${REPO_ROOT}/.venv/bin/python"
+
+# The cluster venv lives on SCRATCH, not in the repo: $HOME is source code only
+# (DFKI storage guidelines) and a 10 GB quota that a torch install would eat.
+# There IS a stale ./.venv directory in $HOME from July with nothing in it, so
+# defaulting to the repo-local path finds a directory and fails on the missing
+# binary. Same definition as cluster_ingest_job.sh, deliberately.
+FS_ROOT_EARLY="${FS_ROOT:-/fscratch/abuali}"
+VENV="${VENV:-${FS_ROOT_EARLY}/venvs/groupmembench}"
+PY="${VENV}/bin/python"
+[ -x "${PY}" ] || { echo "❌ no cluster venv at ${VENV}"; \
+  echo "   build it with scripts/setup_cluster_env.sh on the LOGIN node"; exit 1; }
 
 TEXT_FILE="${TEXT_FILE:?set TEXT_FILE to the phase transcript (analysis/extract_phase.py)}"
 GROUP_ID="${GROUP_ID:?set GROUP_ID — it is how the UI will name this graph}"
@@ -79,16 +89,36 @@ set -a; source "${ENV_FILE}"; set +a
 # ~30 GB model load wastes the whole GPU allocation, so check first: it costs a
 # second and turns a 40-minute mystery into an immediate, legible failure.
 echo "🔌 [job] checking AuraDB reachability…"
-"${PY}" - <<PYEOF || { echo "❌ cannot reach ${NEO4J_URI} from $(hostname)."; \
-  echo "   The compute node has no route to AuraDB. Ingest into a local store"; \
-  echo "   with cluster_ingest_job.sh and upload afterwards instead."; exit 1; }
-import os
-from neo4j import GraphDatabase
-d = GraphDatabase.driver(os.environ["NEO4J_URI"],
-                         auth=(os.environ["NEO4J_USER"], os.environ["NEO4J_PASSWORD"]))
-d.verify_connectivity(); d.close()
-print("✅ [job] AuraDB reachable")
+# The check reports the driver's OWN error rather than assuming what went wrong.
+# An earlier version wrapped this in `|| echo "cannot reach AuraDB"`, which fires
+# on any non-zero exit — including 127 from a missing interpreter. It did, and
+# the job confidently blamed the network while the container could resolve,
+# connect and TLS-verify the database without trouble.
+set +e
+REACH_OUT="$("${PY}" - <<'PYEOF' 2>&1
+import os, sys
+try:
+    from neo4j import GraphDatabase
+    d = GraphDatabase.driver(os.environ["NEO4J_URI"],
+                             auth=(os.environ["NEO4J_USER"], os.environ["NEO4J_PASSWORD"]))
+    d.verify_connectivity(); d.close()
+    print("REACHABLE")
+except Exception as exc:
+    print(f"UNREACHABLE {type(exc).__name__}: {exc}")
+    sys.exit(1)
 PYEOF
+)"
+REACH_RC=$?
+set -e
+if [[ ${REACH_RC} -ne 0 ]]; then
+  echo "❌ [job] the reachability check failed on $(hostname):"
+  echo "${REACH_OUT}" | sed 's/^/     /'
+  echo "   If this says UNREACHABLE, the node has no route to AuraDB — ingest to a"
+  echo "   local store with cluster_ingest_job.sh and upload afterwards. Anything"
+  echo "   else is a problem with this job, not with the network."
+  exit 1
+fi
+echo "✅ [job] AuraDB reachable"
 
 # ── refuse to write into a group that already exists ─────────────────────────
 # ui_ingest names episodes "<group>_w<N>" and would happily interleave a second
