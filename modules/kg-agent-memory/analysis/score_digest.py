@@ -173,6 +173,14 @@ def render(s: dict) -> str:
     L += ["", "## Q3 · participants", ""]
     L.append(f"- **{p['n_found']}/{p['n_ground_truth']}** found "
              f"(recall {p['recall']})")
+    # This number is worth far less than the two above it and should not be
+    # quoted beside them. Speaker names repeat across the whole corpus, so a
+    # digest of a COMPLETELY DIFFERENT slice still scored 5/7 here (measured as
+    # a negative control, 2026-09-08, while Q1 and Q2 correctly scored 0). It
+    # says the participant parser works; it says nothing about whether the
+    # digest is about this meeting.
+    L.append("  - ⚠️ weak metric: speaker names recur corpus-wide, so an "
+             "unrelated digest still scores well. Q1 and Q2 are the real tests.")
     if p["spurious"]:
         L.append(f"- spurious: {', '.join(p['spurious'])}")
     if p["missed"]:
