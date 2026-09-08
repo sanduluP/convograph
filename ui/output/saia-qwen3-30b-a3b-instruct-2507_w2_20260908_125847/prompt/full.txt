@@ -1,0 +1,91 @@
+==============================================================================
+=== SYSTEM
+==============================================================================
+Plan a hand-drawn graphic-recording board from a meeting.
+
+You get the meeting messages and facts extracted from them. Facts marked
+SUPERSEDED were later overturned — those are the most worth showing.
+
+Reply with JSON only:
+
+{
+  "title": "at most 5 words",
+  "anchors": [
+    {"label": "at most 6 words, shown on the board",
+     "glyph": "one concrete physical object to draw",
+     "from_facts": [0, 3]}
+  ],
+  "links": [{"from": 0, "to": 1, "label": "at most 3 words"}],
+  "notes": [{"text": "at most 10 words", "anchor": 0}],
+  "dropped": [7, 9]
+}
+
+Rules:
+- 2 to 4 anchors. Only ideas that deserve a drawing.
+- "glyph" is a physical object with NO writing on it: a padlock, a shield, a
+  bridge, a split road, an anchor, a key. Never a calendar, clock, document,
+  stamp, sign or chart — an object whose markings are words or numbers cannot
+  be drawn wordless. Never people, never a scene.
+- "label", "notes" and "title" carry the words. The drawing carries none.
+- Prefer anchors where a decision changed.
+- Put facts worth keeping that do not deserve a drawing in "notes".
+- Every fact index appears exactly once across from_facts, notes and dropped.
+
+==============================================================================
+=== USER
+==============================================================================
+## Meeting messages
+
+User_1: Love this—we’re at 99% on Production Deployment Readiness, and the last decision is around access controls plus reconciliation timing!  
+
+In **Project Meridian**, we cut over cleanly only after choosing one owner for sign-off: Security first, then Finance for reconciliation windows. For this Treasury release, do we want the same model, or a joint approval on the runbook at http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec?  
+
+I’m leaning joint approval so we lock operations, Security, Infrastructure, and reporting together before July 19!
+User_12: Love this — that locks the control boundary cleanly! @Vendor and @Security, post Security approver, workflow-log/ticket-trail evidence path, and validated allowlist in http://sharepoint/treasury_management_system_implementation/risk:_vendor_integration_complexity_spec by EOD July 16, then we can close this as **Detected** without reopening the freeze.
+User_3: Locking that boundary is fine, but are we sure “one evidence source” means the same artifact format for both teams? Last time we mixed screenshots and extracts, UAT called it inconsistent and reopened the whole trail.
+
+Finance Ops and IT should post the exact artifact type, plus primary, backup, and trigger text by EOD today; anything missing stays a controlled defect against http://sharepoint/treasury_management_system_implementation/cash_management_module_build_spec. If that lands cleanly, I’m comfortable marking this phase Completed.
+User_12: Love this — yes, let’s freeze it today! @ProjectManager, please stamp the owner chain and handoff timing in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec by EOD Thursday, then @Support post live bridge names, hours, and coverage against that frozen chain so July 19 stays clean and auditable!
+User_12: Love this—keep the transport boundary frozen! @Vendor, please post the endpoint, cadence, and named owner in the spec by EOD July 16; @Security can then lock the validated CIDRs and we can close this as Detected.
+
+User_1: Should I be worried that the rollback owner isn’t timestamped yet?  
+On Project Meridian, that “we’ll know it when we see it” gap cost us a morning in hypercare.  
+
+@ProjectManager, please stamp the backup approver, exact handoff trigger, and rollback owner in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec today.  
+Once that’s in-thread, I’m comfortable calling the dry-run control gap closed.
+User_2: Agreed — that order is the safest way to protect cutover. @ProjectManager should freeze rollback path and handoff trigger in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec today, then @Support posts timestamped bridge coverage, hours, and backup coverage by EOD.  
+
+That gives Finance, Treasury, and IT one auditable control record instead of a paper-only approval. Can we lock that sequence now?
+User_3: Yes — let’s lock the transport boundary now, and keep mapping separate until Friday. Vendor can post endpoint, cadence, IP allowlist, and named owner in http://sharepoint/treasury_management_system_implementation/risk:_vendor_integration_complexity_spec today, and Security should bless only that frozen target after the bank-gateway test.  
+
+That keeps the control record clean and avoids reopening architecture while we close the Detected status. I’ll treat any mapping delta as a separate review thread unless IT surfaces a hard functional miss.
+User_3: Yes — I’d lock it today, because the only real risk left is ambiguity during cutover. @ProjectManager, please freeze the owner chain and handoff timing in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec by EOD Thursday, then @Support can post live bridge names, hours, and coverage against that frozen record today.  
+
+That keeps July 19 clean, and it also gives Finance, Treasury, and IT one auditable control path instead of a paper-only approval. If anything is still missing after the support post, I’d treat it as a go-live blocker, not a cleanup item.
+User_3: Agreed — freezing the chain now is the safer cutover posture. If support can match the stamped handoff exactly, we remove the last “paper-ready” gap and protect July 19.  
+
+@ProjectManager should stamp the owner chain and handoff timing in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec by EOD Thursday; @Support should then post live bridge names, hours, and coverage against that record in-thread. Once those two posts land, I’d call this ready to close.
+
+
+## Facts extracted from them
+
+[0] User_12 requests Vendor to post the endpoint, cadence, and named owner in the spec by EOD July 16. [SUPERSEDED]
+[1] User_12 supports closing the vendor integration complexity risk as Detected after Vendor and Security post required evidence by EOD July 16. [SUPERSEDED]
+[2] User_12 requests Vendor to post Security approver, workflow-log/ticket-trail evidence path, and validated allowlist in http://sharepoint/treasury_management_system_implementation/risk:_vendor_integration_complexity_spec by EOD July 16. [SUPERSEDED]
+[3] User_12 requires Vendor to post the validated allowlist in http://sharepoint/treasury_management_system_implementation/risk:_vendor_integration_complexity_spec by EOD July 16. [SUPERSEDED]
+[4] User_3 is comfortable marking the phase as Completed if the exact artifact type, primary, backup, and trigger text are posted by EOD today. [SUPERSEDED]
+[5] User_12 requires Security to lock the validated CIDRs after Vendor posts the frozen values by EOD July 16. [SUPERSEDED]
+[6] User_12 supports closing the transport boundary as Detected after Vendor posts endpoint, cadence, and named owner by EOD July 16 and Security locks validated CIDRs. [SUPERSEDED]
+[7] User_3 requires Finance Ops and IT to post primary, backup, trigger text, and artifact type by EOD today. [SUPERSEDED]
+[8] User_1 requires joint approval on the runbook at http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec before July 19. [SUPERSEDED]
+[9] User_12 requires that the final support roster and handoff timing be frozen and auditable by July 19. [SUPERSEDED]
+[10] User_3 requests Finance Ops and IT to post the reusable evidence artifact by Thursday EOD against http://sharepoint/treasury_management_system_implementation/cash_management_module_build_spec. [SUPERSEDED]
+[11] User_12 requests ProjectManager to stamp the owner chain and handoff timing in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec by EOD Thursday. [SUPERSEDED]
+[12] User_12 requests Support to post live bridge names, hours, and coverage against the frozen chain in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec by EOD Thursday to keep July 19 clean and auditable. [SUPERSEDED]
+[13] User_12 requires Support to post live bridge names against the frozen chain by EOD Thursday. [SUPERSEDED]
+[14] User_1 wants to protect July 19 by closing the dry-run control gap. [SUPERSEDED]
+[15] User_2 requests that timestamped bridge coverage be posted by EOD. [SUPERSEDED]
+[16] User_3 wants the exact handoff trigger to be stamped in the production deployment readiness spec. [SUPERSEDED]
+[17] User_3 requests that the handoff timing be frozen in the production deployment readiness spec by EOD Thursday. [SUPERSEDED]
+[18] User_1 requests that the backup approver be stamped in the production deployment readiness spec. [SUPERSEDED]
+
