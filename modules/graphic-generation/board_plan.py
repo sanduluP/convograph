@@ -54,7 +54,7 @@ DIGEST_PROMPT_FILE = os.path.join(os.path.dirname(__file__), "prompts",
 # slice. Kept next to the prompt file it must agree with: the validator used to
 # hardcode 2-4 while the digest prompt asked for 3-5, so a plan that obeyed the
 # prompt was reported as invalid.
-DIGEST_ANCHOR_RANGE = (3, 5)
+DIGEST_ANCHOR_RANGE = (4, 6)
 
 # The SAIA key lives ONLY in git-ignored .env files - never in a tracked file.
 # The vault's .env is the canonical home (the Obsidian repo has a GitHub remote,

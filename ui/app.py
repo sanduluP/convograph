@@ -121,11 +121,12 @@ with st.sidebar:
             #           the graph says MATTERED. Same prompt size (8.8 KB against
             #           9.2 KB), far more coverage.
             #
-            # Off by default only because the digest is new and the window path is
-            # what every existing board was made with.
+            # ON by default. The page auto-draws on load, before anyone can touch
+            # a control, so an off-by-default toggle would mean the FIRST board —
+            # the one people actually look at — is always the window one.
             use_digest = st.checkbox(
                 "🧪 Plan from a whole-meeting digest",
-                value=False,
+                value=True,
                 help="Five cypher queries — what changed, what it was about, who "
                      "was there, what was settled, what is still open — instead of "
                      "a two-window slice. Adds ~4 s.",
@@ -270,6 +271,23 @@ if use_existing:
                  "first is drawn on load; click another to draw it.",
         ) or gids[0]     # deselecting everything falls back to the default
         st.caption(stats[existing_group_id])
+        # A group_id is not a description. finance_speaker_free is SIX WEEKS of
+        # several parallel projects; treasury_prod_deploy_* is one phase of one
+        # channel. Whether the board summarises "a meeting" depends entirely on
+        # which, and the name does not say.
+        SCOPE = {
+            "finance_speaker_free":
+                "⚠️ the whole Finance corpus — 6 weeks, several parallel projects. "
+                "Not one meeting. Cap the episodes in Advanced to take a slice.",
+            "gmb_finance_full":
+                "⚠️ the whole Finance corpus, ingested WITH speakers — "
+                "concept→concept is only 6.6%, so there is little to draw arrows from.",
+        }
+        note = SCOPE.get(existing_group_id)
+        if note:
+            st.caption(note)
+        elif existing_group_id.startswith("treasury_"):
+            st.caption("✅ one phase of one channel — this is a meeting-sized unit.")
     else:
         # Fallback so a Neo4j hiccup does not leave the page with no controls.
         existing_group_id = st.text_input("group_id in Neo4j", value="gmb_finance_full")
