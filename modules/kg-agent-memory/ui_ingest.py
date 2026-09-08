@@ -70,10 +70,28 @@ def _build_client() -> Graphiti:
         base_url=os.getenv("GRAPHITI_LLM_BASE_URL",
                            "https://chat-ai.academiccloud.de/v1"),
         temperature=float(os.getenv("GRAPHITI_TEMPERATURE", "0.2")),
-        max_tokens=4096,
+        # 8192, matching cluster_ingest_job.sh so the UI path and the cluster
+        # path cannot produce different graphs from the same transcript.
+        #
+        # It is NOT a fix for the JSONDecodeError this hit on 2026-09-07. That
+        # looked like token-ceiling truncation — the reply died at char 16,589,
+        # suspiciously near 4,096 tokens — but the cluster gap-fill running at
+        # 8192 failed at char 16,657 / 16,629 / 16,576 on the same day. Same
+        # position, double the budget: the ceiling is not the cause.
+        #
+        # The real cause is the repetition loop already documented for the
+        # original ingest: the model gets stuck repeating, ONE json string grows
+        # to ~16 KB, and the parse dies inside it. More output budget just buys
+        # a longer loop. 38 of 6,002 windows still fail this way (0.6%), and
+        # they are skipped rather than allowed to kill the run.
+        #
+        # Both places take the same value. The config's max_tokens used to be a
+        # hardcoded 4096 while only the client read the environment, so raising
+        # GRAPHITI_MAX_TOKENS moved one of the two and appeared to do nothing.
+        max_tokens=int(os.getenv("GRAPHITI_MAX_TOKENS", "8192")),
     )
     llm_client = OpenAIGenericClient(
-        config=llm_config, max_tokens=int(os.getenv("GRAPHITI_MAX_TOKENS", "4096"))
+        config=llm_config, max_tokens=int(os.getenv("GRAPHITI_MAX_TOKENS", "8192"))
     )
     embedder = OpenAIEmbedder(config=OpenAIEmbedderConfig(
         api_key=os.getenv("GRAPHITI_EMBED_API_KEY", "ollama"),
