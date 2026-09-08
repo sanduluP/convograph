@@ -53,8 +53,31 @@ CHAT_MODEL_DIR="${CHAT_MODEL_DIR:-${FS_ROOT}/models/Qwen3-30B-A3B-Instruct-2507-
 EMBED_MODEL_DIR="${EMBED_MODEL_DIR:-${FS_ROOT}/models/bge-m3}"
 MODEL_ID="${MODEL_ID:-Qwen/$(basename "${CHAT_MODEL_DIR}")}"
 EMBED_MODEL_ID="${EMBED_MODEL_ID:-BAAI/bge-m3}"
-CHAT_GPU_FRAC="${CHAT_GPU_FRAC:-0.72}"
-EMBED_GPU_FRAC="${EMBED_GPU_FRAC:-0.12}"
+# ── size vLLM from the CARD WE ACTUALLY GOT, not from a constant ─────────────
+# The first attempt inherited the corpus job's H100 numbers - 0.72 utilisation,
+# 65,536 context - and landed on an L40S. The 30B FP8 weights are 29.1 GiB; on a
+# 48 GB card 0.72 leaves 34.5 GiB, so after weights and CUDA graphs vLLM reported
+# "Available KV cache memory: 1.08 GiB" and the engine refused to start, since
+# 65k tokens of context needs far more than that. On an 80 GB H100 the same
+# numbers are comfortable, which is why the corpus job never hit this.
+#
+# So: detect the card and size to it. A short context is cheap here - this job
+# ingests ONE phase, ~81 windows, so Graphiti's node-dedup prompt (which grows
+# with the graph) stays small. That is the assumption that would break on a
+# corpus-sized run, and it is why the corpus job keeps 65k.
+GPU_MB=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits 2>/dev/null | head -1 || echo 0)
+GPU_NAME=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | head -1 || echo unknown)
+if [[ "${GPU_MB}" -ge 70000 ]]; then          # H100 / H200 / B200 (80 GB+)
+  CHAT_GPU_FRAC="${CHAT_GPU_FRAC:-0.72}"; CHAT_MAX_LEN="${CHAT_MAX_LEN:-65536}"
+elif [[ "${GPU_MB}" -ge 40000 ]]; then        # L40S / A6000-class (48 GB)
+  CHAT_GPU_FRAC="${CHAT_GPU_FRAC:-0.82}"; CHAT_MAX_LEN="${CHAT_MAX_LEN:-16384}"
+else
+  echo "❌ ${GPU_NAME} has only ${GPU_MB} MB — the 30B FP8 weights alone are 29.1 GiB."
+  echo "   Resubmit pinned to an 80 GB card: -p H100,H200,B200"
+  exit 1
+fi
+EMBED_GPU_FRAC="${EMBED_GPU_FRAC:-0.10}"
+echo "🎮 [job] ${GPU_NAME} (${GPU_MB} MB) → chat util ${CHAT_GPU_FRAC}, ctx ${CHAT_MAX_LEN}"
 
 # Speaker exclusion is the POINT of this graph, so it defaults ON here — the
 # opposite of cluster_ingest_job.sh, where it defaults off. Measured 2026-09-08:
@@ -155,9 +178,17 @@ echo "════════ 1/3  serving chat model ════════"
 VLLM_PORT="${CHAT_PORT}" \
 VLLM_MODEL_DIR="${CHAT_MODEL_DIR}" \
 VLLM_SERVED_NAME="${MODEL_ID}" \
-VLLM_MAX_LEN="${CHAT_MAX_LEN:-65536}" \
+VLLM_MAX_LEN="${CHAT_MAX_LEN}" \
 VLLM_EXTRA_ARGS="--gpu-memory-utilization ${CHAT_GPU_FRAC}" \
   bash scripts/serve_vllm.sh
+
+# If the engine still cannot fit a KV cache, say so in the terms the log used —
+# "Available KV cache memory: X GiB" is the line that explains the failure, and
+# it is 40 lines above the traceback that actually gets printed.
+VLLM_LOG="$(ls -t "${REPO_ROOT}/logs/serve_vllm/"serve_vllm_*.log 2>/dev/null | head -1)"
+if [[ -n "${VLLM_LOG}" ]] && grep -q "Available KV cache memory" "${VLLM_LOG}"; then
+  grep "Available KV cache memory" "${VLLM_LOG}" | tail -1 | sed 's/^/   /'
+fi
 
 # ── 2/3  embedder ────────────────────────────────────────────────────────────
 echo "════════ 2/3  serving embedder (bge-m3) ════════"
