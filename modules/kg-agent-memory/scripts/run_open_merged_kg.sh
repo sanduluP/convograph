@@ -75,6 +75,18 @@ mkdir -p "${LOG_DIR}"
   if [[ "${SKIP_SYNC}" == "1" ]]; then
     echo "⏭️  SKIP_SYNC=1 — using the copy already on disk"
   else
+    # Neo4j inside the container runs as uid 7474 and REWRITES these files, so a
+    # second rsync into an existing store dies with "Permission denied" on every
+    # file the server touched — and rsync exits 23 having transferred only part
+    # of the tree, leaving a store that is half old and half new. That store
+    # still starts, and still answers queries, with silently mixed data.
+    # So: take ownership back before every sync. Cheap, and idempotent.
+    if [[ -d "${LOCAL_ROOT}/data" ]] && [[ -n "$(find "${LOCAL_ROOT}/data" ! -user "$(id -un)" -print -quit 2>/dev/null)" ]]; then
+      echo "🔑 reclaiming ownership from the container's uid (7474 → $(id -u))…"
+      docker run --rm -v "${LOCAL_ROOT}:/data" alpine:3 \
+        chown -R "$(id -u):$(id -g)" /data
+    fi
+
     echo "📥 rsyncing the store from Pegasus (a few GB — this is the slow part)…"
     mkdir -p "${LOCAL_ROOT}"
     # --delete keeps the local copy an exact mirror: a half-synced store would

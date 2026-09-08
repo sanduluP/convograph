@@ -212,7 +212,17 @@ def main() -> None:
     fig.tight_layout(rect=[0, 0, 1, legend_y - 14.0 / fig_h_pt])
     fig.subplots_adjust(wspace=0.28)
 
-    out = "figures/graph_shape.png"
+    # Never hardcode the name: this script is now run against TWO graphs and a
+    # fixed path makes the second render destroy the first (CLAUDE.md rule 6).
+    out = os.getenv("SHAPE_OUT", "figures/graph_shape.png")
+    # Archive any existing figure rather than silently replacing it.
+    if os.path.exists(out):
+        import shutil, time as _t
+        arch = os.path.join("figures", "archive")
+        os.makedirs(arch, exist_ok=True)
+        stamp = _t.strftime("%Y-%m-%d-%H%M%S")
+        base = os.path.basename(out).rsplit(".", 1)[0]
+        shutil.copy2(out, os.path.join(arch, f"{base}_{stamp}.png"))
     os.makedirs("figures", exist_ok=True)
     if os.path.exists(out):                       # never overwrite a figure in place
         import shutil, datetime
