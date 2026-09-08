@@ -185,10 +185,14 @@ VLLM_EXTRA_ARGS="--gpu-memory-utilization ${CHAT_GPU_FRAC}" \
 # If the engine still cannot fit a KV cache, say so in the terms the log used —
 # "Available KV cache memory: X GiB" is the line that explains the failure, and
 # it is 40 lines above the traceback that actually gets printed.
-VLLM_LOG="$(ls -t "${REPO_ROOT}/logs/serve_vllm/"serve_vllm_*.log 2>/dev/null | head -1)"
-if [[ -n "${VLLM_LOG}" ]] && grep -q "Available KV cache memory" "${VLLM_LOG}"; then
-  grep "Available KV cache memory" "${VLLM_LOG}" | tail -1 | sed 's/^/   /'
-fi
+# NOTE THE `|| true` ON BOTH LINES. This block killed the job it was written to
+# help debug: under `set -euo pipefail`, `grep … | tail -1` makes tail close the
+# pipe early, grep dies of SIGPIPE, pipefail turns that into exit 141, and set -e
+# ends the run — right after vLLM had come up healthy. A diagnostic must not be
+# able to fail the thing it is diagnosing.
+VLLM_LOG="$(ls -t "${REPO_ROOT}/logs/serve_vllm/"serve_vllm_*.log 2>/dev/null | head -1 || true)"
+KV_LINE="$(grep "Available KV cache memory" "${VLLM_LOG:-/dev/null}" 2>/dev/null | tail -1 || true)"
+[[ -n "${KV_LINE}" ]] && echo "   ${KV_LINE}" || true
 
 # ── 2/3  embedder ────────────────────────────────────────────────────────────
 echo "════════ 2/3  serving embedder (bge-m3) ════════"
