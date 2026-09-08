@@ -114,7 +114,15 @@ echo "🚫👤 [job] speakers : $([[ "${EXCLUDE_SPEAKERS}" == "1" ]] && echo EXC
 
 [[ -f "${TEXT_FILE}" ]] || { echo "❌ no such file: ${TEXT_FILE}"; exit 1; }
 LINES=$(grep -cve '^[[:space:]]*$' "${TEXT_FILE}")
-echo "💬 [job] ${LINES} utterances → ~$(( (LINES + 4) / 5 )) windows"
+# 5 lines per window, matching the corpus ingest — NOT ui_ingest's default of 12.
+# Measured on this phase at 12: NINE of the first fifteen windows failed the
+# repetition loop, a 60% skip rate against 0.6% corpus-wide at 5. A bigger
+# episode means more entities and edges in one extraction, a longer JSON reply,
+# and far more chances for the model to get stuck repeating inside it.
+# It also makes this graph comparable with finance_speaker_free, which is
+# windowed the same way.
+WINDOW_LINES="${WINDOW_LINES:-5}"
+echo "💬 [job] ${LINES} utterances → ~$(( (LINES + WINDOW_LINES - 1) / WINDOW_LINES )) windows of ${WINDOW_LINES}"
 
 # ── credentials ──────────────────────────────────────────────────────────────
 # .env is git-ignored and carries the AuraDB connection. It is NOT synced by
@@ -249,6 +257,7 @@ GRAPHITI_EMBED_API_KEY="dummy" \
 GRAPHITI_EMBED_DIM=1024 \
 GRAPHITI_MAX_TOKENS="${GRAPHITI_MAX_TOKENS:-8192}" \
 GRAPHITI_EXCLUDE_SPEAKERS="${EXCLUDE_SPEAKERS}" \
+UI_INGEST_WINDOW_LINES="${WINDOW_LINES:-5}" \
 SEMAPHORE_LIMIT="${SEMAPHORE_LIMIT:-20}" \
   "${PY}" -u ui_ingest.py --text-file "${TEXT_FILE}" --group-id "${GROUP_ID}" \
   > "${REPO_ROOT}/logs/phase_ingest_${GROUP_ID}.json" \
