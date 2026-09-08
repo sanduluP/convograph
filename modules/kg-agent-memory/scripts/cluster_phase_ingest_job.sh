@@ -77,11 +77,25 @@ GPU_MB=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits 2>/de
 GPU_NAME=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | head -1 || echo unknown)
 if [[ "${GPU_MB}" -ge 70000 ]]; then          # H100 / H200 / B200 (80 GB+)
   CHAT_GPU_FRAC="${CHAT_GPU_FRAC:-0.72}"; CHAT_MAX_LEN="${CHAT_MAX_LEN:-65536}"
-elif [[ "${GPU_MB}" -ge 40000 ]]; then        # L40S / A6000-class (48 GB)
-  CHAT_GPU_FRAC="${CHAT_GPU_FRAC:-0.82}"; CHAT_MAX_LEN="${CHAT_MAX_LEN:-16384}"
 else
-  echo "❌ ${GPU_NAME} has only ${GPU_MB} MB — the 30B FP8 weights alone are 29.1 GiB."
-  echo "   Resubmit pinned to an 80 GB card: -p H100,H200,B200"
+  # An earlier version tried 16,384 context on a 48 GB L40S, reasoning that one
+  # phase makes a small graph so Graphiti's prompts stay short. That was wrong in
+  # two ways, and both showed up on the FIRST window:
+  #
+  #   * graphiti's edge-extraction prompt is 15,168 characters before any graph
+  #     exists to grow it — the length comes from the instructions, not the data;
+  #   * OpenAIGenericClient.__init__ defaults max_tokens to 16384 and OVERRIDES
+  #     the config with it (llm_client/openai_generic_client.py:65,94), so the
+  #     request asks for the entire context as OUTPUT and leaves nothing for input.
+  #
+  # Either alone would fit in 65k. Together they need a context this card cannot
+  # give alongside 29.1 GiB of weights, so refuse rather than half-work.
+  echo "❌ ${GPU_NAME} has ${GPU_MB} MB — not enough for this job."
+  echo "   The 30B FP8 weights are 29.1 GiB and graphiti needs a 65k context:"
+  echo "   its edge-extraction prompt is ~15k characters and the client requests"
+  echo "   16,384 output tokens regardless of what the config says."
+  echo "   Resubmit pinned to an 80 GB card:"
+  echo "       bash scripts/srun_submit.sh H100,H100-RP,H100-PCI,H200,H200-PCI,B200 ..."
   exit 1
 fi
 EMBED_GPU_FRAC="${EMBED_GPU_FRAC:-0.10}"
