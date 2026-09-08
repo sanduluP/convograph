@@ -228,6 +228,37 @@ def check(scene: dict) -> list[str]:
                 problems.append(f"cards {a['id']} and {b['id']} overlap "
                                 f"by {ox:.0f}x{oy:.0f}px")
 
+    # A bound arrow label sitting on a card is unreadable, and it is the defect a
+    # generated ring layout produces most often: the label goes at the arrow's
+    # midpoint, which for a link between distant nodes can land on a third card.
+    # Checked here rather than left to the eye, because "I looked and it seemed
+    # fine" does not survive a re-run with different anchor counts.
+    cards = [e for e in elements if e["type"] == "rectangle"]
+    for e in elements:
+        if e["type"] != "text" or not e.get("containerId"):
+            continue
+        container = by_id.get(e["containerId"])
+        if not container or container.get("type") != "arrow":
+            continue
+        pts = container.get("points") or [[0, 0]]
+        if len(pts) >= 2:
+            a, b = pts[len(pts) // 2 - 1], pts[len(pts) // 2]
+            mid = (container["x"] + (a[0] + b[0]) / 2,
+                   container["y"] + (a[1] + b[1]) / 2)
+        else:
+            mid = (container["x"], container["y"])
+        # The label's own box, centred on that midpoint.
+        lw, lh = e.get("width", 0), e.get("height", 0)
+        lx0, ly0 = mid[0] - lw / 2, mid[1] - lh / 2
+        for c in cards:
+            ox = min(lx0 + lw, c["x"] + c["width"]) - max(lx0, c["x"])
+            oy = min(ly0 + lh, c["y"] + c["height"]) - max(ly0, c["y"])
+            if ox > 0 and oy > 0:
+                problems.append(
+                    f"link label {e.get('text','')!r} overlaps a card "
+                    f"by {ox:.0f}x{oy:.0f}px — unreadable")
+                break
+
     min_x, min_y, max_x, max_y = _bbox(elements)
     w, h = max_x - min_x, max_y - min_y
     if h and not 0.4 <= w / h <= 3.0:

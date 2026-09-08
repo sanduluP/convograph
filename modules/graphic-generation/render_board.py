@@ -69,10 +69,13 @@ from PIL import Image
 IMG_W = 200            # displayed pictogram width; height follows aspect ratio
 CARD_PAD = 18          # white space between the card's edge and its contents
 CARD_W = IMG_W + 2 * CARD_PAD
-MIN_NODE_GAP = 230     # closest two adjacent cards may come, edge to edge.
-                       # Generous on purpose: the space between nodes is where
-                       # the link labels live, and a label sitting on a card is
-                       # unreadable.
+MIN_NODE_GAP = 120     # closest two adjacent cards may come, edge to edge.
+                       # Was 230, which was compensating for the radius bug
+                       # below rather than reflecting what a label needs: once
+                       # separation is MEASURED instead of assumed, even 80
+                       # keeps every link label off every card at n=2..6. 120
+                       # leaves margin without the airy 2113x1451 canvas that
+                       # 230 produced for five anchors.
 RATIO = 1.9            # ellipse width / height. >1 = landscape (see LAYOUT).
                        # 1.45 gave a 1.06:1 canvas for 4 anchors - almost
                        # square, which wastes a paper column and a screen.
@@ -276,15 +279,39 @@ def _node_positions(n: int, card_h: float) -> list[tuple[float, float]]:
     if n == 1:
         return [(0.0, 0.0)]
     need = max(CARD_W, card_h) + MIN_NODE_GAP
+
+    # 2*R*sin(pi/n) is the adjacent separation on a CIRCLE, and we draw an
+    # ELLIPSE. Dividing the vertical axis by RATIO shrinks every separation that
+    # is not purely horizontal, by up to RATIO itself — so the derived radius
+    # promised a clearance the layout did not deliver. At n=4 the slack absorbed
+    # it; at n=5 two link labels landed on cards (caught by preview_board's
+    # label/card check, 55x2 and 62x8 px).
+    #
+    # Rather than patch the formula with a fudge factor, place the nodes and
+    # MEASURE the closest pair, then scale until it clears. One pass, exact for
+    # any n and any RATIO, and it cannot drift out of agreement with the drawing.
     rx = max(MIN_RX, need / (2 * math.sin(math.pi / n)))
-    ry = rx / RATIO
     if n == 2:
-        angles = [180.0, 0.0]           # a horizontal pair reads better than a
-                                        # vertical one at the top of a board
+        # NOT 180/0. A dead-horizontal pair gives a 3.18:1 canvas — two cards in
+        # a flat line, outside the readable range and a poor shape for a page.
+        # A slight diagonal keeps the pair reading left-to-right while giving the
+        # board some height.
+        angles = [200.0, 20.0]
     else:
         angles = [-90.0 + i * 360.0 / n for i in range(n)]
-    return [(rx * math.cos(math.radians(a)), ry * math.sin(math.radians(a)))
-            for a in angles]
+
+    for _ in range(12):                 # bounded: each pass scales up, so it
+                                        # terminates; the cap guards a bad RATIO
+        ry = rx / RATIO
+        pts = [(rx * math.cos(math.radians(a)), ry * math.sin(math.radians(a)))
+               for a in angles]
+        closest = min(math.dist(p, q)
+                      for i, p in enumerate(pts) for q in pts[i + 1:])
+        if closest >= need:
+            return pts
+        rx *= need / closest * 1.02     # 2% over, so float error cannot leave it
+                                        # a hair short and loop again
+    return pts
 
 
 def build_scene(plan: dict, images: list[str | None]) -> dict:
