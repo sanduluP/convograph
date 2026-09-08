@@ -453,6 +453,36 @@ def run_pipeline(
 #   output flat in ui/output/          one folder per run, holding the plan,
 #                                        the images, the board and a preview
 
+def _run_digest(group_id: str, episode_limit: int, cb: ProgressCB) -> dict:
+    """Run module 2's five digest queries in ITS venv and read back the JSON.
+
+    A subprocess rather than an import, for the reason this whole file is built
+    that way: module 2 owns graphiti-core and the neo4j driver, the UI venv has
+    streamlit and Pillow, and their heavy pins conflict. Importing tkg_digest
+    here raised ModuleNotFoundError for neo4j — the rule stated at the top of
+    this file, broken and then caught by the first run.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        cmd = [KG_PYTHON, os.path.join(KG_MODULE, "analysis", "tkg_digest.py"),
+               "--group-id", group_id, "--out", tmp]
+        if episode_limit:
+            cmd += ["--episode-limit", str(episode_limit)]
+        # The connection is passed explicitly so the digest reads the SAME
+        # database the rest of the run does, rather than whatever module 2's
+        # .env happens to point at.
+        for flag, env in (("--uri", "NEO4J_URI"), ("--user", "NEO4J_USER"),
+                          ("--password", "NEO4J_PASSWORD"),
+                          ("--database", "NEO4J_DATABASE")):
+            if os.getenv(env):
+                cmd += [flag, os.environ[env]]
+        proc = subprocess.run(cmd, cwd=KG_MODULE, capture_output=True,
+                              text=True, timeout=900)
+        if proc.returncode != 0:
+            raise PipelineError(f"the digest failed:\n{proc.stderr[-4000:]}")
+        with open(os.path.join(tmp, "digest.json")) as fh:
+            return json.load(fh)
+
+
 def _window_run(group_id: str, windows: int, max_facts: int,
                 cb: ProgressCB) -> dict:
     """A CONTIGUOUS run of `windows` episodes: their raw messages AND facts.
@@ -558,6 +588,8 @@ def run_content_map(
     provider: Optional[str] = None,
     model: Optional[str] = None,
     dedupe_facts: bool = True,
+    use_digest: bool = False,
+    episode_limit: int = 0,
     progress_cb: ProgressCB = None,
 ) -> dict:
     """Window -> board plan -> pictograms -> ONE content map. Returns a dict
@@ -612,18 +644,53 @@ def run_content_map(
         # silently returns fewer and the run dir's name lies about its input.
         windows = min(windows, max(1, int(ingested.get("episodes") or 1)))
 
-    # ── hop 1: the window ───────────────────────────────────────────────────
-    run = _window_run(group_id, windows, max_facts, progress_cb)
+    # ── hop 1: the input ────────────────────────────────────────────────────
+    # Two shapes, and the difference is the point of the digest work:
+    #
+    #   window   2 episodes, ~40 facts, chosen by POSITION. The planner sees
+    #            whichever five minutes it was handed.
+    #   digest   five cypher queries over the whole meeting, chosen by what the
+    #            graph says MATTERED. Same prompt size, far more coverage.
+    if use_digest:
+        _log(progress_cb, f"🧪 digesting the graph — five queries over "
+                          f"{'the whole group' if not episode_limit else f'{episode_limit} episodes'}")
+        t_dig = time.time()
+        dig = _run_digest(group_id, episode_limit, progress_cb)
+        for k, v in dig["timings"].items():
+            _log(progress_cb, f"   {k:<14} {v:>5.2f}s  ({len(dig['queries'][k])} rows)")
+        _log(progress_cb, f"   digest took {time.time() - t_dig:.1f}s over "
+                          f"{dig['episodes_digested']} episode(s)")
+
+        _log(progress_cb, f"🧭 planning the board — {provider}/{model}")
+        t0 = time.time()
+        plan, items = board_plan.plan_board_from_digest(dig, provider=provider,
+                                                        model=model)
+        plan_secs = time.time() - t0
+        messages = board_plan.build_messages_from_digest(dig)
+        facts = [{"fact": it.get("fact") or it.get("was") or "",
+                  "invalid_at": it.get("changed_at"),
+                  "valid_at": it.get("valid_from") or it.get("asked_at")}
+                 for it in items]
+        problems = board_plan.validate(plan, len(items),
+                                       plan.get("_anchor_range", (2, 4)))
+        run = {"episode_texts": [], "facts": facts, "window_start": None}
+        raw_n = len(facts)
+        digest_result = dig
+    else:
+        run = _window_run(group_id, windows, max_facts, progress_cb)
+        digest_result = None
     episode_texts = run.get("episode_texts", [])
     facts = run.get("facts", [])
-    if not facts:
+    if not use_digest and not facts:
         raise PipelineError(
             f"group '{group_id}' returned no facts. Check the group_id — a typo "
             f"looks exactly like an empty graph."
         )
-    superseded = sum(1 for f in facts if f.get("invalid_at"))
-    _log(progress_cb, f"   {len(episode_texts)} episode(s) from w{run.get('window_start')}, "
-                      f"{len(facts)} fact(s), {superseded} superseded")
+    if not use_digest:
+        superseded = sum(1 for f in facts if f.get("invalid_at"))
+        _log(progress_cb, f"   {len(episode_texts)} episode(s) from "
+                          f"w{run.get('window_start')}, {len(facts)} fact(s), "
+                          f"{superseded} superseded")
 
     # ── hop 1b: collapse restatements ───────────────────────────────────────
     # Graphiti decomposes a listing sentence into one fact per item AND keeps
@@ -634,7 +701,7 @@ def run_content_map(
     # restatements of the same sentence. Giving it distinct ideas instead makes
     # "dropped" mean "judged not worth drawing" rather than "was a duplicate".
     raw_n = len(facts)
-    if dedupe_facts:
+    if dedupe_facts and not use_digest:
         facts, removed = fact_redundancy.dedupe(facts)
         if removed:
             _log(progress_cb, f"   ♻️  collapsed {removed} restatement(s) → "
@@ -642,17 +709,19 @@ def run_content_map(
                               f"({raw_n / len(facts):.2f}x redundant)")
 
     # ── hop 2: the plan ─────────────────────────────────────────────────────
-    _log(progress_cb, f"🧭 planning the board — {provider}/{model}")
-    t0 = time.time()
-    plan = board_plan.plan_board(episode_texts, facts, provider=provider, model=model)
-    plan_secs = time.time() - t0
+    if not use_digest:
+        _log(progress_cb, f"🧭 planning the board — {provider}/{model}")
+        t0 = time.time()
+        plan = board_plan.plan_board(episode_texts, facts, provider=provider,
+                                     model=model)
+        plan_secs = time.time() - t0
+        problems = board_plan.validate(plan, len(facts))
     # Built a second time rather than returned from plan_board, so persisting the
     # prompt can never change what was actually sent. build_messages is pure.
-    messages = board_plan.build_messages(episode_texts, facts)
+        messages = board_plan.build_messages(episode_texts, facts)
 
     # A flawed plan is still rendered. The point of this stage is looking at
     # results, and a board that is 90% right teaches more than an exception.
-    problems = board_plan.validate(plan, len(facts))
     if problems:
         _log(progress_cb, f"   ⚠️  plan has {len(problems)} validation problem(s) "
                           f"— rendering anyway:")
@@ -667,8 +736,9 @@ def run_content_map(
                       f"{len(plan.get('notes', []))} note(s), "
                       f"{len(plan.get('dropped', []))} fact(s) dropped")
 
+    tag = "digest" if use_digest else f"w{windows}"
     run_dir = os.path.join(
-        OUT_DIR, f"{provider}-{model}_w{windows}_{stamp}".replace("/", "-"))
+        OUT_DIR, f"{provider}-{model}_{tag}_{stamp}".replace("/", "-"))
     os.makedirs(os.path.join(run_dir, "images"), exist_ok=True)
 
     plan["_windows"] = windows
@@ -678,7 +748,14 @@ def run_content_map(
     plan["_facts"] = facts            # the exact input, so a plan's fact indices
                                       # stay resolvable months from now
     plan["_facts_before_dedupe"] = raw_n
-    plan["_deduped"] = bool(dedupe_facts)
+    plan["_deduped"] = bool(dedupe_facts and not use_digest)
+    if digest_result is not None:
+        # The digest is written next to the plan: a board planned from it is only
+        # auditable if the exact input survives beside the output.
+        d = os.path.join(run_dir, "digest")
+        os.makedirs(d, exist_ok=True)
+        with open(os.path.join(d, "digest.json"), "w") as fh:
+            json.dump(digest_result, fh, indent=2, default=str)
     with open(os.path.join(run_dir, "plan.json"), "w") as fh:
         json.dump(plan, fh, indent=2)
     _write_plan_readme(run_dir)
@@ -723,6 +800,7 @@ def run_content_map(
         "run_dir": run_dir, "board_path": board_path,
         "preview_path": preview_path, "plan": plan,
         "provider": provider, "model": model, "windows": windows,
+        "used_digest": use_digest,
         "plan_seconds": round(plan_secs, 2),
         "validation": problems, "layout_issues": issues, "debug": debug,
     }

@@ -45,6 +45,16 @@ import urllib.error
 import urllib.request
 
 PROMPT_FILE = os.path.join(os.path.dirname(__file__), "prompts", "board_plan_system.txt")
+# A digest is a different SHAPE of input from a window - sections of ranked
+# findings rather than raw messages plus a flat fact list - so it gets its own
+# instructions instead of one prompt hedging between the two.
+DIGEST_PROMPT_FILE = os.path.join(os.path.dirname(__file__), "prompts",
+                                  "board_plan_digest_system.txt")
+# A digest covers a whole meeting and earns more anchors than a two-window
+# slice. Kept next to the prompt file it must agree with: the validator used to
+# hardcode 2-4 while the digest prompt asked for 3-5, so a plan that obeyed the
+# prompt was reported as invalid.
+DIGEST_ANCHOR_RANGE = (3, 5)
 
 # The SAIA key lives ONLY in git-ignored .env files - never in a tracked file.
 # The vault's .env is the canonical home (the Obsidian repo has a GitHub remote,
@@ -205,6 +215,87 @@ def build_messages(episode_texts: list[dict], facts: list[dict]) -> list[dict]:
             {"role": "user", "content": _render_input(episode_texts, facts)}]
 
 
+def flatten_digest(digest: dict) -> tuple[list[dict], str]:
+    """A digest -> (indexed items, the rendered user message).
+
+    Every citable line gets ONE index across the whole digest, so the plan's
+    `from_facts` still points at something specific and a board element can be
+    traced back to the query that produced it. Without that, a digest-planned
+    board would be unauditable in a way the window-planned one is not.
+
+    Topics and participants are context, not citable items: an anchor cites the
+    revision or decision it is about, and naming a topic is what its `label` is
+    for. Numbering them too would let the planner "cover" a fact by pointing at
+    the word "compliance".
+    """
+    q = digest.get("queries", {})
+    items: list[dict] = []
+    parts: list[str] = []
+
+    parts.append("## What this meeting was about\n")
+    for t in q.get("topics", []):
+        nb = ", ".join((t.get("neighbours") or [])[:4])
+        parts.append(f"- {t['topic']} — in {t['episodes']} windows"
+                     + (f" (with {nb})" if nb else ""))
+
+    if q.get("artifacts"):
+        parts.append("\n## Documents it kept returning to\n")
+        for a in q["artifacts"]:
+            parts.append(f"- {a['artifact']} — in {a['episodes']} windows")
+
+    def _add(section: str, rows: list[dict], render) -> None:
+        if not rows:
+            return
+        parts.append(f"\n## {section}\n")
+        for row in rows:
+            i = len(items)
+            items.append({"index": i, "source": section, **row})
+            parts.append(f"[{i}] {render(row)}")
+
+    _add("What changed", q.get("revisions", []),
+         lambda r: f"{r['was']}  →  {r.get('became') or '(replacement unknown)'}")
+    _add("What was settled", q.get("decisions", []), lambda r: r["fact"])
+    _add("Still open", q.get("open_threads", []), lambda r: r["fact"])
+
+    if q.get("participants"):
+        parts.append("\n## Who was in the room\n")
+        for p_ in q["participants"]:
+            parts.append(f"- {p_['speaker']} — {100 * p_['share']:.0f}% of utterances")
+
+    return items, "\n".join(parts)
+
+
+def build_messages_from_digest(digest: dict) -> list[dict]:
+    """The exact messages a digest-planned board is built from."""
+    return [{"role": "system", "content": open(DIGEST_PROMPT_FILE).read()},
+            {"role": "user", "content": flatten_digest(digest)[1]}]
+
+
+def plan_board_from_digest(digest: dict, provider: str = DEFAULT_PROVIDER,
+                           model: str | None = None) -> tuple[dict, list[dict]]:
+    """Plan a board from a whole-meeting digest. Returns (plan, cited items).
+
+    The alternative this replaces is a 2-window slice: ~40 facts out of 82,165,
+    chosen by position rather than by mattering. The digest is the same graph
+    asked what deserves to be drawn.
+    """
+    model = model or PROVIDERS[provider]["default_model"]
+    items, _ = flatten_digest(digest)
+    raw = _chat(build_messages_from_digest(digest), provider, model)
+    plan = _extract_json(raw)
+
+    plan.setdefault("title", "")
+    for k in ("anchors", "links", "notes", "dropped"):
+        plan.setdefault(k, [])
+    plan["_raw_reply"] = raw
+    plan["_provider"] = provider
+    plan["_model"] = model
+    plan["_n_facts_in"] = len(items)
+    plan["_source"] = "digest"
+    plan["_anchor_range"] = DIGEST_ANCHOR_RANGE
+    return plan, items
+
+
 def plan_board(episode_texts: list[dict], facts: list[dict],
                provider: str = DEFAULT_PROVIDER, model: str | None = None) -> dict:
     """Return the board plan. Raises on a reply that is not usable JSON."""
@@ -243,7 +334,8 @@ WRITING_BEARING = ("calendar", "clock", "document", "paper", "book",
                    "spreadsheet", "chart", "graph", "note", "notebook")
 
 
-def validate(plan: dict, n_facts: int) -> list[str]:
+def validate(plan: dict, n_facts: int,
+             anchor_range: tuple[int, int] = (2, 4)) -> list[str]:
     """Return human-readable problems with a plan. Empty list = clean.
 
     Kept separate from plan_board so a flawed plan can still be rendered and
@@ -251,9 +343,10 @@ def validate(plan: dict, n_facts: int) -> list[str]:
     that is 90% right is more informative than an exception.
     """
     problems = []
+    lo, hi = anchor_range
     n = len(plan.get("anchors", []))
-    if not 2 <= n <= 4:
-        problems.append(f"{n} anchors (prompt asks for 2-4)")
+    if not lo <= n <= hi:
+        problems.append(f"{n} anchors (prompt asks for {lo}-{hi})")
 
     for i, a in enumerate(plan.get("anchors", [])):
         for key in ("label", "glyph"):

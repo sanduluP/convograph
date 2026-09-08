@@ -1,0 +1,71 @@
+{
+  "title": "Compliance & Data Alignment",
+  "anchors": [
+    {
+      "label": "Compliance Oversight",
+      "glyph": "padlock",
+      "from_facts": [0, 25, 26, 27, 33, 34, 38, 39, 40, 41, 43, 44]
+    },
+    {
+      "label": "Data Integrity",
+      "glyph": "bridge",
+      "from_facts": [3, 45, 53, 55, 56, 57]
+    },
+    {
+      "label": "Legal Review",
+      "glyph": "shield",
+      "from_facts": [2, 4, 9, 18, 32, 54]
+    },
+    {
+      "label": "Ops Ownership",
+      "glyph": "anchor",
+      "from_facts": [1, 28, 29, 30, 31, 35, 36, 37, 42]
+    },
+    {
+      "label": "Engineering Stability",
+      "glyph": "key",
+      "from_facts": [4, 11, 14, 49, 50]
+    }
+  ],
+  "links": [
+    {
+      "from": 0,
+      "to": 1,
+      "label": "locked by"
+    },
+    {
+      "from": 1,
+      "to": 2,
+      "label": "blocked by"
+    },
+    {
+      "from": 2,
+      "to": 3,
+      "label": "replaced"
+    },
+    {
+      "from": 3,
+      "to": 4,
+      "label": "requires"
+    }
+  ],
+  "notes": [
+    {
+      "text": "Data Engineering must confirm rule owners before locking.",
+      "anchor": 1
+    },
+    {
+      "text": "Compliance needs exact gap disposition reason in matrix.",
+      "anchor": 0
+    },
+    {
+      "text": "QA needs hard bar to prevent rerunning without control.",
+      "anchor": 4
+    },
+    {
+      "text": "Leadership call needed on investigation handoff ownership.",
+      "anchor": 0
+    }
+  ],
+  "dropped": [7, 9]
+}

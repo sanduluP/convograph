@@ -32,6 +32,12 @@ def main() -> None:
                          "planner (default 2)")
     ap.add_argument("--max-facts", type=int, default=40,
                     help="cap on facts handed to the planner (default 40)")
+    ap.add_argument("--digest", action="store_true",
+                    help="plan from a whole-meeting DIGEST (five cypher queries) "
+                         "instead of a 2-window slice")
+    ap.add_argument("--episode-limit", type=int, default=0,
+                    help="with --digest: digest only the first N episodes, to take "
+                         "one meeting-sized slice out of a corpus (0 = all)")
     ap.add_argument("--provider", default=None,
                     help="saia (default) or ollama — see board_plan.PROVIDERS")
     ap.add_argument("--model", default=None,
@@ -44,6 +50,8 @@ def main() -> None:
         max_facts=args.max_facts,
         provider=args.provider,
         model=args.model,
+        use_digest=args.digest,
+        episode_limit=args.episode_limit,
         progress_cb=print,          # the shell IS the progress bar here
     )
 
