@@ -1,0 +1,8 @@
+{"topic": "compliance", "episodes": 62, "neighbours": ["SAR Reporting Requirements", "owner", "Risk: Inconsistent KYC Records", "exception log", "Detected"]}
+{"topic": "operations", "episodes": 39, "neighbours": ["owner", "Risk: Inconsistent KYC Records", "define monitoring requirements spec", "SAR Reporting Requirements", "alert scoring model design spec"]}
+{"topic": "data", "episodes": 38, "neighbours": ["SAR Reporting Requirements", "define monitoring requirements spec", "owner", "source-data defects", "engineering"]}
+{"topic": "engineering", "episodes": 32, "neighbours": ["final matrix text", "SAR Reporting Requirements", "retrieval path", "approval date", "field ID"]}
+{"topic": "owner", "episodes": 31, "neighbours": ["Ops", "Finance", "compliance", "legal", "operations"]}
+{"topic": "data-engineering", "episodes": 30, "neighbours": ["mapping diff", "published hash", "owner", "timestamp", "spec"]}
+{"topic": "timestamp", "episodes": 27, "neighbours": ["Ops", "legal", "data-engineering", "engineering", "operations"]}
+{"topic": "legal", "episodes": 26, "neighbours": ["Risk: Inconsistent Sustainability Standards", "owner", "compliance", "SAR Reporting Requirements", "timestamp"]}
