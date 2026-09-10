@@ -18,6 +18,8 @@ const S = {
   graph: null,           // latest graph event
   renders: new Map(),    // episode -> render event
   latestRenderEp: null,
+  recView: "latest",     // latest | frames | canvas
+  board: null,           // {url, episodes, v} — the composed .excalidraw scene
   renaming: null,        // label currently being renamed
   compare: null,         // {a, b, data}
   view: "start",         // start | live | compare
@@ -101,6 +103,7 @@ function connect() {
     S.renders.set(d.episode, d);
     if (d.status === "done" && d.images.length) S.latestRenderEp = d.episode;
   });
+  on("board", (d) => { S.board = { ...d, v: (S.board?.v || 0) + 1 }; });
   on("error", (d) => toast(`${d.stage}: ${d.message}`));
   es.onerror = () => {};   // EventSource auto-reconnects; backlog replays
 }
@@ -278,11 +281,81 @@ function renderGraphPanel() {
 
 /* ── graphic recording panel ──────────────────────────────────────────────── */
 
+/* The Canvas tab mounts a real, editable Excalidraw inside an iframe — the
+   same bundler-free esm.sh embed the repo's Streamlit UI uses (pinned
+   versions). The iframe survives re-renders; it is rebuilt only when a new
+   board version lands or the tab is re-entered. */
+const EXCALIDRAW_VERSION = "0.18.0";
+const REACT_VERSION = "18.3.1";
+let canvasMountedV = 0;
+
+function excalidrawSrcdoc(boardUrl) {
+  return `<!doctype html><html><head><meta charset="utf-8">
+  <style>html,body{margin:0;height:100%;background:#fff}#root{height:100%}</style>
+  <link rel="stylesheet"
+    href="https://unpkg.com/@excalidraw/excalidraw@${EXCALIDRAW_VERSION}/dist/prod/index.css">
+  <script>window.EXCALIDRAW_ASSET_PATH =
+    "https://esm.sh/@excalidraw/excalidraw@${EXCALIDRAW_VERSION}/dist/prod/";<\/script>
+  </head><body><div id="root"></div>
+  <script type="module">
+    import React from "https://esm.sh/react@${REACT_VERSION}";
+    import { createRoot } from "https://esm.sh/react-dom@${REACT_VERSION}/client";
+    import { Excalidraw } from
+      "https://esm.sh/@excalidraw/excalidraw@${EXCALIDRAW_VERSION}?deps=react@${REACT_VERSION},react-dom@${REACT_VERSION}";
+    const scene = await (await fetch("${boardUrl}?t=" + Date.now())).json();
+    scene.scrollToContent = true;
+    createRoot(document.getElementById("root"))
+      .render(React.createElement(Excalidraw, { initialData: scene }));
+  <\/script></body></html>`;
+}
+
+function renderCanvasView(plate) {
+  if (!S.board) {
+    plate.innerHTML = `<div class="empty"><h3>No board yet</h3>
+      <p>The Excalidraw board is composed after the first episode renders.</p></div>`;
+    canvasMountedV = 0;
+    return;
+  }
+  if (canvasMountedV === S.board.v && $("#exc-frame", plate)) return; // keep edits
+  plate.innerHTML = `
+    <iframe id="exc-frame" style="position:absolute;inset:0;width:100%;height:100%;
+      border:0;background:#fff"></iframe>
+    <a class="btn ghost" style="position:absolute;right:10px;top:8px;z-index:5;
+      background:#ffffffd0;border-radius:8px"
+      href="${S.board.url}" download="convograph_board.excalidraw">Download .excalidraw</a>`;
+  $("#exc-frame", plate).srcdoc = excalidrawSrcdoc(S.board.url);
+  canvasMountedV = S.board.v;
+}
+
 function renderRecording() {
   const plate = $("#plate");
   const chip = $("#status-chip");
   const ep = S.latestRenderEp;
   const running = [...S.renders.values()].find((r) => r.status !== "done");
+
+  if (S.recView === "canvas") {
+    renderCanvasView(plate);
+    $("#rec-meta").textContent = S.board
+      ? `Editable board · ${S.board.elements} elements · ${S.board.episodes} episode(s)`
+      : "Editable board";
+    chip.hidden = !running;
+    return;
+  }
+  canvasMountedV = 0;   // leaving the canvas tab: next entry remounts fresh
+
+  if (S.recView === "frames") {
+    const eps = [...S.renders.entries()].sort((a, b) => a[0] - b[0])
+      .filter(([, r]) => r.images?.length);
+    plate.innerHTML = eps.length ? `<div class="collage" style="overflow:auto">${
+      eps.flatMap(([i, r]) => r.images.map((u, j) => `
+        <figure><img src="${u}" alt="">
+          <figcaption>ep ${i} · ${esc((r.facts || r.captions)[j] || "")}</figcaption>
+        </figure>`)).join("")}</div>`
+      : `<div class="empty"><h3>No frames yet</h3></div>`;
+    $("#rec-meta").textContent = "All episodes";
+    chip.hidden = !running;
+    return;
+  }
 
   if (ep != null) {
     const r = S.renders.get(ep);
@@ -526,6 +599,13 @@ $("#btn-export").addEventListener("click", () => {
   a.href = URL.createObjectURL(blob);
   a.download = `convograph_${S.sid}.json`;
   a.click();
+});
+$("#rec-tabs").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  $$("#rec-tabs button").forEach((x) => x.classList.remove("on"));
+  b.classList.add("on");
+  S.recView = b.dataset.v;
+  render();
 });
 $("#cmp-filter").addEventListener("click", (e) => {
   const b = e.target.closest("button"); if (!b) return;

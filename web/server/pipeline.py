@@ -48,6 +48,7 @@ os.environ.setdefault("FLUX_SERVER_URL", "http://localhost:8500")
 sys.path.insert(0, IMG_MODULE)
 sys.path.insert(0, UI_DIR)
 import kg_to_caption  # noqa: E402  (stdlib-only)
+import compose_board  # noqa: E402  (module 3's Excalidraw composer; needs PIL)
 
 
 TURN_RE = re.compile(r"^\s*([^:\n]{1,60}?)\s*:\s*(.+)$")
@@ -320,6 +321,30 @@ async def render_episode(session: Session, ep_idx: int, facts: List[str]) -> Non
                             "facts": facts})
     session.emit("episode", {"index": ep_idx, "stage": "rendered", "status": "done",
                              "progress": 1.0, "detail": f"{len(urls)} image(s)"})
+
+    # ── the Excalidraw board: module 3's composer over everything so far ──
+    # One editable scene per session, regrown after each episode. Renders can
+    # finish out of order, so composition is serialized per session and the
+    # entries carry the episode index for stable ordering.
+    kept = [i for i, png in enumerate(images) if png is not None]
+    for j, i in enumerate(kept):
+        session.board_entries.append({
+            "image": os.path.join(ep_dir, f"ep{ep_idx:02d}_{i:02d}.png"),
+            "caption": facts[i] if i < len(facts) else captions[i],
+            "label": f"episode {ep_idx}",
+            "timestamp": f"{ep_idx:03d}-{j:02d}",
+        })
+    async with session.board_lock:
+        board_path = os.path.join(ep_dir, "board.excalidraw")
+        entries = list(session.board_entries)
+        scene = await loop.run_in_executor(
+            None, lambda: compose_board.compose(entries, board_path))
+        scene.pop("_layout_debug", None)
+        with open(board_path, "w") as fh:
+            json.dump(scene, fh)
+        session.emit("board", {"url": f"/output/{session.id}/board.excalidraw",
+                               "episodes": ep_idx,
+                               "elements": len(scene.get("elements", []))})
 
 
 # ── the conductor ─────────────────────────────────────────────────────────────

@@ -57,6 +57,8 @@ class Session:
     episodes: List[dict] = field(default_factory=list)
     snapshots: List[dict] = field(default_factory=list)      # graph state per episode
     tasks: List[asyncio.Task] = field(default_factory=list)
+    board_entries: List[dict] = field(default_factory=list)  # compose_board input
+    board_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
     def emit(self, type_: str, data: dict) -> None:
         ev = Event(next(self._seq), type_, data)
