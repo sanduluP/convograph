@@ -110,6 +110,7 @@ button { font: inherit; cursor: pointer; }
 .turn.dim { opacity: .62; }
 .caret { display: inline-block; width: 1.5px; height: 13px; background: var(--text);
   vertical-align: -2px; animation: blink 1s steps(1) infinite; }
+.paused .caret { animation: none; }
 @keyframes blink { 50% { opacity: 0; } }
 .ep-boundary { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px;
   align-items: center; margin: 10px 0 4px; font-size: 10px; letter-spacing: .1em;
@@ -215,22 +216,22 @@ button { font: inherit; cursor: pointer; }
 .ep-cell.live .lbl { color: var(--a700); }
 .track .legend { font-size: 10.5px; color: var(--n600); }
 
-/* ── start card (session entry — not in the handoff; matches its tokens) ── */
-.start-wrap { display: flex; align-items: center; justify-content: center;
-  padding: 24px; }
-.start-card { width: 720px; max-width: 94%; background: #fff;
-  border-radius: var(--r-frame); box-shadow: var(--card-ring); padding: 28px 32px; }
-.start-card h2 { font-size: 24px; margin-bottom: 4px; }
-.start-card .sub { font-size: 13px; color: var(--n600); margin: 0 0 18px; }
-.start-card textarea { width: 100%; min-height: 180px; border-radius: 10px;
-  border: 1px solid rgba(0,0,0,.1); padding: 12px; font: 13px/1.5 inherit;
+/* ── input row: live / upload / paste, inside the transcript panel ───────── */
+.input-row { display: flex; gap: 8px; padding: 0 18px 10px; flex: none;
+  border-bottom: 1px solid var(--divider); }
+.input-row .btn { height: 30px; font-size: 12px; padding: 0 12px; }
+.paste-drawer { flex: none; padding: 10px 18px; border-bottom: 1px solid
+  var(--divider); }
+.paste-drawer textarea { width: 100%; min-height: 110px; border-radius: 10px;
+  border: 1px solid rgba(0,0,0,.1); padding: 10px; font: 12.5px/1.5 inherit;
   resize: vertical; }
-.start-card textarea:focus { border-color: var(--accent); outline: none; }
-.start-card .row { display: flex; align-items: center; gap: 12px; margin-top: 14px;
-  flex-wrap: wrap; }
-.start-card input[type="text"] { height: 36px; border-radius: 10px; flex: 1;
-  border: 1px solid rgba(0,0,0,.1); padding: 0 12px; font-size: 13px; }
-.start-card .or { font-size: 12px; color: var(--n500); }
+.paste-drawer textarea:focus { border-color: var(--accent); outline: none; }
+.paste-drawer .drawer-row { display: flex; gap: 10px; margin-top: 8px;
+  align-items: center; }
+.paste-drawer .drawer-row .btn { height: 30px; font-size: 12px; }
+
+/* the sentence still being spoken (design 1a "live turn") */
+.turn.partial .ts.speaking { color: var(--a700); }
 
 /* ── compare episodes (1c) ───────────────────────────────────────────────── */
 .compare { display: grid; grid-template-rows: auto 1fr; min-height: 0;

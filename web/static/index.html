@@ -28,6 +28,8 @@
     <span class="speakers-cluster">Speakers <span class="stack" id="stack"></span></span>
     <button class="btn secondary" id="btn-compare" disabled>Compare episodes</button>
     <button class="btn secondary" id="btn-export">Export</button>
+    <button class="btn secondary" id="btn-pause" disabled>Pause</button>
+    <button class="btn primary" id="btn-end" disabled>End session</button>
     <button class="btn secondary" id="btn-back" hidden>Back to session</button>
     <button class="btn icon secondary" id="btn-settings" title="Session settings">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -45,37 +47,30 @@
     </button>
   </header>
 
-  <!-- ── start view (session entry) ──────────────────────────────────────── -->
-  <div class="start-wrap" id="view-start">
-    <div class="start-card">
-      <h2>Start a session</h2>
-      <p class="sub">Paste a speaker-tagged transcript (<code>Name (Role): words</code>,
-        one turn per line), upload a meeting recording, or record from this
-        browser's microphone — the server needs none.</p>
-      <textarea id="start-text"
-        placeholder="Maya (Project Manager): Alright, let's settle the launch plan…"></textarea>
-      <div class="row">
-        <input type="text" id="start-title" placeholder="Session title (optional)">
-        <button class="btn ghost" id="btn-example">Load example</button>
-      </div>
-      <div class="row">
-        <button class="btn primary" id="btn-start">Start session</button>
-        <span class="or">or</span>
-        <input type="file" id="start-file" accept=".wav,.mp3,.m4a,.webm,.ogg">
-        <span class="or">or</span>
-        <button class="btn secondary" id="btn-mic">🎙 Record</button>
-      </div>
-    </div>
-  </div>
-
   <!-- ── live view: transcript | graph | recording ───────────────────────── -->
-  <div class="body-grid" id="view-live" hidden>
+  <div class="body-grid" id="view-live">
     <section class="panel" id="transcript-panel">
       <div class="panel-header">
         <span class="ptitle">Transcript
           <span style="font-weight:400;color:var(--n500)"> · click a name to rename</span>
         </span>
         <span class="pmeta tabular" id="word-count">0 words</span>
+      </div>
+      <!-- input row: all three sources feed the same running session -->
+      <div class="input-row">
+        <button class="btn secondary" id="btn-live">🎙 Live</button>
+        <button class="btn secondary" id="btn-upload">Upload</button>
+        <input type="file" id="upload-file" hidden
+               accept=".wav,.mp3,.m4a,.webm,.ogg">
+        <button class="btn secondary" id="btn-paste-toggle">Paste</button>
+      </div>
+      <div class="paste-drawer" id="paste-drawer" hidden>
+        <textarea id="paste-text"
+          placeholder="Maya (Project Manager): Alright, let's settle…&#10;One turn per line."></textarea>
+        <div class="drawer-row">
+          <button class="btn primary" id="btn-paste-go">Add to session</button>
+          <button class="btn ghost" id="btn-example">Load example</button>
+        </div>
       </div>
       <div class="panel-body" id="transcript-body"></div>
       <div class="panel-footer">
@@ -173,7 +168,7 @@
   </div>
 
   <!-- ── episode track ───────────────────────────────────────────────────── -->
-  <footer class="track" id="track" hidden>
+  <footer class="track" id="track">
     <span class="summary" id="track-summary"></span>
     <div class="lanes" id="lanes"></div>
     <span class="legend">bars: transcribed / graphed / rendered<br>
@@ -194,7 +189,9 @@
         <div class="sdesc">How the conversation is cut before extraction.</div></div>
       <div>
         <div class="field"><label>Turns per episode</label>
-          <input type="number" id="set-episode-lines" min="2" max="40"></div>
+          <input type="number" id="set-episode-turns" min="2" max="40"></div>
+        <div class="field"><label>…or seconds of audio, whichever first (live)</label>
+          <input type="number" id="set-episode-seconds" min="30" max="600" step="10"></div>
         <div class="field"><label>Extraction window (lines per Graphiti episode)</label>
           <input type="number" id="set-window-lines" min="2" max="20"></div>
       </div>

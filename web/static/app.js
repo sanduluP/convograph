@@ -1,6 +1,6 @@
-/* Convograph v2 frontend — implements the new_ui_template_design handoff
-   against the async backend in web/server/. No build step, no framework:
-   a state object fed by SSE events, and render functions per panel. */
+/* Convograph v2 frontend — the event-driven live app.
+   A state object fed by SSE events; render functions per panel; inputs
+   (live mic / upload / paste) all append to one running session. */
 
 import { createGraph } from "/assets/graph3d.js";
 
@@ -10,67 +10,62 @@ const $$ = (sel, el = document) => [...el.querySelectorAll(sel)];
 const S = {
   sid: null,
   meta: null,
-  state: "idle",
+  state: "idle",         // idle|warming|listening|paused|ending|ended|failed
   turns: [],
-  speakers: {},          // label -> display name
-  speakerOrder: [],      // stable color assignment
-  episodes: new Map(),   // index -> {transcribed, graphed, rendered}
-  graph: null,           // latest graph event
-  renders: new Map(),    // episode -> render event
+  partials: new Map(),   // id -> turn_partial (the sentence being spoken)
+  speakers: {},
+  speakerOrder: [],
+  episodes: new Map(),
+  graph: null,
+  renders: new Map(),
   latestRenderEp: null,
-  recView: "latest",     // latest | frames | canvas
-  board: null,           // {url, episodes, v} — the composed .excalidraw scene
-  renaming: null,        // label currently being renamed
-  compare: null,         // {a, b, data}
-  view: "start",         // start | live | compare
+  recView: "latest",
+  board: null,
+  renaming: null,
+  compare: null,
+  view: "live",          // live | compare
+  audioSeconds: 0,
+  hasLiveAudio: false,
+  ingestPending: 0,
+  livePhase: "off",      // off | connecting | on
+  detail: "",
 };
 
 let graph3d = null;
 let compareGraph = null;
+let ws = null;           // live audio socket
+let recorder = null;     // MediaRecorder
 
-/* ── boot ─────────────────────────────────────────────────────────────────── */
+/* ── boot: a session always exists; the app opens on the live view ────────── */
 
-init();
+boot();
 
-function init() {
+async function boot() {
   const params = new URLSearchParams(location.search);
-  if (params.get("s")) {
-    S.sid = params.get("s");
-    enterLive();
-    connect();
-  } else {
-    render();
+  const existing = params.get("s");
+  if (existing) {
+    const res = await fetch(`/api/session/${existing}/meta`);
+    if (res.ok) {
+      S.sid = existing;
+      connect();
+      render();
+      return;
+    }
+    toast("That session is gone (server restarted) — starting a fresh one.");
   }
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeSheet();
-  });
+  const created = await api("", { method: "POST", body: JSON.stringify({}) });
+  S.sid = created.id;
+  history.replaceState(null, "", `?s=${S.sid}`);
+  connect();
+  render();
 }
 
 async function api(path, opts = {}) {
   const res = await fetch(`/api/session${path}`, {
-    headers: { "Content-Type": "application/json" },
-    ...opts,
+    headers: { "Content-Type": "application/json" }, ...opts,
   });
   if (!res.ok) throw new Error((await res.text()).slice(0, 300));
   return res.json();
-}
-
-async function startSession(text, audioFile) {
-  const title = $("#start-title").value.trim();
-  const created = await api("", {
-    method: "POST", body: JSON.stringify({ title }),
-  });
-  S.sid = created.id;
-  history.replaceState(null, "", `?s=${S.sid}`);
-  enterLive();
-  connect();
-  if (audioFile) {
-    const fd = new FormData();
-    fd.append("file", audioFile, audioFile.name || "recording.webm");
-    await fetch(`/api/session/${S.sid}/audio`, { method: "POST", body: fd });
-  } else {
-    await api(`/${S.sid}/start`, { method: "POST", body: JSON.stringify({ text }) });
-  }
 }
 
 function connect() {
@@ -80,14 +75,31 @@ function connect() {
   });
   on("session", (d) => {
     if (d.state) S.state = d.state;
-    if (d.title) S.meta = { ...(S.meta || {}), title: d.title, started_at: d.started_at };
-    if (d.detail) setStatusToast(d.detail);
+    if (d.title) S.meta = { ...(S.meta || {}), title: d.title,
+                            started_at: d.started_at ?? S.meta?.started_at };
+    if (d.started_at) S.meta = { ...(S.meta || {}), started_at: d.started_at };
+    if (d.settings) S.meta = { ...(S.meta || {}), settings: d.settings };
+    S.detail = d.detail || "";
   });
   on("turn", (d) => {
+    S.partials.delete(d.id);           // the final replaces its partial
     S.turns.push(d);
     if (!S.speakerOrder.includes(d.speaker)) S.speakerOrder.push(d.speaker);
     S.speakers[d.speaker] = d.name;
   });
+  es.addEventListener("turn_partial", (e) => {   // transient, high-rate
+    const d = JSON.parse(e.data);
+    S.partials.set(d.id, d);
+    if (!S.speakerOrder.includes(d.speaker)) S.speakerOrder.push(d.speaker);
+    S.speakers[d.speaker] ??= d.name;
+    renderTranscript(); renderTopbar();          // cheap partial re-render
+  });
+  es.addEventListener("clock", (e) => {
+    S.audioSeconds = JSON.parse(e.data).audio_seconds;
+    S.hasLiveAudio = true;
+    const el = $("#timer"); if (el) el.textContent = fmtSecs(S.audioSeconds);
+  });
+  on("queue", (d) => { S.ingestPending = d.ingest_pending; });
   on("speaker", (d) => {
     S.speakers[d.label] = d.name;
     S.turns.forEach((t) => { if (t.speaker === d.label) t.name = d.name; });
@@ -105,10 +117,91 @@ function connect() {
   });
   on("board", (d) => { S.board = { ...d, v: (S.board?.v || 0) + 1 }; });
   on("error", (d) => toast(`${d.stage}: ${d.message}`));
-  es.onerror = () => {};   // EventSource auto-reconnects; backlog replays
+  es.onerror = async () => {
+    // EventSource auto-reconnects; detect a server restart (session gone)
+    try {
+      const res = await fetch(`/api/session/${S.sid}/meta`);
+      if (res.status === 404) {
+        es.close();
+        toast("Session lost — the server restarted. Reload to start fresh.");
+      }
+    } catch { /* network blip; let EventSource retry */ }
+  };
 }
 
-function enterLive() { S.view = "live"; }
+/* ── live microphone (recording happens in THIS browser) ──────────────────── */
+
+async function startLive() {
+  if (S.livePhase !== "off") { stopLiveCapture(); return; }
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch {
+    toast("Microphone blocked. Live capture needs a localhost or HTTPS "
+        + "origin — open the app through your SSH tunnel.");
+    return;
+  }
+  S.livePhase = "connecting";
+  render();
+  const proto = location.protocol === "https:" ? "wss" : "ws";
+  ws = new WebSocket(`${proto}://${location.host}/api/session/${S.sid}/live`);
+  ws.binaryType = "arraybuffer";
+  ws.onopen = () => {
+    recorder = new MediaRecorder(stream, { mimeType: "audio/webm;codecs=opus" });
+    recorder.ondataavailable = (e) => {
+      if (e.data.size && ws?.readyState === WebSocket.OPEN) ws.send(e.data);
+    };
+    recorder.onstop = () => stream.getTracks().forEach((t) => t.stop());
+    recorder.start(250);
+    S.livePhase = "on";
+    render();
+  };
+  ws.onmessage = (e) => {
+    if (typeof e.data === "string") {
+      const m = JSON.parse(e.data);
+      if (m.error) { toast(m.message || m.error); stopLiveCapture(); }
+    }
+  };
+  ws.onclose = () => {
+    if (S.livePhase === "on" && !["ending", "ended"].includes(S.state)) {
+      toast("Live connection dropped — reconnecting…");
+      stopRecorderOnly();
+      S.livePhase = "off";
+      setTimeout(() => startLive().catch(() => {}), 1500);
+    }
+  };
+}
+
+function stopRecorderOnly() {
+  try { recorder?.state !== "inactive" && recorder?.stop(); } catch {}
+  recorder = null;
+}
+
+function stopLiveCapture() {   // user toggled 🎙 off: end the session's audio
+  try { ws?.send(JSON.stringify({ type: "stop" })); } catch {}
+  stopRecorderOnly();
+  S.livePhase = "off";
+  render();
+}
+
+async function pauseOrResume() {
+  if (S.state === "listening") {
+    if (recorder?.state === "recording") recorder.pause();
+    if (ws?.readyState === WebSocket.OPEN)
+      ws.send(JSON.stringify({ type: "pause" }));
+    else await api(`/${S.sid}/pause`, { method: "POST" });
+  } else if (S.state === "paused") {
+    if (recorder?.state === "paused") recorder.resume();
+    if (ws?.readyState === WebSocket.OPEN)
+      ws.send(JSON.stringify({ type: "resume" }));
+    else await api(`/${S.sid}/resume`, { method: "POST" });
+  }
+}
+
+async function endSession() {
+  if (S.livePhase !== "off") stopLiveCapture();
+  else await api(`/${S.sid}/end`, { method: "POST" });
+}
 
 /* ── helpers ──────────────────────────────────────────────────────────────── */
 
@@ -121,18 +214,21 @@ function initial(label) {
 }
 function named(label) { return S.speakers[label] !== label; }
 function esc(s) {
-  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-                  .replace(/"/g, "&quot;");
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
-function elapsed() {
-  if (!S.meta?.started_at) return "00:00:00";
-  const s = Math.max(0, Math.floor(Date.now() / 1000 - S.meta.started_at));
+function fmtSecs(s) {
   const p = (n) => String(n).padStart(2, "0");
+  s = Math.max(0, Math.floor(s));
   return `${p(Math.floor(s / 3600))}:${p(Math.floor((s % 3600) / 60))}:${p(s % 60)}`;
 }
-setInterval(() => { const el = $("#timer"); if (el) el.textContent = elapsed(); }, 1000);
+setInterval(() => {
+  const el = $("#timer"); if (!el) return;
+  if (S.hasLiveAudio) { el.textContent = fmtSecs(S.audioSeconds); return; }
+  if (S.meta?.started_at && !["ended", "failed"].includes(S.state))
+    el.textContent = fmtSecs(Date.now() / 1000 - S.meta.started_at);
+}, 1000);
 
-let toastTimer;
 function toast(msg) {
   const box = $("#toasts");
   const el = document.createElement("div");
@@ -140,25 +236,15 @@ function toast(msg) {
   box.appendChild(el);
   setTimeout(() => el.remove(), 9000);
 }
-function setStatusToast(msg) { /* transcription progress -> title area */
-  const el = $("#live-detail"); if (el) el.textContent = msg;
-}
 
 /* ── render root ──────────────────────────────────────────────────────────── */
 
 function render() {
   const app = $("#app");
   app.classList.toggle("compare-mode", S.view === "compare");
-  app.classList.toggle("paused", S.state === "ended" || S.state === "failed");
+  app.classList.toggle("paused",
+    ["paused", "ended", "failed"].includes(S.state));
   renderTopbar();
-  if (S.view === "start") {
-    $("#view-start").hidden = false;
-    $("#view-live").hidden = true;
-    $("#view-compare").hidden = true;
-    $("#track").hidden = true;
-    return;
-  }
-  $("#view-start").hidden = true;
   $("#view-live").hidden = S.view !== "live";
   $("#view-compare").hidden = S.view !== "compare";
   $("#track").hidden = S.view !== "live";
@@ -174,26 +260,46 @@ function renderTopbar() {
   if (S.meta?.title && S.meta.title !== "Untitled session") {
     t.textContent = S.meta.title; t.classList.remove("placeholder");
   } else {
-    t.textContent = S.view === "start" ? "New session"
-      : "Untitled session — name it when you like";
+    t.textContent = "Untitled session — name it when you like";
     t.classList.add("placeholder");
   }
-  const label = { idle: "Idle", transcribing: "Transcribing",
-                  listening: "Processing", ended: "Session complete",
-                  failed: "Failed" }[S.state] || S.state;
+  const label = {
+    idle: "Idle — add audio or text on the left",
+    warming: "Warming up",
+    listening: S.livePhase === "on" ? "Listening" : "Processing",
+    paused: "Paused",
+    ending: `Ending — ${S.ingestPending} episode(s) queued`,
+    ended: "Session complete",
+    failed: "Failed",
+  }[S.state] || S.state;
   $("#live-label").textContent = label;
+  $("#live-detail").textContent = S.detail || "";
+
   const unnamed = S.speakerOrder.filter((l) => !named(l)).length;
   const tag = $("#ident-tag");
   if (S.speakerOrder.length && unnamed) {
     tag.hidden = false;
-    tag.textContent =
-      `${S.speakerOrder.length - unnamed} of ${S.speakerOrder.length} voices identified`;
+    tag.textContent = `${S.speakerOrder.length - unnamed} of `
+                    + `${S.speakerOrder.length} voices identified`;
   } else tag.hidden = true;
+
   $("#stack").innerHTML = S.speakerOrder.slice(0, 4).map((l) =>
     `<span class="monogram ${colorClass(l)} ${named(l) ? "" : "unnamed"}"
        title="${esc(S.speakers[l])}">${esc(initial(l))}</span>`).join("");
+
   $("#btn-compare").disabled = !(S.meta?.episodes_snapshotted >= 2 ||
                                  countDone("graphed") >= 2);
+  const busyEnd = ["ending", "ended", "failed", "idle"].includes(S.state);
+  $("#btn-end").disabled = busyEnd && S.state !== "idle" || S.state === "idle";
+  $("#btn-pause").disabled = !["listening", "paused"].includes(S.state);
+  $("#btn-pause").textContent = S.state === "paused" ? "Resume" : "Pause";
+  const liveBtn = $("#btn-live");
+  liveBtn.textContent = { off: "🎙 Live", connecting: "⏳ Starting…",
+                          on: "■ Stop live" }[S.livePhase];
+  liveBtn.disabled = S.livePhase === "connecting" ||
+                     ["ending", "ended", "failed"].includes(S.state);
+  $("#btn-back").hidden = S.view !== "compare";
+  $("#btn-compare").hidden = S.view === "compare";
 }
 
 function countDone(stage) {
@@ -203,15 +309,15 @@ function countDone(stage) {
   return n;
 }
 
-/* ── transcript panel ─────────────────────────────────────────────────────── */
+/* ── transcript panel (finals + live partials) ────────────────────────────── */
 
 function renderTranscript() {
   const body = $("#transcript-body");
   let html = "", lastEp = 0;
   const currentEp = Math.max(0, ...[...S.episodes.keys()]);
-  S.turns.forEach((t, i) => {
+  S.turns.forEach((t) => {
     if (t.episode !== lastEp) {
-      const cur = t.episode === currentEp ? " current" : "";
+      const cur = t.episode >= currentEp ? " current" : "";
       html += `<div class="ep-boundary${cur}"><span>Episode ${t.episode}</span></div>`;
       lastEp = t.episode;
     }
@@ -224,19 +330,40 @@ function renderTranscript() {
          <span class="rename-hint">↵ to save</span>`
       : `<span class="name ${named(t.speaker) ? "named" : ""}"
            data-label="${esc(t.speaker)}" title="Click to rename">${esc(t.name)}</span>`;
+    const ts = t.t_start != null ? `${t.t_start.toFixed(1)}s` : t.id;
     html += `
       <div class="turn${dim}">
         <span class="monogram ${colorClass(t.speaker)}
           ${named(t.speaker) ? "" : "unnamed"}">${esc(initial(t.speaker))}</span>
         <div>
-          <div class="who">${nameHtml}<span class="ts">${esc(t.id)}</span></div>
+          <div class="who">${nameHtml}<span class="ts tabular">${esc(ts)}</span></div>
           <div>${esc(t.text)}</div>
         </div>
       </div>`;
   });
+
+  // open partials: the sentences still being spoken (design 1a "live turn")
+  const partials = [...S.partials.values()].sort((a, b) => a.t_start - b.t_start);
+  for (const p of partials) {
+    html += `
+      <div class="turn partial">
+        <span class="monogram speaking ${colorClass(p.speaker)}
+          ${named(p.speaker) ? "" : "unnamed"}">${esc(initial(p.speaker))}</span>
+        <div>
+          <div class="who">
+            <span class="name ${named(p.speaker) ? "named" : ""}"
+              data-label="${esc(p.speaker)}">${esc(S.speakers[p.speaker] || p.speaker)}</span>
+            <span class="ts speaking">speaking</span>
+          </div>
+          <div>${esc(p.text)}<span class="caret"></span></div>
+        </div>
+      </div>`;
+  }
+
   body.innerHTML = `<div class="turns">${html}</div>`;
   $("#word-count").textContent =
     `${S.turns.reduce((n, t) => n + t.text.split(/\s+/).length, 0)} words`;
+
   if (S.renaming) {
     const input = $(".rename-input", body);
     input?.focus();
@@ -253,7 +380,7 @@ function renderTranscript() {
       if (e.key === "Escape") { S.renaming = null; render(); }
     });
   } else {
-    body.scrollTop = body.scrollHeight;   // auto-follow the newest turn
+    body.scrollTop = body.scrollHeight;
   }
   $$(".name", body).forEach((el) => el.addEventListener("click", () => {
     S.renaming = el.dataset.label; render();
@@ -274,17 +401,13 @@ function renderGraphPanel() {
     $("#graph-status").textContent = S.graph.status_line;
   } else {
     $("#graph-meta").textContent = "waiting for the first episode";
-    $("#graph-status").textContent = S.state === "listening"
-      ? "Extracting episode 1 …" : "";
+    $("#graph-status").textContent =
+      S.state === "listening" ? "Extracting episode 1 …" : "";
   }
 }
 
 /* ── graphic recording panel ──────────────────────────────────────────────── */
 
-/* The Canvas tab mounts a real, editable Excalidraw inside an iframe — the
-   same bundler-free esm.sh embed the repo's Streamlit UI uses (pinned
-   versions). The iframe survives re-renders; it is rebuilt only when a new
-   board version lands or the tab is re-entered. */
 const EXCALIDRAW_VERSION = "0.18.0";
 const REACT_VERSION = "18.3.1";
 let canvasMountedV = 0;
@@ -316,7 +439,7 @@ function renderCanvasView(plate) {
     canvasMountedV = 0;
     return;
   }
-  if (canvasMountedV === S.board.v && $("#exc-frame", plate)) return; // keep edits
+  if (canvasMountedV === S.board.v && $("#exc-frame", plate)) return;
   plate.innerHTML = `
     <iframe id="exc-frame" style="position:absolute;inset:0;width:100%;height:100%;
       border:0;background:#fff"></iframe>
@@ -341,7 +464,7 @@ function renderRecording() {
     chip.hidden = !running;
     return;
   }
-  canvasMountedV = 0;   // leaving the canvas tab: next entry remounts fresh
+  canvasMountedV = 0;
 
   if (S.recView === "frames") {
     const eps = [...S.renders.entries()].sort((a, b) => a[0] - b[0])
@@ -365,8 +488,7 @@ function renderRecording() {
           <figcaption>${esc((r.facts || r.captions)[i] || "")}</figcaption>
         </figure>`).join("")}</div>
       ${running ? '<div class="sweep"></div>' : ""}`;
-    $("#rec-meta").textContent =
-      `Pictogram · FLUX schnell · episode ${ep}`;
+    $("#rec-meta").textContent = `Pictogram · FLUX schnell · episode ${ep}`;
   } else {
     plate.innerHTML = `
       <div class="empty">
@@ -388,7 +510,8 @@ function renderRecording() {
     chip.hidden = false;
     const pct = Math.round((running.progress || 0) * 100);
     $("#chip-text").textContent = running.status === "captioning"
-      ? `Captioning episode ${running.episode}` : `Rendering episode ${running.episode}`;
+      ? `Captioning episode ${running.episode}`
+      : `Rendering episode ${running.episode}`;
     $("#chip-bar").style.width = `${pct}%`;
     $("#chip-pct").textContent = `${pct}%`;
   } else chip.hidden = true;
@@ -400,7 +523,8 @@ function renderRecording() {
          data-ep="${i}" title="episode ${i}">`
     : `<span class="thumb placeholder">${i} …</span>`).join("");
   const next = (eps.at(-1)?.[0] || 0) + 1;
-  if (S.state === "listening") h += `<span class="thumb placeholder">${next} …</span>`;
+  if (S.state === "listening")
+    h += `<span class="thumb placeholder">${next} …</span>`;
   thumbs.innerHTML = h;
   $$("img.thumb", thumbs).forEach((el) => el.addEventListener("click", () => {
     S.latestRenderEp = Number(el.dataset.ep); render();
@@ -411,29 +535,35 @@ function renderRecording() {
 
 function renderTrack() {
   const idxs = [...S.episodes.keys()].sort((a, b) => a - b);
-  const done = (st) => idxs.filter((i) => S.episodes.get(i)[st]?.status === "done").length;
+  const done = (st) =>
+    idxs.filter((i) => S.episodes.get(i)[st]?.status === "done").length;
+  const queued = S.ingestPending
+    ? ` · <span style="color:var(--a700)">${S.ingestPending} queued for extraction</span>`
+    : "";
   $("#track-summary").innerHTML =
-    `<b>${idxs.length}</b> episodes · ${done("graphed")} graphed · ${done("rendered")} rendered`;
+    `<b>${idxs.length}</b> episodes · ${done("graphed")} graphed · `
+    + `${done("rendered")} rendered${queued}`;
   $("#lanes").innerHTML = idxs.map((i) => {
     const ep = S.episodes.get(i);
     const bar = (st) => {
       const s = ep[st] || {};
-      const cls = s.status === "done" ? "done" : s.status === "running" ? "running"
-        : s.status === "failed" ? "failed" : "";
-      const w = s.status === "running" ? `width:${Math.round((s.progress || 0.2) * 100)}%`
-        : "";
+      const cls = s.status === "done" ? "done" : s.status === "running"
+        ? "running" : s.status === "failed" ? "failed" : "";
+      const w = s.status === "running"
+        ? `width:${Math.round((s.progress || 0.2) * 100)}%` : "";
       return `<div class="bar ${s.status ? "" : "dashed"}"
                 title="${st}${s.detail ? ": " + esc(s.detail) : ""}">
                 <i class="${cls}" style="${w}"></i></div>`;
     };
-    const live = ep.graphed?.status === "running" || ep.rendered?.status === "running";
+    const live = ep.graphed?.status === "running" ||
+                 ep.rendered?.status === "running";
     return `<div class="ep-cell ${live ? "live" : ""}">
       <div class="bars">${bar("transcribed")}${bar("graphed")}${bar("rendered")}</div>
       <div class="lbl tabular">${i}</div></div>`;
   }).join("");
 }
 
-/* ── compare episodes (1c) ────────────────────────────────────────────────── */
+/* ── compare episodes ─────────────────────────────────────────────────────── */
 
 async function openCompare() {
   const n = Math.max(S.meta?.episodes_snapshotted || 0, countDone("graphed"));
@@ -459,7 +589,6 @@ function renderCompare() {
     `<span class="tabular">+${s.added} added · ${s.revised} revised · ` +
     `<s>${s.invalidated}</s> invalidated · ${s.unchanged} unchanged</span>`;
 
-  // scrubber
   const track = $("#scrub");
   const pos = (i) => 4 + ((i - 1) / Math.max(1, c.n - 1)) * 92;
   let h = `<div class="line"></div>
@@ -474,13 +603,11 @@ function renderCompare() {
   track.innerHTML = h;
   $$(".scrub-dot", track).forEach((el) => el.addEventListener("click", async () => {
     const i = Number(el.dataset.i);
-    // click left of midpoint moves A, right moves B
     if (Math.abs(i - c.a) <= Math.abs(i - c.b)) c.a = Math.min(i, c.b - 1);
     else c.b = Math.max(i, c.a + 1);
     await loadDiff();
   }));
 
-  // ledger
   const changesOnly = $("#cmp-filter .on")?.dataset.f !== "all";
   const rows = c.data.rows.filter((r) => !changesOnly || r.change !== "unchanged");
   $("#ledger-body").innerHTML = rows.map((r) => `
@@ -493,7 +620,6 @@ function renderCompare() {
       <td><span class="chg ${r.change}">${r.change[0].toUpperCase() + r.change.slice(1)}</span></td>
     </tr>`).join("");
 
-  // changed region: latest graph, unchanged faded
   if (!compareGraph) compareGraph = createGraph($("#cmp-svg"));
   if (S.graph) {
     const changedFacts = new Set(c.data.rows
@@ -516,11 +642,12 @@ function renderCompare() {
   }
 }
 
-/* ── settings sheet (1d) ──────────────────────────────────────────────────── */
+/* ── settings sheet ───────────────────────────────────────────────────────── */
 
 function openSheet() {
   const st = S.meta?.settings || {};
-  $("#set-episode-lines").value = st.episode_lines ?? 10;
+  $("#set-episode-turns").value = st.episode_turns ?? 12;
+  $("#set-episode-seconds").value = st.episode_seconds ?? 120;
   $("#set-window-lines").value = st.window_lines ?? 5;
   $("#set-max-facts").value = st.max_render_facts ?? 6;
   $("#set-render").checked = st.render !== false;
@@ -533,7 +660,8 @@ function closeSheet() {
 }
 async function saveSheet() {
   const body = {
-    episode_lines: Number($("#set-episode-lines").value) || 10,
+    episode_turns: Number($("#set-episode-turns").value) || 12,
+    episode_seconds: Number($("#set-episode-seconds").value) || 120,
     window_lines: Number($("#set-window-lines").value) || 5,
     max_render_facts: Number($("#set-max-facts").value) || 6,
     render: $("#set-render").checked,
@@ -546,43 +674,42 @@ async function saveSheet() {
   closeSheet();
 }
 
-/* ── mic recording (browser-side; the server has no microphone) ───────────── */
-
-let recorder = null, recChunks = [];
-async function toggleMic(btn) {
-  if (recorder) {
-    recorder.stop();
-    return;
-  }
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  recChunks = [];
-  recorder = new MediaRecorder(stream);
-  recorder.ondataavailable = (e) => recChunks.push(e.data);
-  recorder.onstop = () => {
-    stream.getTracks().forEach((t) => t.stop());
-    const blob = new Blob(recChunks, { type: recorder.mimeType });
-    recorder = null;
-    btn.textContent = "🎙 Record";
-    startSession(null, new File([blob], "recording.webm"))
-      .catch((e) => toast(e.message));
-  };
-  recorder.start();
-  btn.textContent = "■ Stop & process";
-}
-
 /* ── wiring ───────────────────────────────────────────────────────────────── */
 
-$("#btn-start").addEventListener("click", () => {
-  const text = $("#start-text").value.trim();
-  const file = $("#start-file").files[0];
-  if (!text && !file) { toast("Paste a transcript or add audio first."); return; }
-  startSession(file ? null : text, file || null).catch((e) => toast(e.message));
+$("#btn-live").addEventListener("click", () =>
+  startLive().catch((e) => toast(e.message)));
+$("#btn-upload").addEventListener("click", () => $("#upload-file").click());
+$("#upload-file").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const fd = new FormData();
+  fd.append("file", file, file.name);
+  const res = await fetch(`/api/session/${S.sid}/audio`, {
+    method: "POST", body: fd });
+  if (!res.ok) toast((await res.text()).slice(0, 200));
+  e.target.value = "";
 });
-$("#btn-mic").addEventListener("click", (e) => toggleMic(e.currentTarget)
-  .catch?.(() => {}) ?? toggleMic(e.currentTarget));
+$("#btn-paste-toggle").addEventListener("click", () => {
+  $("#paste-drawer").hidden = !$("#paste-drawer").hidden;
+});
+$("#btn-paste-go").addEventListener("click", async () => {
+  const text = $("#paste-text").value.trim();
+  if (!text) return;
+  try {
+    await api(`/${S.sid}/text`, { method: "POST",
+                                  body: JSON.stringify({ text }) });
+    $("#paste-text").value = "";
+    $("#paste-drawer").hidden = true;
+  } catch (e) { toast(e.message); }
+});
 $("#btn-example").addEventListener("click", async () => {
-  $("#start-text").value = (await (await fetch("/assets/example.txt")).text()).trim();
+  $("#paste-text").value =
+    (await (await fetch("/assets/example.txt")).text()).trim();
 });
+$("#btn-pause").addEventListener("click", () =>
+  pauseOrResume().catch((e) => toast(e.message)));
+$("#btn-end").addEventListener("click", () =>
+  endSession().catch((e) => toast(e.message)));
 $("#btn-compare").addEventListener("click", () =>
   openCompare().catch((e) => toast(e.message)));
 $("#btn-back").addEventListener("click", () => { S.view = "live"; render(); });
@@ -592,9 +719,10 @@ $("#scrim").addEventListener("click", closeSheet);
 $("#btn-sheet-save").addEventListener("click", () =>
   saveSheet().catch((e) => toast(e.message)));
 $("#btn-export").addEventListener("click", () => {
-  if (!S.graph) return;
-  const blob = new Blob([JSON.stringify({ turns: S.turns, graph: S.graph }, null, 2)],
-                        { type: "application/json" });
+  if (!S.graph && !S.turns.length) return;
+  const blob = new Blob(
+    [JSON.stringify({ turns: S.turns, graph: S.graph }, null, 2)],
+    { type: "application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = `convograph_${S.sid}.json`;
@@ -616,3 +744,6 @@ $("#graph-zoom-in").addEventListener("click", () => graph3d?.zoom(+0.05));
 $("#graph-zoom-out").addEventListener("click", () => graph3d?.zoom(-0.05));
 $("#graph-compare-link").addEventListener("click", () =>
   openCompare().catch((e) => toast(e.message)));
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeSheet();
+});
