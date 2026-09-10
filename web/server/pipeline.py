@@ -112,14 +112,17 @@ async def transcribe_audio(session: Session, audio: bytes, name: str) -> str:
 
 
 def ensure_workers(session: Session) -> None:
-    """Idempotent: spawn the session's long-lived workers on first input."""
-    if session.workers:
+    """Idempotent while workers live; also RE-ARMS a session whose workers
+    have exited (ended, failed, or restored from disk) — new input simply
+    continues the session: same group_id, so the knowledge graph accumulates
+    across reopens and even across server restarts."""
+    if session.workers and not all(t.done() for t in session.workers):
         return
     session.workers = [
         asyncio.create_task(episodizer(session)),
         asyncio.create_task(ingest_worker(session)),
     ]
-    if session.state == "idle":
+    if session.state in ("idle", "ended", "failed", "paused"):
         session.state = "listening"
         session.emit("session", {"state": "listening", "title": session.title,
                                  "started_at": session.started_at})

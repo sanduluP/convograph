@@ -15,8 +15,18 @@
   <!-- ── top bar ─────────────────────────────────────────────────────────── -->
   <header class="topbar">
     <span class="brand">Convograph</span>
+    <button class="btn icon secondary" id="btn-sessions" title="Sessions">▤</button>
     <span class="vdiv"></span>
-    <span class="session-title placeholder" id="session-title">New session</span>
+    <span class="session-title placeholder" id="session-title"
+          title="Click to rename this session">New session</span>
+    <div class="sessions-panel" id="sessions-panel" hidden>
+      <div class="sp-head">
+        <span>Sessions</span>
+        <button class="btn primary" id="btn-new-session"
+                style="height:28px;font-size:12px">＋ New session</button>
+      </div>
+      <div id="sessions-list"></div>
+    </div>
     <span class="live">
       <span class="dot"></span>
       <span id="live-label">Idle</span> ·

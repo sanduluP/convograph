@@ -29,7 +29,10 @@ from pydantic import BaseModel
 from .bus import STORE, Session
 from . import live_stt, pipeline
 
-INPUT_OK_STATES = ("idle", "listening", "paused", "warming")
+# "ended"/"failed" included: adding input to a finished (or restored) session
+# reopens it — the workers re-arm and the graph continues under the same
+# group_id. Only "ending" (mid-drain) refuses input.
+INPUT_OK_STATES = ("idle", "listening", "paused", "warming", "ended", "failed")
 
 WEB_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 app = FastAPI(title="convograph-web")
@@ -60,6 +63,24 @@ class SpeakerBody(BaseModel):
 def create_session(body: NewSession):
     s = STORE.create(body.title, body.settings)
     return {"id": s.id, "group_id": s.group_id, "settings": s.settings}
+
+
+@app.get("/api/sessions")
+def list_sessions():
+    return {"sessions": STORE.list_all()}
+
+
+class TitleBody(BaseModel):
+    title: str
+
+
+@app.post("/api/session/{sid}/title")
+def rename_session(sid: str, body: TitleBody):
+    s = _get(sid)
+    s.title = body.title.strip() or s.title
+    s.write_meta()
+    s.emit("session", {"state": s.state, "title": s.title})
+    return {"title": s.title}
 
 
 @app.post("/api/session/{sid}/text", status_code=202)

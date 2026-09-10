@@ -272,7 +272,9 @@ function render() {
 
 function renderTopbar() {
   const t = $("#session-title");
-  if (S.meta?.title && S.meta.title !== "Untitled session") {
+  if (t.querySelector("input")) {
+    // a rename is in progress — don't clobber the input mid-typing
+  } else if (S.meta?.title && S.meta.title !== "Untitled session") {
     t.textContent = S.meta.title; t.classList.remove("placeholder");
   } else {
     t.textContent = "Untitled session — name it when you like";
@@ -690,6 +692,66 @@ async function saveSheet() {
 }
 
 /* ── wiring ───────────────────────────────────────────────────────────────── */
+
+/* ── sessions panel + title rename ────────────────────────────────────────── */
+
+async function openSessionsPanel() {
+  const panel = $("#sessions-panel");
+  if (!panel.hidden) { panel.hidden = true; return; }
+  const res = await fetch("/api/sessions");
+  const { sessions } = await res.json();
+  $("#sessions-list").innerHTML = sessions.map((s) => {
+    const when = new Date(s.started_at * 1000)
+      .toLocaleString([], { dateStyle: "short", timeStyle: "short" });
+    return `<div class="session-row ${s.id === S.sid ? "current" : ""}"
+              data-sid="${s.id}">
+      <span class="srow-title">${esc(s.title)}</span>
+      <span class="srow-state">${esc(s.state)}</span>
+      <span class="srow-meta tabular">${when} · ${s.episodes} episode(s)
+        · ${s.id}</span>
+    </div>`;
+  }).join("") || `<div style="padding:12px 16px;font-size:12px;
+    color:var(--n600)">No sessions yet.</div>`;
+  panel.hidden = false;
+  $$(".session-row", panel).forEach((el) => el.addEventListener("click", () => {
+    if (el.dataset.sid !== S.sid) location.href = `?s=${el.dataset.sid}`;
+    panel.hidden = true;
+  }));
+}
+
+function renameTitle() {
+  const t = $("#session-title");
+  if (t.querySelector("input")) return;
+  const current = S.meta?.title && S.meta.title !== "Untitled session"
+    ? S.meta.title : "";
+  t.innerHTML = `<input class="title-input" value="${esc(current)}"
+    placeholder="Session title">`;
+  const input = t.querySelector("input");
+  input.focus();
+  input.addEventListener("keydown", async (e) => {
+    if (e.key === "Enter") {
+      const title = input.value.trim();
+      if (title) {
+        await api(`/${S.sid}/title`, { method: "POST",
+                                       body: JSON.stringify({ title }) });
+        S.meta = { ...(S.meta || {}), title };
+      }
+      render();
+    }
+    if (e.key === "Escape") render();
+  });
+  input.addEventListener("blur", () => setTimeout(render, 150));
+}
+
+$("#btn-sessions").addEventListener("click", () =>
+  openSessionsPanel().catch((e) => toast(e.message)));
+$("#btn-new-session").addEventListener("click", () => { location.href = "/"; });
+$("#session-title").addEventListener("click", renameTitle);
+document.addEventListener("click", (e) => {
+  const panel = $("#sessions-panel");
+  if (!panel.hidden && !panel.contains(e.target) &&
+      e.target !== $("#btn-sessions")) panel.hidden = true;
+});
 
 $("#btn-live").addEventListener("click", () =>
   startLive().catch((e) => toast(e.message)));

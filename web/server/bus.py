@@ -31,12 +31,17 @@ backlog stays a faithful, replayable record of what actually happened.
 from __future__ import annotations
 
 import asyncio
+import glob
 import itertools
 import json
+import os
 import time
 import uuid
 from dataclasses import dataclass, field
 from typing import Any, AsyncIterator, Dict, List, Optional
+
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "output")
 
 
 @dataclass
@@ -81,13 +86,35 @@ class Session:
     tasks: List[asyncio.Task] = field(default_factory=list)
     board_entries: List[dict] = field(default_factory=list)  # compose_board input
     board_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+    _disk_fh: Optional[Any] = None
 
     def emit(self, type_: str, data: dict, transient: bool = False) -> None:
         ev = Event(next(self._seq), type_, data)
         if not transient:
             self.events.append(ev)
+            self._persist(ev)
         for q in list(self.subscribers):
             q.put_nowait(ev)
+
+    def _persist(self, ev: Event) -> None:
+        """The durable event log IS the session: replaying it rebuilds the UI
+        and the worker bookkeeping after a server restart."""
+        if self._disk_fh is None:
+            os.makedirs(os.path.join(OUTPUT_DIR, self.id), exist_ok=True)
+            self._disk_fh = open(
+                os.path.join(OUTPUT_DIR, self.id, "events.jsonl"), "a",
+                buffering=1)
+        self._disk_fh.write(json.dumps(
+            {"seq": ev.seq, "type": ev.type, "data": ev.data},
+            ensure_ascii=False) + "\n")
+
+    def write_meta(self) -> None:
+        os.makedirs(os.path.join(OUTPUT_DIR, self.id), exist_ok=True)
+        with open(os.path.join(OUTPUT_DIR, self.id, "meta.json"), "w") as fh:
+            json.dump({"id": self.id, "title": self.title,
+                       "group_id": self.group_id,
+                       "started_at": self.started_at,
+                       "settings": self.settings}, fh)
 
     async def stream(self) -> AsyncIterator[Event]:
         """Backlog first, then live events, until the client disconnects."""
@@ -142,13 +169,97 @@ class Store:
             },
         )
         self._sessions[sid] = s
+        s.write_meta()
         return s
 
     def get(self, sid: str) -> Optional[Session]:
-        return self._sessions.get(sid)
+        s = self._sessions.get(sid)
+        if s is None:
+            s = self._load(sid)
+            if s is not None:
+                self._sessions[sid] = s
+        return s
 
-    def all(self) -> List[Session]:
-        return list(self._sessions.values())
+    def _load(self, sid: str) -> Optional[Session]:
+        """Rebuild a session from its durable event log after a restart.
+
+        Everything the UI and the workers need replays from events; graph
+        snapshots reload from their files. Processes and queues are gone, so a
+        session that was mid-flight comes back as 'paused' — adding input (or
+        going live again) re-arms the workers, and the same group_id means the
+        knowledge graph simply continues where it left off. Episodes that were
+        queued-but-not-ingested when the server died are lost; the graph holds
+        exactly what was committed."""
+        meta_path = os.path.join(OUTPUT_DIR, sid, "meta.json")
+        if not os.path.exists(meta_path):
+            return None
+        meta = json.load(open(meta_path))
+        s = Session(id=sid, title=meta["title"], started_at=meta["started_at"],
+                    group_id=meta["group_id"],
+                    settings={**meta.get("settings", {})})
+        events_path = os.path.join(OUTPUT_DIR, sid, "events.jsonl")
+        max_ep = 0
+        if os.path.exists(events_path):
+            for line in open(events_path):
+                try:
+                    raw = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                ev = Event(next(s._seq), raw["type"], raw["data"])
+                s.events.append(ev)
+                d = ev.data
+                if ev.type == "turn":
+                    s.turns.append(dict(d))
+                    s.speakers.setdefault(d["speaker"], d["name"])
+                    max_ep = max(max_ep, d.get("episode", 0))
+                elif ev.type == "speaker":
+                    s.speakers[d["label"]] = d["name"]
+                elif ev.type == "episode":
+                    max_ep = max(max_ep, d.get("index", 0))
+                elif ev.type == "session" and "state" in d:
+                    s.state = d["state"]
+                elif ev.type == "render" and d.get("status") == "done":
+                    ep_dir = os.path.join(OUTPUT_DIR, sid)
+                    for url, cap in zip(d.get("images", []),
+                                        d.get("facts") or d.get("captions") or []):
+                        s.board_entries.append({
+                            "image": os.path.join(OUTPUT_DIR, sid,
+                                                  os.path.basename(url)),
+                            "caption": cap,
+                            "label": f"episode {d['episode']}",
+                            "timestamp": f"{d['episode']:03d}",
+                        })
+        s.next_episode = max_ep + 1
+        for snap in sorted(glob.glob(os.path.join(OUTPUT_DIR, sid, "snap_ep*.json"))):
+            try:
+                s.snapshots.append(json.load(open(snap)))
+            except json.JSONDecodeError:
+                pass
+        if s.state not in ("ended", "failed", "idle"):
+            # it was mid-flight when the server went away
+            s.state = "paused"
+            s.emit("session", {"state": "paused",
+                               "detail": "restored after a server restart — "
+                                         "add input or go live to continue"})
+        return s
+
+    def list_all(self) -> List[dict]:
+        """Sessions in memory plus every persisted one on disk."""
+        rows: Dict[str, dict] = {}
+        for meta_path in glob.glob(os.path.join(OUTPUT_DIR, "*", "meta.json")):
+            try:
+                m = json.load(open(meta_path))
+            except json.JSONDecodeError:
+                continue
+            rows[m["id"]] = {"id": m["id"], "title": m["title"],
+                             "started_at": m["started_at"], "state": "on disk",
+                             "episodes": len(glob.glob(os.path.join(
+                                 os.path.dirname(meta_path), "snap_ep*.json")))}
+        for s in self._sessions.values():
+            rows[s.id] = {"id": s.id, "title": s.title,
+                          "started_at": s.started_at, "state": s.state,
+                          "episodes": len(s.snapshots)}
+        return sorted(rows.values(), key=lambda r: r["started_at"], reverse=True)
 
 
 STORE = Store()
