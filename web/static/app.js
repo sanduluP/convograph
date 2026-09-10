@@ -1,0 +1,538 @@
+/* Convograph v2 frontend — implements the new_ui_template_design handoff
+   against the async backend in web/server/. No build step, no framework:
+   a state object fed by SSE events, and render functions per panel. */
+
+import { createGraph } from "/assets/graph3d.js";
+
+const $ = (sel, el = document) => el.querySelector(sel);
+const $$ = (sel, el = document) => [...el.querySelectorAll(sel)];
+
+const S = {
+  sid: null,
+  meta: null,
+  state: "idle",
+  turns: [],
+  speakers: {},          // label -> display name
+  speakerOrder: [],      // stable color assignment
+  episodes: new Map(),   // index -> {transcribed, graphed, rendered}
+  graph: null,           // latest graph event
+  renders: new Map(),    // episode -> render event
+  latestRenderEp: null,
+  renaming: null,        // label currently being renamed
+  compare: null,         // {a, b, data}
+  view: "start",         // start | live | compare
+};
+
+let graph3d = null;
+let compareGraph = null;
+
+/* ── boot ─────────────────────────────────────────────────────────────────── */
+
+init();
+
+function init() {
+  const params = new URLSearchParams(location.search);
+  if (params.get("s")) {
+    S.sid = params.get("s");
+    enterLive();
+    connect();
+  } else {
+    render();
+  }
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeSheet();
+  });
+}
+
+async function api(path, opts = {}) {
+  const res = await fetch(`/api/session${path}`, {
+    headers: { "Content-Type": "application/json" },
+    ...opts,
+  });
+  if (!res.ok) throw new Error((await res.text()).slice(0, 300));
+  return res.json();
+}
+
+async function startSession(text, audioFile) {
+  const title = $("#start-title").value.trim();
+  const created = await api("", {
+    method: "POST", body: JSON.stringify({ title }),
+  });
+  S.sid = created.id;
+  history.replaceState(null, "", `?s=${S.sid}`);
+  enterLive();
+  connect();
+  if (audioFile) {
+    const fd = new FormData();
+    fd.append("file", audioFile, audioFile.name || "recording.webm");
+    await fetch(`/api/session/${S.sid}/audio`, { method: "POST", body: fd });
+  } else {
+    await api(`/${S.sid}/start`, { method: "POST", body: JSON.stringify({ text }) });
+  }
+}
+
+function connect() {
+  const es = new EventSource(`/api/session/${S.sid}/events`);
+  const on = (type, fn) => es.addEventListener(type, (e) => {
+    fn(JSON.parse(e.data)); render();
+  });
+  on("session", (d) => {
+    if (d.state) S.state = d.state;
+    if (d.title) S.meta = { ...(S.meta || {}), title: d.title, started_at: d.started_at };
+    if (d.detail) setStatusToast(d.detail);
+  });
+  on("turn", (d) => {
+    S.turns.push(d);
+    if (!S.speakerOrder.includes(d.speaker)) S.speakerOrder.push(d.speaker);
+    S.speakers[d.speaker] = d.name;
+  });
+  on("speaker", (d) => {
+    S.speakers[d.label] = d.name;
+    S.turns.forEach((t) => { if (t.speaker === d.label) t.name = d.name; });
+  });
+  on("episode", (d) => {
+    const ep = S.episodes.get(d.index) || {};
+    ep[d.stage] = d;
+    S.episodes.set(d.index, ep);
+  });
+  on("graph", (d) => { S.graph = d; });
+  on("graph_delta", () => {});
+  on("render", (d) => {
+    S.renders.set(d.episode, d);
+    if (d.status === "done" && d.images.length) S.latestRenderEp = d.episode;
+  });
+  on("error", (d) => toast(`${d.stage}: ${d.message}`));
+  es.onerror = () => {};   // EventSource auto-reconnects; backlog replays
+}
+
+function enterLive() { S.view = "live"; }
+
+/* ── helpers ──────────────────────────────────────────────────────────────── */
+
+function colorClass(label) {
+  const i = S.speakerOrder.indexOf(label);
+  return `c${((i < 0 ? 0 : i)) % 4}`;
+}
+function initial(label) {
+  return (S.speakers[label] || label).trim()[0]?.toUpperCase() || "?";
+}
+function named(label) { return S.speakers[label] !== label; }
+function esc(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+                  .replace(/"/g, "&quot;");
+}
+function elapsed() {
+  if (!S.meta?.started_at) return "00:00:00";
+  const s = Math.max(0, Math.floor(Date.now() / 1000 - S.meta.started_at));
+  const p = (n) => String(n).padStart(2, "0");
+  return `${p(Math.floor(s / 3600))}:${p(Math.floor((s % 3600) / 60))}:${p(s % 60)}`;
+}
+setInterval(() => { const el = $("#timer"); if (el) el.textContent = elapsed(); }, 1000);
+
+let toastTimer;
+function toast(msg) {
+  const box = $("#toasts");
+  const el = document.createElement("div");
+  el.className = "toast"; el.textContent = msg;
+  box.appendChild(el);
+  setTimeout(() => el.remove(), 9000);
+}
+function setStatusToast(msg) { /* transcription progress -> title area */
+  const el = $("#live-detail"); if (el) el.textContent = msg;
+}
+
+/* ── render root ──────────────────────────────────────────────────────────── */
+
+function render() {
+  const app = $("#app");
+  app.classList.toggle("compare-mode", S.view === "compare");
+  app.classList.toggle("paused", S.state === "ended" || S.state === "failed");
+  renderTopbar();
+  if (S.view === "start") {
+    $("#view-start").hidden = false;
+    $("#view-live").hidden = true;
+    $("#view-compare").hidden = true;
+    $("#track").hidden = true;
+    return;
+  }
+  $("#view-start").hidden = true;
+  $("#view-live").hidden = S.view !== "live";
+  $("#view-compare").hidden = S.view !== "compare";
+  $("#track").hidden = S.view !== "live";
+  if (S.view === "live") {
+    renderTranscript(); renderGraphPanel(); renderRecording(); renderTrack();
+  } else {
+    renderCompare();
+  }
+}
+
+function renderTopbar() {
+  const t = $("#session-title");
+  if (S.meta?.title && S.meta.title !== "Untitled session") {
+    t.textContent = S.meta.title; t.classList.remove("placeholder");
+  } else {
+    t.textContent = S.view === "start" ? "New session"
+      : "Untitled session — name it when you like";
+    t.classList.add("placeholder");
+  }
+  const label = { idle: "Idle", transcribing: "Transcribing",
+                  listening: "Processing", ended: "Session complete",
+                  failed: "Failed" }[S.state] || S.state;
+  $("#live-label").textContent = label;
+  const unnamed = S.speakerOrder.filter((l) => !named(l)).length;
+  const tag = $("#ident-tag");
+  if (S.speakerOrder.length && unnamed) {
+    tag.hidden = false;
+    tag.textContent =
+      `${S.speakerOrder.length - unnamed} of ${S.speakerOrder.length} voices identified`;
+  } else tag.hidden = true;
+  $("#stack").innerHTML = S.speakerOrder.slice(0, 4).map((l) =>
+    `<span class="monogram ${colorClass(l)} ${named(l) ? "" : "unnamed"}"
+       title="${esc(S.speakers[l])}">${esc(initial(l))}</span>`).join("");
+  $("#btn-compare").disabled = !(S.meta?.episodes_snapshotted >= 2 ||
+                                 countDone("graphed") >= 2);
+}
+
+function countDone(stage) {
+  let n = 0;
+  for (const ep of S.episodes.values())
+    if (ep[stage]?.status === "done") n++;
+  return n;
+}
+
+/* ── transcript panel ─────────────────────────────────────────────────────── */
+
+function renderTranscript() {
+  const body = $("#transcript-body");
+  let html = "", lastEp = 0;
+  const currentEp = Math.max(0, ...[...S.episodes.keys()]);
+  S.turns.forEach((t, i) => {
+    if (t.episode !== lastEp) {
+      const cur = t.episode === currentEp ? " current" : "";
+      html += `<div class="ep-boundary${cur}"><span>Episode ${t.episode}</span></div>`;
+      lastEp = t.episode;
+    }
+    const dim = t.episode < currentEp - 1 ? " dim" : "";
+    const renaming = S.renaming === t.speaker;
+    const nameHtml = renaming
+      ? `<input class="rename-input" data-label="${esc(t.speaker)}"
+           value="${esc(named(t.speaker) ? t.name : "")}"
+           placeholder="${esc(t.speaker)}" />
+         <span class="rename-hint">↵ to save</span>`
+      : `<span class="name ${named(t.speaker) ? "named" : ""}"
+           data-label="${esc(t.speaker)}" title="Click to rename">${esc(t.name)}</span>`;
+    html += `
+      <div class="turn${dim}">
+        <span class="monogram ${colorClass(t.speaker)}
+          ${named(t.speaker) ? "" : "unnamed"}">${esc(initial(t.speaker))}</span>
+        <div>
+          <div class="who">${nameHtml}<span class="ts">${esc(t.id)}</span></div>
+          <div>${esc(t.text)}</div>
+        </div>
+      </div>`;
+  });
+  body.innerHTML = `<div class="turns">${html}</div>`;
+  $("#word-count").textContent =
+    `${S.turns.reduce((n, t) => n + t.text.split(/\s+/).length, 0)} words`;
+  if (S.renaming) {
+    const input = $(".rename-input", body);
+    input?.focus();
+    input?.addEventListener("keydown", async (e) => {
+      if (e.key === "Enter") {
+        const name = input.value.trim();
+        S.renaming = null;
+        if (name) await api(`/${S.sid}/speaker`, {
+          method: "POST",
+          body: JSON.stringify({ label: input.dataset.label, name }),
+        });
+        else render();
+      }
+      if (e.key === "Escape") { S.renaming = null; render(); }
+    });
+  } else {
+    body.scrollTop = body.scrollHeight;   // auto-follow the newest turn
+  }
+  $$(".name", body).forEach((el) => el.addEventListener("click", () => {
+    S.renaming = el.dataset.label; render();
+  }));
+}
+
+/* ── knowledge graph panel ────────────────────────────────────────────────── */
+
+function renderGraphPanel() {
+  if (!graph3d) graph3d = createGraph($("#graph-svg"));
+  if (S.graph) {
+    graph3d.update(S.graph.nodes, S.graph.edges,
+                   S.graph.node_status, S.graph.edge_status);
+    const c = S.graph.counters;
+    $("#graph-meta").textContent =
+      `${c.facts} facts · ${c.relations} relations` +
+      (c.invalidated ? ` · ${c.invalidated} invalidated` : "");
+    $("#graph-status").textContent = S.graph.status_line;
+  } else {
+    $("#graph-meta").textContent = "waiting for the first episode";
+    $("#graph-status").textContent = S.state === "listening"
+      ? "Extracting episode 1 …" : "";
+  }
+}
+
+/* ── graphic recording panel ──────────────────────────────────────────────── */
+
+function renderRecording() {
+  const plate = $("#plate");
+  const chip = $("#status-chip");
+  const ep = S.latestRenderEp;
+  const running = [...S.renders.values()].find((r) => r.status !== "done");
+
+  if (ep != null) {
+    const r = S.renders.get(ep);
+    plate.innerHTML = `
+      <div class="collage">${r.images.map((u, i) => `
+        <figure><img src="${u}" alt="">
+          <figcaption>${esc((r.facts || r.captions)[i] || "")}</figcaption>
+        </figure>`).join("")}</div>
+      ${running ? '<div class="sweep"></div>' : ""}`;
+    $("#rec-meta").textContent =
+      `Pictogram · FLUX schnell · episode ${ep}`;
+  } else {
+    plate.innerHTML = `
+      <div class="empty">
+        <div class="spinner">
+          <svg viewBox="0 0 72 72" width="72" height="72" fill="none">
+            <circle cx="36" cy="36" r="22" stroke="#c4c4ca" stroke-width="1.5"/>
+            <circle cx="36" cy="36" r="30" stroke="#0a66ff" stroke-width="1.5"
+              stroke-dasharray="40 150" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h3>The first plate arrives with episode 1</h3>
+        <p>Facts are extracted per episode; each new decision becomes one
+           drawn pictogram. Rendering starts as soon as episode 1's graph lands.</p>
+      </div>`;
+    $("#rec-meta").textContent = "Pictogram · FLUX schnell";
+  }
+
+  if (running) {
+    chip.hidden = false;
+    const pct = Math.round((running.progress || 0) * 100);
+    $("#chip-text").textContent = running.status === "captioning"
+      ? `Captioning episode ${running.episode}` : `Rendering episode ${running.episode}`;
+    $("#chip-bar").style.width = `${pct}%`;
+    $("#chip-pct").textContent = `${pct}%`;
+  } else chip.hidden = true;
+
+  const thumbs = $("#thumbs");
+  const eps = [...S.renders.entries()].sort((a, b) => a[0] - b[0]);
+  let h = eps.map(([i, r]) => r.images[0]
+    ? `<img class="thumb ${i === ep ? "latest" : ""}" src="${r.images[0]}"
+         data-ep="${i}" title="episode ${i}">`
+    : `<span class="thumb placeholder">${i} …</span>`).join("");
+  const next = (eps.at(-1)?.[0] || 0) + 1;
+  if (S.state === "listening") h += `<span class="thumb placeholder">${next} …</span>`;
+  thumbs.innerHTML = h;
+  $$("img.thumb", thumbs).forEach((el) => el.addEventListener("click", () => {
+    S.latestRenderEp = Number(el.dataset.ep); render();
+  }));
+}
+
+/* ── episode track ────────────────────────────────────────────────────────── */
+
+function renderTrack() {
+  const idxs = [...S.episodes.keys()].sort((a, b) => a - b);
+  const done = (st) => idxs.filter((i) => S.episodes.get(i)[st]?.status === "done").length;
+  $("#track-summary").innerHTML =
+    `<b>${idxs.length}</b> episodes · ${done("graphed")} graphed · ${done("rendered")} rendered`;
+  $("#lanes").innerHTML = idxs.map((i) => {
+    const ep = S.episodes.get(i);
+    const bar = (st) => {
+      const s = ep[st] || {};
+      const cls = s.status === "done" ? "done" : s.status === "running" ? "running"
+        : s.status === "failed" ? "failed" : "";
+      const w = s.status === "running" ? `width:${Math.round((s.progress || 0.2) * 100)}%`
+        : "";
+      return `<div class="bar ${s.status ? "" : "dashed"}"
+                title="${st}${s.detail ? ": " + esc(s.detail) : ""}">
+                <i class="${cls}" style="${w}"></i></div>`;
+    };
+    const live = ep.graphed?.status === "running" || ep.rendered?.status === "running";
+    return `<div class="ep-cell ${live ? "live" : ""}">
+      <div class="bars">${bar("transcribed")}${bar("graphed")}${bar("rendered")}</div>
+      <div class="lbl tabular">${i}</div></div>`;
+  }).join("");
+}
+
+/* ── compare episodes (1c) ────────────────────────────────────────────────── */
+
+async function openCompare() {
+  const n = Math.max(S.meta?.episodes_snapshotted || 0, countDone("graphed"));
+  if (n < 2) return;
+  S.compare = { a: 1, b: n, n, data: null };
+  S.view = "compare";
+  await loadDiff();
+}
+
+async function loadDiff() {
+  const { a, b } = S.compare;
+  S.compare.data = await api(`/${S.sid}/diff?a=${a}&b=${b}`);
+  render();
+}
+
+function renderCompare() {
+  const c = S.compare;
+  if (!c?.data) return;
+  $("#cmp-title").innerHTML =
+    `Episode ${c.a} <span class="arrow">→</span> Episode ${c.b}`;
+  const s = c.data.summary;
+  $("#cmp-summary").innerHTML =
+    `<span class="tabular">+${s.added} added · ${s.revised} revised · ` +
+    `<s>${s.invalidated}</s> invalidated · ${s.unchanged} unchanged</span>`;
+
+  // scrubber
+  const track = $("#scrub");
+  const pos = (i) => 4 + ((i - 1) / Math.max(1, c.n - 1)) * 92;
+  let h = `<div class="line"></div>
+    <div class="span" style="left:${pos(c.a)}%; width:${pos(c.b) - pos(c.a)}%"></div>`;
+  for (let i = 1; i <= c.n; i++) {
+    const cls = i >= c.a && i <= c.b ? "inrange" : "";
+    h += `<div class="scrub-dot ${cls}" data-i="${i}" style="left:${pos(i)}%">
+            <span class="dlbl tabular">${i}</span></div>`;
+  }
+  h += `<div class="scrub-handle a" style="left:${pos(c.a)}%" title="A = episode ${c.a}"></div>
+        <div class="scrub-handle b" style="left:${pos(c.b)}%" title="B = episode ${c.b}"></div>`;
+  track.innerHTML = h;
+  $$(".scrub-dot", track).forEach((el) => el.addEventListener("click", async () => {
+    const i = Number(el.dataset.i);
+    // click left of midpoint moves A, right moves B
+    if (Math.abs(i - c.a) <= Math.abs(i - c.b)) c.a = Math.min(i, c.b - 1);
+    else c.b = Math.max(i, c.a + 1);
+    await loadDiff();
+  }));
+
+  // ledger
+  const changesOnly = $("#cmp-filter .on")?.dataset.f !== "all";
+  const rows = c.data.rows.filter((r) => !changesOnly || r.change !== "unchanged");
+  $("#ledger-body").innerHTML = rows.map((r) => `
+    <tr>
+      <td>${esc(r.fact)}</td>
+      <td>${r.at_a == null ? '<span class="absent">—</span>'
+            : r.change === "revised" ? `<span class="old">${esc(r.at_a)}</span>`
+            : esc(r.at_a)}</td>
+      <td>${r.at_b == null ? '<span class="absent">—</span>' : esc(r.at_b)}</td>
+      <td><span class="chg ${r.change}">${r.change[0].toUpperCase() + r.change.slice(1)}</span></td>
+    </tr>`).join("");
+
+  // changed region: latest graph, unchanged faded
+  if (!compareGraph) compareGraph = createGraph($("#cmp-svg"));
+  if (S.graph) {
+    const changedFacts = new Set(c.data.rows
+      .filter((r) => r.change !== "unchanged")
+      .flatMap((r) => [r.at_a, r.at_b, r.fact]).filter(Boolean));
+    const edgeStatus = {}, nodeStatus = {}, changedNodes = new Set();
+    for (const e of S.graph.edges) {
+      if (changedFacts.has(e.fact)) {
+        edgeStatus[e.id] = e.invalid_at ? "invalidated" : "added";
+        changedNodes.add(e.source); changedNodes.add(e.target);
+      } else edgeStatus[e.id] = "confirmed";
+    }
+    for (const n of S.graph.nodes)
+      nodeStatus[n.id] = changedNodes.has(n.id)
+        ? (S.graph.node_status?.[n.id] === "invalidated" ? "invalidated" : "added")
+        : "confirmed";
+    compareGraph.update(
+      S.graph.nodes.map((n) => changedNodes.has(n.id) ? n : { ...n, label: "" }),
+      S.graph.edges, nodeStatus, edgeStatus);
+  }
+}
+
+/* ── settings sheet (1d) ──────────────────────────────────────────────────── */
+
+function openSheet() {
+  const st = S.meta?.settings || {};
+  $("#set-episode-lines").value = st.episode_lines ?? 10;
+  $("#set-window-lines").value = st.window_lines ?? 5;
+  $("#set-max-facts").value = st.max_render_facts ?? 6;
+  $("#set-render").checked = st.render !== false;
+  $("#sheet").hidden = false; $("#scrim").hidden = false;
+  $("#app").classList.add("dimmed");
+}
+function closeSheet() {
+  $("#sheet").hidden = true; $("#scrim").hidden = true;
+  $("#app").classList.remove("dimmed");
+}
+async function saveSheet() {
+  const body = {
+    episode_lines: Number($("#set-episode-lines").value) || 10,
+    window_lines: Number($("#set-window-lines").value) || 5,
+    max_render_facts: Number($("#set-max-facts").value) || 6,
+    render: $("#set-render").checked,
+  };
+  if (S.sid) {
+    const r = await api(`/${S.sid}/settings`, {
+      method: "POST", body: JSON.stringify(body) });
+    S.meta = { ...(S.meta || {}), settings: r.settings };
+  }
+  closeSheet();
+}
+
+/* ── mic recording (browser-side; the server has no microphone) ───────────── */
+
+let recorder = null, recChunks = [];
+async function toggleMic(btn) {
+  if (recorder) {
+    recorder.stop();
+    return;
+  }
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  recChunks = [];
+  recorder = new MediaRecorder(stream);
+  recorder.ondataavailable = (e) => recChunks.push(e.data);
+  recorder.onstop = () => {
+    stream.getTracks().forEach((t) => t.stop());
+    const blob = new Blob(recChunks, { type: recorder.mimeType });
+    recorder = null;
+    btn.textContent = "🎙 Record";
+    startSession(null, new File([blob], "recording.webm"))
+      .catch((e) => toast(e.message));
+  };
+  recorder.start();
+  btn.textContent = "■ Stop & process";
+}
+
+/* ── wiring ───────────────────────────────────────────────────────────────── */
+
+$("#btn-start").addEventListener("click", () => {
+  const text = $("#start-text").value.trim();
+  const file = $("#start-file").files[0];
+  if (!text && !file) { toast("Paste a transcript or add audio first."); return; }
+  startSession(file ? null : text, file || null).catch((e) => toast(e.message));
+});
+$("#btn-mic").addEventListener("click", (e) => toggleMic(e.currentTarget)
+  .catch?.(() => {}) ?? toggleMic(e.currentTarget));
+$("#btn-example").addEventListener("click", async () => {
+  $("#start-text").value = (await (await fetch("/assets/example.txt")).text()).trim();
+});
+$("#btn-compare").addEventListener("click", () =>
+  openCompare().catch((e) => toast(e.message)));
+$("#btn-back").addEventListener("click", () => { S.view = "live"; render(); });
+$("#btn-settings").addEventListener("click", openSheet);
+$("#btn-sheet-close").addEventListener("click", closeSheet);
+$("#scrim").addEventListener("click", closeSheet);
+$("#btn-sheet-save").addEventListener("click", () =>
+  saveSheet().catch((e) => toast(e.message)));
+$("#btn-export").addEventListener("click", () => {
+  if (!S.graph) return;
+  const blob = new Blob([JSON.stringify({ turns: S.turns, graph: S.graph }, null, 2)],
+                        { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `convograph_${S.sid}.json`;
+  a.click();
+});
+$("#cmp-filter").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  $$("#cmp-filter button").forEach((x) => x.classList.remove("on"));
+  b.classList.add("on"); render();
+});
+$("#graph-zoom-in").addEventListener("click", () => graph3d?.zoom(+0.05));
+$("#graph-zoom-out").addEventListener("click", () => graph3d?.zoom(-0.05));
+$("#graph-compare-link").addEventListener("click", () =>
+  openCompare().catch((e) => toast(e.message)));

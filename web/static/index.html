@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Convograph</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap"
+        rel="stylesheet">
+  <link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ── top bar ─────────────────────────────────────────────────────────── -->
+  <header class="topbar">
+    <span class="brand">Convograph</span>
+    <span class="vdiv"></span>
+    <span class="session-title placeholder" id="session-title">New session</span>
+    <span class="live">
+      <span class="dot"></span>
+      <span id="live-label">Idle</span> ·
+      <span id="timer" class="tabular">00:00:00</span>
+    </span>
+    <span class="tag" id="ident-tag" hidden></span>
+    <span id="live-detail" style="font-size:11px;color:var(--n600)"></span>
+    <span class="spacer"></span>
+    <span class="speakers-cluster">Speakers <span class="stack" id="stack"></span></span>
+    <button class="btn secondary" id="btn-compare" disabled>Compare episodes</button>
+    <button class="btn secondary" id="btn-export">Export</button>
+    <button class="btn secondary" id="btn-back" hidden>Back to session</button>
+    <button class="btn icon secondary" id="btn-settings" title="Session settings">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65
+          1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0
+          9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0
+          .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65
+          1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9
+          a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0
+          1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65
+          0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+  </header>
+
+  <!-- ── start view (session entry) ──────────────────────────────────────── -->
+  <div class="start-wrap" id="view-start">
+    <div class="start-card">
+      <h2>Start a session</h2>
+      <p class="sub">Paste a speaker-tagged transcript (<code>Name (Role): words</code>,
+        one turn per line), upload a meeting recording, or record from this
+        browser's microphone — the server needs none.</p>
+      <textarea id="start-text"
+        placeholder="Maya (Project Manager): Alright, let's settle the launch plan…"></textarea>
+      <div class="row">
+        <input type="text" id="start-title" placeholder="Session title (optional)">
+        <button class="btn ghost" id="btn-example">Load example</button>
+      </div>
+      <div class="row">
+        <button class="btn primary" id="btn-start">Start session</button>
+        <span class="or">or</span>
+        <input type="file" id="start-file" accept=".wav,.mp3,.m4a,.webm,.ogg">
+        <span class="or">or</span>
+        <button class="btn secondary" id="btn-mic">🎙 Record</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── live view: transcript | graph | recording ───────────────────────── -->
+  <div class="body-grid" id="view-live" hidden>
+    <section class="panel" id="transcript-panel">
+      <div class="panel-header">
+        <span class="ptitle">Transcript
+          <span style="font-weight:400;color:var(--n500)"> · click a name to rename</span>
+        </span>
+        <span class="pmeta tabular" id="word-count">0 words</span>
+      </div>
+      <div class="panel-body" id="transcript-body"></div>
+      <div class="panel-footer">
+        <span class="audio-bars">
+          <i style="height:5px"></i><i style="height:9px"></i><i style="height:14px"></i>
+          <i style="height:7px"></i><i style="height:11px"></i><i style="height:6px"></i>
+        </span>
+        <span>Sortformer 4spk v2.1 · multitalker Parakeet 0.6B · on-device</span>
+      </div>
+    </section>
+
+    <section class="panel" id="graph-panel">
+      <div class="panel-header">
+        <span class="ptitle">Knowledge graph</span>
+        <span class="pmeta tabular" id="graph-meta"></span>
+      </div>
+      <div class="panel-body">
+        <svg id="graph-svg"></svg>
+        <div class="graph-legend">
+          <div class="row"><span class="sw" style="background:#0a66ff"></span>added this episode</div>
+          <div class="row"><span class="sw" style="border:1.6px solid #0a66ff"></span>revised</div>
+          <div class="row"><span class="sw" style="border:1px dashed #9d9da5"></span>invalidated</div>
+        </div>
+        <div class="graph-tools">
+          <button class="btn icon secondary" id="graph-zoom-out" title="Zoom out">−</button>
+          <button class="btn icon secondary" id="graph-zoom-in" title="Zoom in">+</button>
+          <button class="btn ghost" id="graph-compare-link">Compare episodes →</button>
+        </div>
+      </div>
+      <div class="panel-footer"><span class="dot" style="width:6px;height:6px;
+        border-radius:50%;background:var(--accent)"></span>
+        <span id="graph-status"></span></div>
+    </section>
+
+    <section class="panel" id="rec-panel">
+      <div class="panel-header">
+        <span class="ptitle">Graphic recording</span>
+        <span class="pmeta" id="rec-meta">Pictogram · FLUX schnell</span>
+      </div>
+      <div class="panel-body">
+        <div class="plate" id="plate"></div>
+        <div class="status-chip" id="status-chip" hidden>
+          <span class="dot"></span><span id="chip-text"></span>
+          <span class="bar"><i id="chip-bar"></i></span>
+          <span class="tabular" id="chip-pct"></span>
+        </div>
+        <div class="frames-strip">
+          <span class="flabel">Frames</span>
+          <span class="thumbs" id="thumbs"></span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ── compare view (1c) ───────────────────────────────────────────────── -->
+  <div class="compare" id="view-compare" hidden>
+    <div class="scrubber">
+      <div class="head">
+        <h2 id="cmp-title"></h2>
+        <span class="sum" id="cmp-summary"></span>
+      </div>
+      <div class="scrub-track" id="scrub"></div>
+    </div>
+    <div class="compare-body">
+      <div class="ledger">
+        <div style="display:flex;justify-content:space-between;align-items:center;
+                    margin-bottom:12px">
+          <span class="segmented" id="cmp-filter">
+            <button class="on" data-f="changes">Changes only</button>
+            <button data-f="all">All facts</button>
+          </span>
+          <span style="font-size:12px;color:var(--n600)">Sorted by change type</span>
+        </div>
+        <table>
+          <thead><tr><th style="width:26%">Fact</th><th style="width:27%">At episode A</th>
+            <th style="width:27%">At episode B</th><th>Change</th></tr></thead>
+          <tbody id="ledger-body"></tbody>
+        </table>
+        <p style="font-size:11.5px;color:var(--n600)">Invalidated facts stay in the
+          graph as dashed nodes — the record keeps what the meeting overturned.</p>
+      </div>
+      <div class="changed-region">
+        <div class="panel-header">
+          <span class="ptitle">Changed region</span>
+          <span class="pmeta">Unchanged facts faded</span>
+        </div>
+        <svg id="cmp-svg" style="flex:1"></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── episode track ───────────────────────────────────────────────────── -->
+  <footer class="track" id="track" hidden>
+    <span class="summary" id="track-summary"></span>
+    <div class="lanes" id="lanes"></div>
+    <span class="legend">bars: transcribed / graphed / rendered<br>
+      Episode = a fixed turn count (settings)</span>
+  </footer>
+</div>
+
+<!-- ── settings sheet (1d) ─────────────────────────────────────────────────── -->
+<div class="scrim" id="scrim" hidden></div>
+<aside class="sheet" id="sheet" hidden>
+  <header>
+    <h2>Session settings</h2>
+    <button class="btn ghost" id="btn-sheet-close">Close</button>
+  </header>
+  <div class="sections">
+    <section>
+      <div><div class="slabel">Episodes</div>
+        <div class="sdesc">How the conversation is cut before extraction.</div></div>
+      <div>
+        <div class="field"><label>Turns per episode</label>
+          <input type="number" id="set-episode-lines" min="2" max="40"></div>
+        <div class="field"><label>Extraction window (lines per Graphiti episode)</label>
+          <input type="number" id="set-window-lines" min="2" max="20"></div>
+      </div>
+    </section>
+    <section>
+      <div><div class="slabel">Recording</div>
+        <div class="sdesc">What gets drawn, and how much.</div></div>
+      <div>
+        <div class="field swatches">
+          <button class="swatch on">Pictogram
+            <span class="sw-note">FLUX schnell on the H100 — wired</span></button>
+          <button class="swatch off" disabled>Painterly
+            <span class="sw-note">needs a FLUX 1.1 pro backend — not wired</span></button>
+          <button class="swatch off" disabled>Sketchnote
+            <span class="sw-note">needs the Excalidraw layer — not wired</span></button>
+        </div>
+        <div class="field"><label>Max images per episode</label>
+          <input type="number" id="set-max-facts" min="1" max="12"></div>
+        <div class="field check">
+          <input type="checkbox" id="set-render" checked>
+          <label for="set-render" style="margin:0">Render images
+            (off = graph only, no GPU time)</label></div>
+      </div>
+    </section>
+  </div>
+  <footer>
+    <span>Changes apply from the next episode</span>
+    <span class="btns">
+      <button class="btn secondary" id="btn-sheet-reset" hidden>Reset</button>
+      <button class="btn primary" id="btn-sheet-save">Save</button>
+    </span>
+  </footer>
+</aside>
+
+<div class="toasts" id="toasts"></div>
+<script type="module" src="/assets/app.js"></script>
+</body>
+</html>
