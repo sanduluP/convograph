@@ -31,8 +31,10 @@ importing across them.
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -135,6 +137,115 @@ def list_groups(cb: ProgressCB = None) -> list[dict]:
             f"group listing produced no parseable JSON — stdout tail:\n"
             f"{proc.stdout[-2000:]}"
         ) from exc
+
+
+# ── appending one meeting's board onto a previous one ───────────────────────
+# render_board.append_scene() does the geometry. These answer the questions
+# AROUND it that the UI and the CLI must answer identically: which file is
+# "the previous board", what to call each block, and where the next meeting
+# starts. All read-only; nothing here writes.
+
+def resolve_board(append_to: str) -> tuple[str, Optional[str]]:
+    """A run folder or a .excalidraw path -> (board_path, run_dir or None).
+
+    The folder is the common case (the UI lists folders). A bare file keeps the
+    door open for a board someone edited in Excalidraw and exported by hand;
+    then there is no plan.json beside it and the caption falls back to the
+    file name.
+    """
+    p = os.path.abspath(os.path.expanduser(append_to))
+    if os.path.isdir(p):
+        board = os.path.join(p, "board.excalidraw")
+        if not os.path.exists(board):
+            raise PipelineError(f"{p} has no board.excalidraw to append to")
+        return board, p
+    if p.endswith(".excalidraw") and os.path.exists(p):
+        run_dir = os.path.dirname(p)
+        has_plan = os.path.exists(os.path.join(run_dir, "plan.json"))
+        return p, (run_dir if has_plan else None)
+    raise PipelineError(
+        f"append_to must be a run folder or a .excalidraw file: {append_to}")
+
+
+def _read_json(path: str) -> Optional[dict]:
+    try:
+        with open(path) as fh:
+            return json.load(fh)
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def _run_stamp(run_dir: Optional[str], fallback_path: str) -> str:
+    """'2026-09-08 15:19' from a run folder's _YYYYmmdd_HHMMSS suffix, or the
+    file's mtime when there is no run folder. The folder name is the
+    authoritative timestamp today; plan.json does not carry one."""
+    m = re.search(r"_(\d{8})_(\d{6})$", os.path.basename(run_dir or ""))
+    if m:
+        d, t = m.groups()
+        return f"{d[:4]}-{d[4:6]}-{d[6:]} {t[:2]}:{t[2:4]}"
+    return time.strftime("%Y-%m-%d %H:%M",
+                         time.localtime(os.path.getmtime(fallback_path)))
+
+
+def _block_label(group_id: str, used_digest: bool, episode_start: int,
+                 episodes_digested: int, windows: int, stamp: str) -> str:
+    """ONE format for every block caption, so a canvas of five meetings reads
+    as a series rather than as five different people's notes."""
+    if used_digest and episodes_digested:
+        last = episode_start + episodes_digested - 1
+        return f"{group_id} · episodes {episode_start}–{last} · digest {stamp}"
+    if used_digest:
+        return f"{group_id} · digest {stamp}"
+    return f"{group_id} · {windows} window(s) · {stamp}"
+
+
+def describe_run(run_dir: Optional[str], board_path: str) -> dict:
+    """What a previous run was, read from what it left on disk."""
+    plan = _read_json(os.path.join(run_dir, "plan.json")) if run_dir else None
+    dig = (_read_json(os.path.join(run_dir, "digest", "digest.json"))
+           if run_dir else None)
+    stamp = _run_stamp(run_dir, board_path)
+    if plan is None:
+        return {"group_id": None, "episode_start": None, "episodes_digested": None,
+                "used_digest": False, "stamp": stamp,
+                "label": f"{os.path.basename(board_path)} · {stamp}"}
+    used_digest = dig is not None
+    ep_start = int((dig or {}).get("episode_start") or plan.get("_episode_start") or 0)
+    ep_n = int((dig or {}).get("episodes_digested") or 0)
+    gid = plan.get("_group_id") or "?"
+    return {"group_id": gid, "episode_start": ep_start, "episodes_digested": ep_n,
+            "used_digest": used_digest, "stamp": stamp,
+            "label": _block_label(gid, used_digest, ep_start, ep_n,
+                                  int(plan.get("_windows") or 0), stamp)}
+
+
+def next_episode_start(run_dir: Optional[str]) -> Optional[int]:
+    """Where the meeting AFTER this run begins: episode_start + episodes_digested
+    from its digest.json. None when the run had no digest (a window run, or a
+    bare file), because then there is nothing to advance from."""
+    if not run_dir:
+        return None
+    dig = _read_json(os.path.join(run_dir, "digest", "digest.json"))
+    if not dig or not dig.get("episodes_digested"):
+        return None
+    return int(dig.get("episode_start") or 0) + int(dig["episodes_digested"])
+
+
+def list_previous_boards() -> list[dict]:
+    """Every run folder under ui/output holding a board, newest first."""
+    out: list[dict] = []
+    if not os.path.isdir(OUT_DIR):
+        return out
+    for name in os.listdir(OUT_DIR):
+        run_dir = os.path.join(OUT_DIR, name)
+        board = os.path.join(run_dir, "board.excalidraw")
+        if os.path.isdir(run_dir) and os.path.exists(board):
+            info = describe_run(run_dir, board)
+            out.append({"run_dir": run_dir, "board_path": board,
+                        "label": info["label"], "group_id": info["group_id"],
+                        "mtime": os.path.getmtime(board)})
+    out.sort(key=lambda b: -b["mtime"])
+    return out
 
 
 def _facts_from_existing_graph(group_id: str, limit: int, cb: ProgressCB) -> dict:
@@ -453,7 +564,8 @@ def run_pipeline(
 #   output flat in ui/output/          one folder per run, holding the plan,
 #                                        the images, the board and a preview
 
-def _run_digest(group_id: str, episode_limit: int, cb: ProgressCB) -> dict:
+def _run_digest(group_id: str, episode_limit: int, cb: ProgressCB,
+                episode_start: int = 0) -> dict:
     """Run module 2's five digest queries in ITS venv and read back the JSON.
 
     A subprocess rather than an import, for the reason this whole file is built
@@ -467,6 +579,10 @@ def _run_digest(group_id: str, episode_limit: int, cb: ProgressCB) -> dict:
                "--group-id", group_id, "--out", tmp]
         if episode_limit:
             cmd += ["--episode-limit", str(episode_limit)]
+        if episode_start:
+            # Without this every digest slices episodes 0..N of the group, so
+            # "meeting 2" would be meeting 1 again. tkg_digest already takes it.
+            cmd += ["--episode-start", str(episode_start)]
         # The connection is passed explicitly so the digest reads the SAME
         # database the rest of the run does, rather than whatever module 2's
         # .env happens to point at.
@@ -480,7 +596,15 @@ def _run_digest(group_id: str, episode_limit: int, cb: ProgressCB) -> dict:
         if proc.returncode != 0:
             raise PipelineError(f"the digest failed:\n{proc.stderr[-4000:]}")
         with open(os.path.join(tmp, "digest.json")) as fh:
-            return json.load(fh)
+            dig = json.load(fh)
+    if int(dig.get("episodes_digested") or 0) <= 0:
+        # A start past the end returns an EMPTY digest, and a board planned from
+        # nothing is worse than no board.
+        raise PipelineError(
+            f"episode_start {episode_start} is at or past the end of group "
+            f"'{group_id}' ({dig.get('episodes_in_group', '?')} episodes) — "
+            f"nothing left to digest")
+    return dig
 
 
 def _window_run(group_id: str, windows: int, max_facts: int,
@@ -532,6 +656,12 @@ PLAN_README = {
     "_plan_seconds": "float — wall-clock for the single planning call.",
     "_validation": "list[str] — problems board_plan.validate() found. NON-BLOCKING: a flawed plan is still rendered, on purpose.",
     "_facts": "list — the exact facts handed to the planner, in index order, each {fact, valid_at, invalid_at}. invalid_at non-null = the conversation later overturned it.",
+    "_episode_start": "int — with a digest: the first episode digested. 0 = from the start of the group. Meeting N+1 starts where meeting N's digest ended.",
+    "_block_caption": "str — the gray caption this block carries on a multi-meeting canvas: group · episode range · timestamp.",
+    "_appended_from": "str — present only when appended: the board.excalidraw this run was placed after. That file is never modified; the merged canvas is THIS run's board.excalidraw.",
+    "_appended_from_run": "str|null — the run folder of _appended_from, when it had one.",
+    "_appended_from_sha256": "str — sha256 of _appended_from at append time, so a later edit to the base is detectable.",
+    "_append_direction": "str — 'below' (stacked) or 'right' (strip).",
 }
 
 
@@ -590,10 +720,20 @@ def run_content_map(
     dedupe_facts: bool = True,
     use_digest: bool = False,
     episode_limit: int = 0,
+    episode_start: int = 0,
+    append_to: Optional[str] = None,
+    append_direction: str = "below",
     progress_cb: ProgressCB = None,
 ) -> dict:
     """Window -> board plan -> pictograms -> ONE content map. Returns a dict
     with the run directory and everything in it.
+
+    APPENDING. Pass `append_to` (a previous run folder, or a .excalidraw) and
+    this meeting's block is placed `append_direction` of everything already on
+    that canvas, via render_board.append_scene. The previous file is read and
+    never written; the merged canvas is THIS run's board.excalidraw. With a
+    digest, `episode_start` says where this meeting begins — the caller
+    normally sets it to where the previous run's digest ended.
 
     Pass `text` to extract first (module 1's transcript -> a new graph), or
     leave it empty to read a group module 2 already built.
@@ -624,6 +764,27 @@ def run_content_map(
     sys.path.insert(0, os.path.join(KG_MODULE, "analysis"))
     import fact_redundancy     # noqa: PLC0415
 
+    # ── the previous board, if appending ────────────────────────────────────
+    # Resolved and READ before anything is spent on SAIA or the GPU: a wrong
+    # path should fail in milliseconds, not after a 20 s board is drawn.
+    base_scene = base_path = base_run = base_sha = None
+    base_info: dict = {}
+    if append_to:
+        if append_direction not in ("below", "right"):
+            raise PipelineError(f"append_direction must be 'below' or 'right', "
+                                f"got {append_direction!r}")
+        base_path, base_run = resolve_board(append_to)
+        with open(base_path, "rb") as fh:
+            raw = fh.read()
+        base_sha = hashlib.sha256(raw).hexdigest()
+        try:
+            base_scene = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise PipelineError(f"{base_path} is not valid JSON: {exc}") from exc
+        base_info = describe_run(base_run, base_path)
+        _log(progress_cb, f"🧷 will append {append_direction} onto {base_path}")
+        _log(progress_cb, f"   base: {base_info['label']}")
+
     stamp = time.strftime("%Y%m%d_%H%M%S")
     _ensure_tunnels(progress_cb)
     provider = provider or board_plan.DEFAULT_PROVIDER
@@ -643,6 +804,15 @@ def run_content_map(
         # Ask for no more windows than were actually created, or the query
         # silently returns fewer and the run dir's name lies about its input.
         windows = min(windows, max(1, int(ingested.get("episodes") or 1)))
+        if episode_start:
+            # A fresh transcript is a NEW group, so its digest starts at 0 no
+            # matter where the previous board's digest ended. Measured on the
+            # first append attempt through the UI: the base run was episodes
+            # 0–79 of gmb_finance_full, the auto-advance said 80, and the new
+            # group had one episode — "80 is at or past the end (1 episodes)".
+            _log(progress_cb, f"   ↩️  episode_start {episode_start} → 0: a new "
+                              f"graph starts at its first episode")
+            episode_start = 0
 
     # ── hop 1: the input ────────────────────────────────────────────────────
     # Two shapes, and the difference is the point of the digest work:
@@ -655,11 +825,13 @@ def run_content_map(
         _log(progress_cb, f"🧪 digesting the graph — five queries over "
                           f"{'the whole group' if not episode_limit else f'{episode_limit} episodes'}")
         t_dig = time.time()
-        dig = _run_digest(group_id, episode_limit, progress_cb)
+        dig = _run_digest(group_id, episode_limit, progress_cb, episode_start)
         for k, v in dig["timings"].items():
             _log(progress_cb, f"   {k:<14} {v:>5.2f}s  ({len(dig['queries'][k])} rows)")
         _log(progress_cb, f"   digest took {time.time() - t_dig:.1f}s over "
-                          f"{dig['episodes_digested']} episode(s)")
+                          f"{dig['episodes_digested']} episode(s): "
+                          f"{episode_start}..{episode_start + dig['episodes_digested'] - 1} "
+                          f"of {dig.get('episodes_in_group', '?')}")
 
         _log(progress_cb, f"🧭 planning the board — {provider}/{model}")
         t0 = time.time()
@@ -737,6 +909,9 @@ def run_content_map(
                       f"{len(plan.get('dropped', []))} fact(s) dropped")
 
     tag = "digest" if use_digest else f"w{windows}"
+    if use_digest and episode_start:
+        tag += f"-s{episode_start}"     # meeting 2's folder must be tellable
+                                        # from meeting 1's at a glance
     run_dir = os.path.join(
         OUT_DIR, f"{provider}-{model}_{tag}_{stamp}".replace("/", "-"))
     os.makedirs(os.path.join(run_dir, "images"), exist_ok=True)
@@ -749,6 +924,17 @@ def run_content_map(
                                       # stay resolvable months from now
     plan["_facts_before_dedupe"] = raw_n
     plan["_deduped"] = bool(dedupe_facts and not use_digest)
+    plan["_episode_start"] = episode_start
+    stamp_human = f"{stamp[:4]}-{stamp[4:6]}-{stamp[6:8]} {stamp[9:11]}:{stamp[11:13]}"
+    new_label = _block_label(
+        group_id, use_digest, episode_start,
+        int((digest_result or {}).get("episodes_digested") or 0), windows, stamp_human)
+    plan["_block_caption"] = new_label
+    if base_path:
+        plan["_appended_from"] = base_path
+        plan["_appended_from_run"] = base_run
+        plan["_appended_from_sha256"] = base_sha
+        plan["_append_direction"] = append_direction
     if digest_result is not None:
         # The digest is written next to the plan: a board planned from it is only
         # auditable if the exact input survives beside the output.
@@ -790,8 +976,32 @@ def run_content_map(
     _log(progress_cb, f"🧩 drawing the content map — {len(anchors)} node(s), "
                       f"{sum(1 for k in kept if k)} pictogram(s)")
     board_path = os.path.join(run_dir, "board.excalidraw")
-    scene = render_board.build_scene(plan, kept)
-    debug = scene.pop("_layout_debug")
+    fresh = render_board.build_scene(plan, kept)
+    debug = fresh.pop("_layout_debug")
+    # The fresh block is checked ON ITS OWN, with the aspect rule, so a bad new
+    # board is caught whether or not it is about to be appended.
+    issues = preview_board.check(fresh)
+
+    blocks = 1
+    if base_scene is not None:
+        merged = render_board.append_scene(
+            base_scene, fresh, append_direction,
+            base_caption=base_info.get("label"), new_caption=new_label)
+        adebug = merged.pop("_layout_debug")
+        blocks = adebug["blocks"]
+        scene = merged
+        # Across blocks: ids, bindings, file refs, overlaps. NOT aspect — a
+        # strip of meetings is legitimately 4:1, and each block passed its own
+        # aspect check on its own run.
+        issues += preview_board.check(scene, aspect=None)
+        _log(progress_cb, f"🧷 appended {append_direction} onto "
+                          f"{os.path.basename(os.path.dirname(base_path))} — "
+                          f"{blocks} meeting(s), canvas "
+                          f"{adebug['canvas'][0]}x{adebug['canvas'][1]}")
+        debug = {**debug, "append": adebug}
+    else:
+        scene = fresh
+
     with open(board_path, "w") as fh:
         json.dump(scene, fh, indent=2)
 
@@ -799,16 +1009,19 @@ def run_content_map(
     # than when someone opens it in the app.
     preview_path = os.path.join(run_dir, "preview.png")
     preview_board.render(scene, preview_path)
-    issues = preview_board.check(scene)
     for issue in issues:
         _log(progress_cb, f"   ⚠️  layout: {issue}")
 
-    _log(progress_cb, f"✅ {board_path} — canvas {debug['canvas'][0]}x{debug['canvas'][1]}")
+    canvas = debug["append"]["canvas"] if "append" in debug else debug["canvas"]
+    _log(progress_cb, f"✅ {board_path} — canvas {canvas[0]}x{canvas[1]}")
     return {
         "run_dir": run_dir, "board_path": board_path,
         "preview_path": preview_path, "plan": plan,
         "provider": provider, "model": model, "windows": windows,
-        "used_digest": use_digest,
+        "used_digest": use_digest, "episode_start": episode_start,
+        "appended_from": base_path,
+        "append_direction": append_direction if base_path else None,
+        "blocks": blocks,
         "plan_seconds": round(plan_secs, 2),
         "validation": problems, "layout_issues": issues, "debug": debug,
     }

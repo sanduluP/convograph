@@ -34,7 +34,8 @@ import streamlit.components.v1 as components
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from orchestrator import (  # noqa: E402
-    PipelineError, list_groups, run_content_map, run_pipeline,
+    PipelineError, list_groups, list_previous_boards, next_episode_start,
+    run_content_map, run_pipeline,
 )
 
 EXCALIDRAW_VERSION = "0.18.0"
@@ -82,6 +83,9 @@ def render_excalidraw(scene: dict, height: int = 640) -> None:
         "https://esm.sh/@excalidraw/excalidraw@{EXCALIDRAW_VERSION}?deps=react@{REACT_VERSION},react-dom@{REACT_VERSION}";
 
       const sceneData = {payload};
+      // A canvas holding several meetings no longer fits the iframe at the
+      // default viewport; ask Excalidraw to frame whatever is drawn.
+      sceneData.scrollToContent = true;
       const root = createRoot(document.getElementById("excalidraw-root"));
       root.render(React.createElement(Excalidraw, {{ initialData: sceneData }}));
     </script>
@@ -318,6 +322,66 @@ else:
     st.caption("⏳ Extraction is the slow stage — Graphiti makes ~10-20 LLM calls "
                "per episode.")
 
+# ── append onto a previous board ──────────────────────────────────────────────
+# The renderer places one meeting's block clear of everything already drawn
+# (render_board.append_scene). The "previous board" is a FILE from an earlier
+# run: the embed below is one-way, so a card dragged in the browser is not
+# seen here. The source file is never modified; the merged canvas lands in
+# the new run's folder.
+append_on = False
+append_to = None
+append_direction = "below"
+episode_start = 0
+if is_map:
+    append_on = st.checkbox(
+        "🧷 Append to a previous board",
+        help="Place this meeting's block below or beside an earlier board instead "
+             "of starting a fresh canvas. The earlier board file is left untouched.",
+    )
+    if append_on:
+        boards = list_previous_boards()
+        if not boards:
+            st.info("No previous boards under ui/output yet — generate one first.")
+            append_on = False
+        else:
+            by_dir = {b["run_dir"]: b for b in boards}
+            dirs = list(by_dir)
+            last = (st.session_state.get("last_result") or {}).get("run_dir")
+            idx = dirs.index(last) if last in by_dir else 0
+            a_col, d_col = st.columns([3, 1])
+            with a_col:
+                append_to = st.selectbox(
+                    "Previous board", dirs, index=idx,
+                    format_func=lambda d: f"{os.path.basename(d)}  ·  {by_dir[d]['label']}",
+                )
+            with d_col:
+                append_direction = st.radio(
+                    "Place the new meeting", ["below", "right"], horizontal=True,
+                    help="Below keeps a page-like shape; right makes a timeline strip.",
+                )
+            if use_digest:
+                # Advancing the episode start only makes sense when this board
+                # digests the SAME graph the previous one did. A pasted
+                # transcript becomes a brand-new group, and a different existing
+                # group is a different corpus; both start at 0.
+                base_gid = by_dir[append_to].get("group_id")
+                same_graph = bool(use_existing and base_gid
+                                  and existing_group_id == base_gid)
+                suggested = next_episode_start(append_to) if same_graph else None
+                episode_start = int(st.number_input(
+                    "Start at episode", min_value=0, value=int(suggested or 0),
+                    help="Prefilled from the previous run's digest.json as "
+                         "episode_start + episodes_digested, so this board covers "
+                         "the NEXT slice of the conversation, not the same one again.",
+                ))
+                if not same_graph:
+                    st.caption(f"Different graph from the previous board "
+                               f"({base_gid or 'unknown'}), so this one starts at "
+                               f"episode 0 — a new transcript is a new group.")
+                elif suggested is None:
+                    st.caption("The previous run had no digest, so there is nothing "
+                               "to advance from — starting at episode 0.")
+
 # ── when to run ───────────────────────────────────────────────────────────────
 # ONE BUTTON, both paths. Drawing on page load was tried and is worse: the run
 # fires before anyone can touch a control, so every setting in Advanced - which
@@ -334,6 +398,7 @@ run_key = (
     existing_group_id if use_existing else text,
     int(windows), int(max_facts), provider, planner_model, int(columns),
     bool(use_digest), int(episode_limit),
+    bool(append_on), append_to, append_direction, int(episode_start),
 )
 
 clicked = st.button("🖍️ Generate board", type="primary", disabled=not ready)
@@ -363,6 +428,9 @@ if should_run:
                     model=planner_model,
                     use_digest=bool(use_digest),
                     episode_limit=int(episode_limit),
+                    episode_start=int(episode_start),
+                    append_to=append_to if append_on else None,
+                    append_direction=append_direction,
                     progress_cb=_progress,
                 )
             else:
@@ -404,6 +472,10 @@ if st.session_state.get("last_result"):
             + ("plan validates clean" if not result["validation"]
                else f"⚠️ {len(result['validation'])} plan problem(s)")
             + f" · 📁 `{result['run_dir']}`"
+            + (f" · 🧷 appended {result['append_direction']} onto "
+               f"`{os.path.basename(os.path.dirname(result['appended_from']))}` "
+               f"({result.get('blocks', '?')} meetings)"
+               if result.get("appended_from") else "")
         )
     with open(result["board_path"]) as fh:
         scene = json.load(fh)
