@@ -126,9 +126,13 @@ class Store:
             started_at=time.time(),
             group_id=f"web_{time.strftime('%Y%m%d')}_{sid}",
             settings={
-                # applied "from the next episode", as the design promises
-                "episode_turns": 12,       # cut after this many FINAL turns…
-                "episode_seconds": 120,    # …or this much audio, whichever first
+                # applied "from the next episode", as the design promises.
+                # Smaller episodes = more supersession opportunities: Graphiti
+                # invalidates most reliably when the reversal arrives in a
+                # LATER ingest call than the decision (observed 2/2 across
+                # episodes vs 0/2 within one episode, 2026-09-11).
+                "episode_turns": 8,        # cut after this many FINAL turns…
+                "episode_seconds": 75,     # …or this much audio, whichever first
                 "settle_steps": 3,         # live: snapshots unchanged -> final
                 "window_lines": 5,         # UI_INGEST_WINDOW_LINES for module 2
                 "max_render_facts": 6,     # images per episode ceiling

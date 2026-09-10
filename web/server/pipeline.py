@@ -159,11 +159,16 @@ async def episodizer(session: Session) -> None:
         turn = msg["turn"]
         label = turn["speaker"]
         session.speakers.setdefault(label, label)
+        # Live sentence splits can leave orphan punctuation at the front
+        # (". The booth gets…") — noise for the reader and the extractor.
+        text = turn["text"].strip().lstrip(".,;:").strip()
+        if not text:
+            continue
         record = {
             "id": turn.get("id") or f"t{turn_counter:04d}",
             "speaker": label,
             "name": session.speakers[label],
-            "text": turn["text"],
+            "text": text,
             "t_start": turn.get("t_start"),
             "t_end": turn.get("t_end"),
             "source": turn.get("source", "paste"),
