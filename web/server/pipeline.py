@@ -334,7 +334,15 @@ async def _run(cmd: List[str], env: Optional[dict] = None, timeout: int = 1800) 
         proc.kill()
         raise StageError(f"timed out after {timeout}s: {' '.join(cmd[:3])}")
     if proc.returncode != 0:
-        tail = "\n".join((out.decode() + "\n" + err.decode()).strip().splitlines()[-8:])
+        combined = (out.decode() + "\n" + err.decode()).strip()
+        tail = "\n".join(combined.splitlines()[-8:])
+        # Per-window failure markers (e.g. RateLimitError) appear well before
+        # the final traceback — surface them so callers can react to the
+        # CAUSE, not just ui_ingest's summary refusal.
+        markers = sorted({ln.strip()[:160] for ln in combined.splitlines()
+                          if "FAILED, skipping" in ln})
+        if markers:
+            tail = "\n".join(markers[:4]) + "\n" + tail
         raise StageError(tail)
     return out.decode()
 
