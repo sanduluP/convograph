@@ -17,15 +17,19 @@ Endpoints:
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import (FastAPI, File, HTTPException, UploadFile, WebSocket,
+                     WebSocketDisconnect)
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from .bus import STORE, Session
-from . import pipeline
+from . import live_stt, pipeline
+
+INPUT_OK_STATES = ("idle", "listening", "paused", "warming")
 
 WEB_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 app = FastAPI(title="convograph-web")
@@ -58,24 +62,112 @@ def create_session(body: NewSession):
     return {"id": s.id, "group_id": s.group_id, "settings": s.settings}
 
 
-@app.post("/api/session/{sid}/start", status_code=202)
-async def start_text(sid: str, body: StartBody):
+@app.post("/api/session/{sid}/text", status_code=202)
+@app.post("/api/session/{sid}/start", status_code=202)   # pre-worker alias
+async def add_text(sid: str, body: StartBody):
     s = _get(sid)
-    if s.state not in ("idle",):
+    if s.state not in INPUT_OK_STATES:
         raise HTTPException(409, f"session is {s.state}")
-    s.tasks.append(asyncio.create_task(pipeline.run_session(s, text=body.text)))
+    try:
+        await pipeline.feed_text(s, body.text)
+    except pipeline.StageError as exc:
+        raise HTTPException(422, str(exc)) from exc
     return {"ok": True}
 
 
 @app.post("/api/session/{sid}/audio", status_code=202)
-async def start_audio(sid: str, file: UploadFile = File(...)):
+async def add_audio(sid: str, file: UploadFile = File(...)):
     s = _get(sid)
-    if s.state not in ("idle",):
+    if s.state not in INPUT_OK_STATES:
         raise HTTPException(409, f"session is {s.state}")
+    if s.live is not None:
+        raise HTTPException(409, "live capture is active on this session — "
+                                 "stop it before uploading")
     audio = await file.read()
     s.tasks.append(asyncio.create_task(
-        pipeline.run_session(s, audio=audio, audio_name=file.filename or "rec.wav")))
+        pipeline.feed_audio_file(s, audio, file.filename or "rec.wav")))
     return {"ok": True}
+
+
+@app.post("/api/session/{sid}/pause")
+async def pause(sid: str):
+    s = _get(sid)
+    await pipeline.pause_session(s)
+    return {"state": s.state}
+
+
+@app.post("/api/session/{sid}/resume")
+async def resume(sid: str):
+    s = _get(sid)
+    await pipeline.resume_session(s)
+    return {"state": s.state}
+
+
+@app.post("/api/session/{sid}/end")
+async def end(sid: str):
+    s = _get(sid)
+    await pipeline.end_session(s)
+    return {"state": s.state}
+
+
+@app.websocket("/api/session/{sid}/live")
+async def live(ws: WebSocket, sid: str):
+    """Binary frames: webm/opus audio from the browser's MediaRecorder.
+    Text frames: {"type": "pause" | "resume" | "stop"}."""
+    s = STORE.get(sid)
+    if s is None:
+        await ws.close(code=4004)
+        return
+    await ws.accept()
+
+    if s.live is None:
+        if live_stt.GPU_LOCK.locked():
+            await ws.send_text(json.dumps(
+                {"error": "gpu_busy",
+                 "message": "another live session holds the GPU"}))
+            await ws.close(code=1013)
+            return
+        await live_stt.GPU_LOCK.acquire()
+        s.live = live_stt.LiveSTT(s)
+        pipeline.ensure_workers(s)
+        await s.live.start()
+    else:
+        # reconnect: fresh MediaRecorder -> fresh webm header -> new ffmpeg
+        s.live.touch_grace(cancel_only=True)
+        await s.live.restart_ffmpeg()
+        await pipeline.resume_session(s)
+
+    try:
+        while True:
+            msg = await ws.receive()
+            if msg.get("type") == "websocket.disconnect":
+                raise WebSocketDisconnect(msg.get("code") or 1000)
+            if msg.get("bytes") is not None:
+                if s.live is None or s.live.stopped:
+                    break
+                if not s.live.paused:
+                    try:
+                        s.live.audio_q.put_nowait(msg["bytes"])
+                    except asyncio.QueueFull:
+                        pass          # drop rather than stall the socket
+            elif msg.get("text"):
+                cmd = json.loads(msg["text"]).get("type")
+                if cmd == "pause":
+                    await pipeline.pause_session(s)
+                elif cmd == "resume":
+                    await pipeline.resume_session(s)
+                elif cmd == "stop":
+                    await pipeline.end_session(s)
+                    break
+    except WebSocketDisconnect:
+        if s.live is not None and not s.live.stopped:
+            await pipeline.pause_session(s)
+            s.live.touch_grace()      # auto-end after the grace period
+        return
+    try:
+        await ws.close()
+    except Exception:                                             # noqa: BLE001
+        pass
 
 
 @app.get("/api/session/{sid}/events")
@@ -108,7 +200,10 @@ def rename_speaker(sid: str, body: SpeakerBody):
 @app.post("/api/session/{sid}/settings")
 def update_settings(sid: str, body: dict):
     s = _get(sid)
-    allowed = {"episode_lines", "window_lines", "max_render_facts", "render", "style"}
+    allowed = {"episode_turns", "episode_seconds", "settle_steps",
+               "window_lines", "max_render_facts", "render", "style"}
+    if "episode_lines" in body:          # pre-worker alias
+        body.setdefault("episode_turns", body["episode_lines"])
     s.settings.update({k: v for k, v in body.items() if k in allowed})
     s.emit("session", {"state": s.state, "settings": s.settings})
     return {"ok": True, "settings": s.settings}
@@ -166,7 +261,10 @@ def meta(sid: str):
     s = _get(sid)
     return {"id": s.id, "title": s.title, "state": s.state,
             "started_at": s.started_at, "settings": s.settings,
-            "speakers": s.speakers, "episodes_snapshotted": len(s.snapshots)}
+            "speakers": s.speakers, "episodes_snapshotted": len(s.snapshots),
+            "audio_seconds": round(s.audio_seconds, 1),
+            "ingest_pending": s.ingest_q.qsize(),
+            "live": s.live is not None}
 
 
 os.makedirs(os.path.join(WEB_DIR, "output"), exist_ok=True)

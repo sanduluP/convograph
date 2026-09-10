@@ -83,13 +83,13 @@ async def transcribe_audio(session: Session, audio: bytes, name: str) -> str:
     import module1  # ui/module1.py — needs the Docker image + GPU
 
     loop = asyncio.get_running_loop()
-    session.emit("episode", {"index": 0, "stage": "transcribed",
-                             "status": "running", "progress": 0.1,
-                             "detail": "module 1: diarizing + transcribing on the GB10"})
+    session.emit("session", {"state": session.state,
+                             "detail": "module 1: diarizing + transcribing "
+                                       "the upload on the GB10"})
 
     def _progress(msg: str) -> None:
         loop.call_soon_threadsafe(
-            session.emit, "session", {"state": "transcribing", "detail": msg})
+            session.emit, "session", {"state": session.state, "detail": msg})
 
     res = await loop.run_in_executor(
         None, lambda: module1.transcribe(audio, name, progress_cb=_progress))
@@ -97,28 +97,191 @@ async def transcribe_audio(session: Session, audio: bytes, name: str) -> str:
     return text
 
 
-# ── stage: episodize + emit turns ─────────────────────────────────────────────
+# ── the event-driven spine: episodizer + ingest workers ──────────────────────
+#
+# The episodizer is turn_q's ONLY consumer: it assigns episode indices, emits
+# `turn` events, and cuts episodes onto ingest_q. The ingest worker is
+# ingest_q's ONLY consumer and runs episodes SERIALLY (Graphiti's supersession
+# detection depends on order); each finished ingest fires an independent
+# render task, so episode k renders while k+1 extracts.
+#
+# turn_q message shapes:
+#   {"kind": "turn", "turn": {id?, speaker, text, t_start?, t_end?, source}}
+#   {"kind": "flush", "reason": "source_eof" | "pause" | "end"}
+#   {"kind": "end"}
 
-def cut_episodes(session: Session, turns: List[dict]) -> List[List[dict]]:
-    n = max(2, int(session.settings["episode_lines"]))
-    return [turns[i:i + n] for i in range(0, len(turns), n)]
+
+def ensure_workers(session: Session) -> None:
+    """Idempotent: spawn the session's long-lived workers on first input."""
+    if session.workers:
+        return
+    session.workers = [
+        asyncio.create_task(episodizer(session)),
+        asyncio.create_task(ingest_worker(session)),
+    ]
+    if session.state == "idle":
+        session.state = "listening"
+        session.emit("session", {"state": "listening", "title": session.title,
+                                 "started_at": session.started_at})
 
 
-def emit_turns(session: Session, episodes: List[List[dict]]) -> None:
-    t = 0
-    for ep_idx, ep in enumerate(episodes, start=1):
-        for turn in ep:
-            label = turn["speaker"]
-            session.speakers.setdefault(label, label)
-            record = {"id": f"t{t:04d}", "speaker": label,
-                      "name": session.speakers[label],
-                      "text": turn["text"], "episode": ep_idx}
-            session.turns.append(record)
-            session.emit("turn", record)
-            t += 1
-        session.emit("episode", {"index": ep_idx, "stage": "transcribed",
+async def episodizer(session: Session) -> None:
+    buf: List[dict] = []
+    ep_t0: Optional[float] = None
+    turn_counter = 0
+
+    def cut() -> None:
+        nonlocal buf, ep_t0
+        if not buf:
+            return
+        i = session.next_episode
+        session.next_episode += 1
+        for stage in ("transcribed", "graphed", "rendered"):
+            session.emit("episode", {"index": i, "stage": stage,
+                                     "status": "pending", "progress": 0.0})
+        session.emit("episode", {"index": i, "stage": "transcribed",
                                  "status": "done", "progress": 1.0,
-                                 "detail": f"{len(ep)} turns"})
+                                 "detail": f"{len(buf)} turns"})
+        session.ingest_q.put_nowait({"index": i, "turns": buf})
+        session.emit("queue", {"ingest_pending": session.ingest_q.qsize()})
+        buf, ep_t0 = [], None
+
+    while True:
+        msg = await session.turn_q.get()
+        if msg["kind"] == "end":
+            cut()
+            session.ingest_q.put_nowait(None)
+            return
+        if msg["kind"] == "flush":
+            cut()
+            continue
+
+        turn = msg["turn"]
+        label = turn["speaker"]
+        session.speakers.setdefault(label, label)
+        record = {
+            "id": turn.get("id") or f"t{turn_counter:04d}",
+            "speaker": label,
+            "name": session.speakers[label],
+            "text": turn["text"],
+            "t_start": turn.get("t_start"),
+            "t_end": turn.get("t_end"),
+            "source": turn.get("source", "paste"),
+            # assigned HERE and nowhere else — the pending episode's index
+            "episode": session.next_episode,
+        }
+        turn_counter += 1
+        session.turns.append(record)
+        session.emit("turn", record)
+        buf.append(record)
+        if ep_t0 is None and record["t_start"] is not None:
+            ep_t0 = record["t_start"]
+
+        # settings are read at cut time -> "applies from the next episode"
+        max_turns = max(2, int(session.settings["episode_turns"]))
+        max_secs = float(session.settings["episode_seconds"])
+        over_time = (ep_t0 is not None and record["t_end"] is not None
+                     and record["t_end"] - ep_t0 >= max_secs)
+        if len(buf) >= max_turns or over_time:
+            cut()
+
+
+async def ingest_worker(session: Session) -> None:
+    render_tasks: List[asyncio.Task] = []
+    while True:
+        item = await session.ingest_q.get()
+        session.emit("queue", {"ingest_pending": session.ingest_q.qsize()})
+        if item is None:
+            for t in render_tasks:
+                try:
+                    await t
+                except Exception as exc:                          # noqa: BLE001
+                    session.emit("error", {"stage": "render", "message": str(exc)})
+            session.state = "ended"
+            session.emit("session", {"state": "ended"})
+            return
+        try:
+            added = await ingest_episode(session, item["index"], item["turns"])
+        except StageError as exc:
+            session.emit("error", {"stage": "graph", "episode": item["index"],
+                                   "message": str(exc)})
+            session.emit("episode", {"index": item["index"], "stage": "graphed",
+                                     "status": "failed", "progress": 0.0,
+                                     "detail": str(exc)[:160]})
+            continue
+        t = asyncio.create_task(render_episode(session, item["index"], added))
+        render_tasks.append(t)
+        session.tasks.append(t)
+
+
+# ── input adapters: everything becomes a turn stream ─────────────────────────
+
+async def feed_text(session: Session, text: str) -> None:
+    turns = parse_turns(text)
+    if not turns:
+        raise StageError("no speaker-tagged turns found in the input "
+                         "(expected 'Name: words' lines)")
+    ensure_workers(session)
+    for t in turns:
+        session.turn_q.put_nowait({"kind": "turn", "turn": {**t, "source": "paste"}})
+    session.turn_q.put_nowait({"kind": "flush", "reason": "source_eof"})
+
+
+async def feed_audio_file(session: Session, audio: bytes, name: str) -> None:
+    from . import live_stt  # lazy: avoid import cycle at module load
+    ensure_workers(session)
+    try:
+        if live_stt.GPU_LOCK.locked():
+            session.emit("session", {"state": session.state,
+                                     "detail": "waiting for the GPU (live "
+                                               "capture or another upload)"})
+        async with live_stt.GPU_LOCK:
+            text = await transcribe_audio(session, audio, name)
+    except Exception as exc:                                      # noqa: BLE001
+        session.emit("error", {"stage": "transcribe", "message": str(exc)})
+        return
+    turns = parse_turns(text)
+    for t in turns:
+        session.turn_q.put_nowait({"kind": "turn", "turn": {**t, "source": "upload"}})
+    session.turn_q.put_nowait({"kind": "flush", "reason": "source_eof"})
+
+
+# ── lifecycle ─────────────────────────────────────────────────────────────────
+
+async def pause_session(session: Session) -> None:
+    if session.state != "listening":
+        return
+    session.state = "paused"
+    if session.live is not None:
+        session.live.pause()
+    # Heard content gets extracted while paused: flush the open episode.
+    session.turn_q.put_nowait({"kind": "flush", "reason": "pause"})
+    session.emit("session", {"state": "paused"})
+
+
+async def resume_session(session: Session) -> None:
+    if session.state != "paused":
+        return
+    session.state = "listening"
+    if session.live is not None:
+        session.live.resume()
+    session.emit("session", {"state": "listening"})
+
+
+async def end_session(session: Session) -> None:
+    if session.state in ("ending", "ended", "failed"):
+        return
+    session.state = "ending"
+    session.emit("session", {"state": "ending",
+                             "detail": f"{session.ingest_q.qsize()} episode(s) "
+                                       f"still queued for extraction"})
+    if session.live is not None:
+        # stop() drains the audio chain; the settler finalizes remaining
+        # partials and puts {"kind": "end"} itself once the container flushes.
+        await session.live.stop()
+    else:
+        ensure_workers(session)   # ending an empty session still ends cleanly
+        session.turn_q.put_nowait({"kind": "end"})
 
 
 # ── stage: graph (module 2) ───────────────────────────────────────────────────
@@ -347,59 +510,3 @@ async def render_episode(session: Session, ep_idx: int, facts: List[str]) -> Non
                                "elements": len(scene.get("elements", []))})
 
 
-# ── the conductor ─────────────────────────────────────────────────────────────
-
-async def run_session(session: Session, text: Optional[str] = None,
-                      audio: Optional[bytes] = None,
-                      audio_name: str = "recording.wav") -> None:
-    try:
-        if audio is not None:
-            session.state = "transcribing"
-            session.emit("session", {"state": "transcribing", "title": session.title})
-            text = await transcribe_audio(session, audio, audio_name)
-
-        turns = parse_turns(text or "")
-        if not turns:
-            raise StageError("no speaker-tagged turns found in the input")
-
-        session.state = "listening"
-        session.emit("session", {"state": "listening", "title": session.title,
-                                 "started_at": session.started_at})
-
-        episodes = cut_episodes(session, turns)
-        for i in range(1, len(episodes) + 1):
-            for stage in ("transcribed", "graphed", "rendered"):
-                session.emit("episode", {"index": i, "stage": stage,
-                                         "status": "pending", "progress": 0.0})
-        emit_turns(session, episodes)
-
-        # Ingest sequentially; fire each episode's render as its own task the
-        # moment its ingest lands. Renders overlap the NEXT ingest — that is
-        # the whole point of this app.
-        render_tasks: List[asyncio.Task] = []
-        for ep_idx, ep_turns in enumerate(episodes, start=1):
-            try:
-                added = await ingest_episode(session, ep_idx, ep_turns)
-            except StageError as exc:
-                session.emit("error", {"stage": "graph", "episode": ep_idx,
-                                       "message": str(exc)})
-                session.emit("episode", {"index": ep_idx, "stage": "graphed",
-                                         "status": "failed", "progress": 0.0,
-                                         "detail": str(exc)[:160]})
-                continue
-            t = asyncio.create_task(render_episode(session, ep_idx, added))
-            render_tasks.append(t)
-            session.tasks.append(t)
-
-        for t in render_tasks:
-            try:
-                await t
-            except Exception as exc:                              # noqa: BLE001
-                session.emit("error", {"stage": "render", "message": str(exc)})
-
-        session.state = "ended"
-        session.emit("session", {"state": "ended"})
-    except Exception as exc:                                      # noqa: BLE001
-        session.state = "failed"
-        session.emit("error", {"stage": "pipeline", "message": str(exc)})
-        session.emit("session", {"state": "failed"})

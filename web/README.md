@@ -9,15 +9,23 @@ model is "rerun the whole script"); `ui/` stays untouched as the batch tool.
 
 ```
 browser (static/, no build step)
-   ▲  SSE: turn / episode / graph / graph_delta / render / error events
+   ▲  SSE: session/turn/turn_partial/clock/queue/episode/graph/render/board/error
+   │  WS (live only): binary webm audio down, pause/resume/stop commands
    │
-FastAPI (server/main.py) ── event bus (server/bus.py, backlog + live)
+FastAPI (server/main.py) ── event bus (server/bus.py, backlog + transient)
    │
-   ├─ transcribe  ui/module1.py            Docker: Sortformer + Parakeet (GB10)
-   ├─ graph       ui_ingest.py subprocess  module 2's venv → SAIA → AuraDB
-   │                └ snapshot per episode: server/kg_query.py (entities+facts)
-   └─ render      kg_to_caption + FLUX /generate (H100)   per-episode task,
-                                                          overlaps next ingest
+   │   ALL inputs feed one turn stream; stages are long-lived workers:
+   │
+   ├─ paste ──► parse_turns ─────────┐
+   ├─ upload ─► ui/module1.py batch ─┤ turn_q ─► EPISODIZER ─► ingest_q
+   ├─ live ──► ws ► ffmpeg ►         │  (12 turns or 120 s)      │
+   │    docker 09_live_stt.py ►      │                           ▼
+   │    TurnSettler (partials) ──────┘                    INGEST worker (serial)
+   │        module 1, persistent GPU container             ui_ingest.py → SAIA
+   │                                                       → AuraDB; snapshot +
+   │                                                       diff per episode
+   └─ render worker: per-episode task (captions + FLUX H100) — overlaps the
+      next episode's ingest — then compose_board → the Excalidraw canvas
 ```
 
 ## Run it
@@ -49,13 +57,28 @@ overlap. `GET .../diff?a=1&b=2` is the compare-episodes ledger.
 | Graphic recording panel: latest render, frames strip, status chip with real progress, brushing-in sweep, empty state with spinner | **wired** (collage of per-fact pictograms — see below) |
 | Compare episodes: scrubber, A/B, ledger with change tags and struck-through old values, changed-region graph | **wired** (click dots to move A/B; drag not implemented) |
 | Settings sheet: episodes, render on/off, max images, extraction window; "applies from next episode" | **wired** for the knobs that exist |
-| Live mic | **adapted**: browser records (MediaRecorder), processes on stop — batch, not streaming ASR. True streaming is the next increment (WebSocket + rolling window like module 1's `06_live.py`). |
+| Live mic, streaming transcript with "speaking" partials + caret | **wired**: browser MediaRecorder → WebSocket → ffmpeg → a persistent GPU container running module 1's `09_live_stt.py` (NeMo's chunked streaming API, ~1–2.5 s latency). Sentences appear as mutable `turn_partial`s and settle into final turns that feed the episodizer continuously. Pause/resume/reconnect handled; one live session at a time (single GPU). |
+| Session lifecycle (Pause / End, live timer) | **wired**: pause stops audio intake and flushes the open episode (models stay warm); End drains the extraction queue visibly (`ending` state); the timer counts session audio time during live capture. |
+| Input in the main view | **wired**: no entry screen — a session exists on page load; 🎙 Live / Upload / Paste live in the transcript rail and all append to the running session. |
 | One painterly plate per episode with sketch layer + positioned labels | **adapted**: our module 3 renders one pictogram per fact, so the plate shows a captioned collage. Painterly/sketch-layer swatches are visible but disabled, labeled with what they'd need (FLUX 1.1 pro backend / Excalidraw layer). |
 | "Render pass 2 of 3" | **adapted**: schnell is single-pass; the chip shows caption/render progress instead. |
 | Whisper-large badge, voice-print card, waveform, "Detect" speakers | **not wired** — no voiceprint backend; ASR is Parakeet, not Whisper (badge says so). |
 | Topic-shift episodizer | **not wired** — episodes cut on turn count (setting). The boundary label in the transcript is honest about it. |
 | Ledger "By" column (who caused a change) | **not wired** — module 2 doesn't attribute facts to speakers yet. |
 | Export | **adapted**: exports turns+graph JSON (not the design's unspecified format). |
+
+## Live-path notes
+
+- A live session keeps one warm GPU container for its whole life (~5.5 GB;
+  model load ~1 min, shown as the `warming` state). `make live-stt-sim
+  WAV=examples/2spk.wav FAST=1` exercises the container loop without the app.
+- `web/tests/live_client.py` is the no-microphone integration test: it streams
+  `tests/fixture_60s.webm` over the WebSocket at real-time pace and asserts
+  the whole event contract (partial→final per turn id, pause freezes the
+  clock, stop → ending → drained → ended).
+- A speaker who never pauses ≥4 s produces one ever-growing partial that only
+  settles at a sentence break — natural turn-taking settles within ~3–5 s.
+  Known limitation, same root as the batch monologue caveat.
 
 ## Verified (2026-09-10, on this machine)
 
