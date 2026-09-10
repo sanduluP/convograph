@@ -1,0 +1,722 @@
+{
+  "group_id": "finance_speaker_free",
+  "uri": "bolt://localhost:7689",
+  "episode_limit": 80,
+  "episode_start": 0,
+  "generated_at": "2026-09-08T13:24:26",
+  "queries": {
+    "revisions": [
+      {
+        "subject": "compliance",
+        "object": "AML Ops",
+        "was": "Compliance is aligning on any required fixes with Product, Engineering, and Ops.",
+        "became": "If any field stays log-only, compliance will lock the fallback evidence set today.",
+        "valid_from": "2025-06-21T01:06:19Z",
+        "changed_at": "2025-07-13T00:00:00Z",
+        "span_days": 21,
+        "degree": 4318
+      },
+      {
+        "subject": "Support",
+        "object": "incident triage owner",
+        "was": "Support is the escalation owner.",
+        "became": null,
+        "valid_from": "2025-07-03T07:05:21Z",
+        "changed_at": "2025-07-24T19:06:33Z",
+        "span_days": 21,
+        "degree": 1112
+      },
+      {
+        "subject": "legal",
+        "object": "mapping exceptions",
+        "was": "Legal is required to review open exceptions.",
+        "became": "Legal can post the stamp on http://sharepoint/regulatory_compliance_program/develop_training_materials_spec today.",
+        "valid_from": "2025-06-20T17:58:46Z",
+        "changed_at": "2025-07-11T00:00:00Z",
+        "span_days": 20,
+        "degree": 2975
+      },
+      {
+        "subject": "compliance",
+        "object": "rule set",
+        "was": "Compliance has no approved screening-rule updates since the spec refresh on http://sharepoint/aml_(anti-money_laundering)_project/cdd_data_source_integration_spec.",
+        "became": "Compliance Alignment Review can be closed as Detected once the July 19 boundary is posted.",
+        "valid_from": "2025-04-30T00:00:00Z",
+        "changed_at": "2025-07-19T00:00:00Z",
+        "span_days": 19,
+        "degree": 4370
+      },
+      {
+        "subject": "legal",
+        "object": "consent",
+        "was": "Legal is reviewing identity verification.",
+        "became": "Legal can post the stamp on http://sharepoint/regulatory_compliance_program/develop_training_materials_spec today.",
+        "valid_from": "2025-06-22T04:55:28Z",
+        "changed_at": "2025-07-11T00:00:00Z",
+        "span_days": 18,
+        "degree": 2942
+      },
+      {
+        "subject": "data",
+        "object": "risk:_esg_data_provider_reliability_spec",
+        "was": "Data\u2019s confirmation of live backup coverage for the July 29 window is the last blocker I see; once they provide freshness and lineage evidence in http://sharepoint/sustainable_finance_strategy/risk:_esg_data_provider_reliability_spec, we can close the fallback path cleanly.",
+        "became": null,
+        "valid_from": "2025-07-10T20:00:53Z",
+        "changed_at": "2025-07-29T00:00:00Z[UTC]",
+        "span_days": 18,
+        "degree": 2349
+      },
+      {
+        "subject": "Reporting",
+        "object": "ownership gaps",
+        "was": "Reporting must come to the July 9 working session with a named owner for any coverage gaps.",
+        "became": "The Design ESG Screening Criteria phase should use the 2025-07-27 baseline for locking disclosures.",
+        "valid_from": "2025-07-09T00:00:00Z",
+        "changed_at": "2025-07-27T00:00:00Z",
+        "span_days": 18,
+        "degree": 1189
+      },
+      {
+        "subject": "data",
+        "object": "named owner",
+        "was": "freeze only the eligibility yes/no and owner fields now",
+        "became": null,
+        "valid_from": "2025-07-11T16:49:21Z",
+        "changed_at": "2025-07-27T21:14:34Z",
+        "span_days": 16,
+        "degree": 1915
+      },
+      {
+        "subject": "Analytics",
+        "object": "launch-critical fixes",
+        "was": "Analytics validates launch-critical fixes.",
+        "became": "Analytics can freeze the drop-off readout and keep July 18 clean",
+        "valid_from": "2025-07-01T04:31:30Z",
+        "changed_at": "2025-07-18T00:00:00Z",
+        "span_days": 16,
+        "degree": 301
+      },
+      {
+        "subject": "legal",
+        "object": "decision",
+        "was": "Legal is required to stamp the two items (verification and data-handling) today.",
+        "became": null,
+        "valid_from": "2025-07-11T00:00:00Z",
+        "changed_at": "2025-07-26T14:21:09Z",
+        "span_days": 15,
+        "degree": 2881
+      },
+      {
+        "subject": "compliance",
+        "object": "exact typology gaps",
+        "was": "Compliance starts the must-monitor list with Data today.",
+        "became": "Compliance created a clean audit line by freezing the cutoff now.",
+        "valid_from": "2025-07-10T00:00:00Z[UTC]",
+        "changed_at": "2025-07-24T03:35:30Z",
+        "span_days": 14,
+        "degree": 4341
+      },
+      {
+        "subject": "engineering",
+        "object": "payload mapping",
+        "was": "Engineering monitors payload mapping to ensure stability.",
+        "became": null,
+        "valid_from": "2025-07-12T22:17:23Z[UTC]",
+        "changed_at": "2025-07-27T19:10:02Z",
+        "span_days": 14,
+        "degree": 1133
+      },
+      {
+        "subject": "fields",
+        "object": "baseline",
+        "was": "Exception fields should not be locked today; instead, use real edge cases to confirm ownership and evidence model before freezing.",
+        "became": null,
+        "valid_from": "2025-07-11T16:28:08Z",
+        "changed_at": "2025-07-26T00:00:00Z",
+        "span_days": 14,
+        "degree": 401
+      },
+      {
+        "subject": "tighter review path",
+        "object": "Ops",
+        "was": "Tighter review path for higher-risk alerts is used by Ops.",
+        "became": null,
+        "valid_from": "2025-07-09T00:44:09Z",
+        "changed_at": "2025-07-22T08:34:45Z[UTC]",
+        "span_days": 13,
+        "degree": 3251
+      },
+      {
+        "subject": "data-engineering",
+        "object": "lineage",
+        "was": "Data Engineering should track any drift in lineage.",
+        "became": "Data Engineering monitors for drift in the untouched row.",
+        "valid_from": "2025-07-14T03:20:57Z[UTC]",
+        "changed_at": "2025-07-27T19:10:02Z",
+        "span_days": 13,
+        "degree": 1633
+      },
+      {
+        "subject": "owner",
+        "object": "compliance",
+        "was": "Ownership of exception decisions is assigned to Compliance.",
+        "became": null,
+        "valid_from": "2025-06-30T13:44:35Z",
+        "changed_at": "2025-07-13T13:25:59Z",
+        "span_days": 12,
+        "degree": 5991
+      },
+      {
+        "subject": "Ops",
+        "object": "matrix note",
+        "was": "Ops publishes the matrix in the spec today.",
+        "became": null,
+        "valid_from": "2025-07-12T00:00:00Z",
+        "changed_at": "2025-07-24T00:00:00Z[UTC]",
+        "span_days": 12,
+        "degree": 3236
+      },
+      {
+        "subject": "parked item",
+        "object": "named reviewer",
+        "was": "Each parked item should be tagged with a decision owner.",
+        "became": null,
+        "valid_from": "2025-07-09T08:19:04Z[UTC]",
+        "changed_at": "2025-07-21T21:00:28Z",
+        "span_days": 12,
+        "degree": 32
+      },
+      {
+        "subject": "legal",
+        "object": "owner",
+        "was": "Legal stamps owner in http://sharepoint/customer_onboarding_optimization/risk:_regulatory_scope_ambiguity_spec today.",
+        "became": "DataTeam to post the one-line delta with owner, exact timestamp, and impacted fields against http://sharepoint/aml_(anti-money_laundering)_project/cdd_data_source_integration_spec today\u2014then I\u2019ll stamp it!",
+        "valid_from": "2025-07-15T00:00:00Z",
+        "changed_at": "2025-07-26T00:00:00Z",
+        "span_days": 11,
+        "degree": 4539
+      },
+      {
+        "subject": "Ops",
+        "object": "http://sharepoint/regulatory_compliance_program/risk:_control_gaps_identified_spec",
+        "was": "Ops must confirm ownership and send missing monitoring artifacts against the internal compliance audit specification by EOD tomorrow.",
+        "became": "Ops confirms any queue ownership shifts by Thursday.",
+        "valid_from": "2025-07-13T00:00:00Z",
+        "changed_at": "2025-07-24T00:00:00Z",
+        "span_days": 11,
+        "degree": 3737
+      },
+      {
+        "subject": "Reporting",
+        "object": "Risk: Inconsistent Sustainability Standards",
+        "was": "Sustainability Reporting should stay blocked until the July 29 boundary is confirmed in http://sharepoint/sustainable_finance_strategy/risk:_inconsistent_sustainability_standards_spec.",
+        "became": "Reporting confirms the July 29 boundary.",
+        "valid_from": "2025-07-17T23:02:23Z",
+        "changed_at": "2025-07-29T00:00:00Z",
+        "span_days": 11,
+        "degree": 1551
+      },
+      {
+        "subject": "spec",
+        "object": "audit trail",
+        "was": "That gives us a defensible boundary for July 6 and keeps the audit trail clean if someone tries a \u201cwording-only\u201d change later.",
+        "became": "i\u2019ll have `@source_owner` + Data Eng stamp `owner/default/cutoff/tested-fallback` and mark any late-arrival rows only if they touch that path in http://sharepoint/financial_reporting_automation/risk:_source_system_data_quality_spec today.",
+        "valid_from": "2025-07-06T00:00:00Z",
+        "changed_at": "2025-07-17T00:00:00Z",
+        "span_days": 11,
+        "degree": 1465
+      },
+      {
+        "subject": "QA",
+        "object": "report logic",
+        "was": "QA needs to verify disclosure-note edit in http://sharepoint/financial_reporting_automation/design_automated_report_templates_spec by 2025-07-19.",
+        "became": null,
+        "valid_from": "2025-07-07T02:30:35Z",
+        "changed_at": "2025-07-19T00:00:00Z",
+        "span_days": 11,
+        "degree": 1180
+      },
+      {
+        "subject": "QA",
+        "object": "report logic",
+        "was": "QA needs to verify release-path denial in http://sharepoint/financial_reporting_automation/design_automated_report_templates_spec by 2025-07-19.",
+        "became": null,
+        "valid_from": "2025-07-07T02:30:35Z",
+        "changed_at": "2025-07-19T00:00:00Z",
+        "span_days": 11,
+        "degree": 1180
+      },
+      {
+        "subject": "QA",
+        "object": "report logic",
+        "was": "QA needs to verify blocked overwrite in http://sharepoint/financial_reporting_automation/design_automated_report_templates_spec by 2025-07-19.",
+        "became": null,
+        "valid_from": "2025-07-07T02:30:35Z",
+        "changed_at": "2025-07-19T00:00:00Z",
+        "span_days": 11,
+        "degree": 1180
+      }
+    ],
+    "topics": [
+      {
+        "topic": "compliance",
+        "episodes": 62,
+        "neighbours": [
+          "SAR Reporting Requirements",
+          "owner",
+          "Risk: Inconsistent KYC Records",
+          "exception log",
+          "Detected"
+        ]
+      },
+      {
+        "topic": "operations",
+        "episodes": 39,
+        "neighbours": [
+          "owner",
+          "Risk: Inconsistent KYC Records",
+          "define monitoring requirements spec",
+          "SAR Reporting Requirements",
+          "alert scoring model design spec"
+        ]
+      },
+      {
+        "topic": "data",
+        "episodes": 38,
+        "neighbours": [
+          "SAR Reporting Requirements",
+          "define monitoring requirements spec",
+          "owner",
+          "source-data defects",
+          "engineering"
+        ]
+      },
+      {
+        "topic": "engineering",
+        "episodes": 32,
+        "neighbours": [
+          "final matrix text",
+          "SAR Reporting Requirements",
+          "retrieval path",
+          "approval date",
+          "field ID"
+        ]
+      },
+      {
+        "topic": "owner",
+        "episodes": 31,
+        "neighbours": [
+          "Ops",
+          "Finance",
+          "compliance",
+          "legal",
+          "operations"
+        ]
+      },
+      {
+        "topic": "data-engineering",
+        "episodes": 30,
+        "neighbours": [
+          "mapping diff",
+          "published hash",
+          "owner",
+          "timestamp",
+          "spec"
+        ]
+      },
+      {
+        "topic": "timestamp",
+        "episodes": 27,
+        "neighbours": [
+          "Ops",
+          "legal",
+          "data-engineering",
+          "engineering",
+          "operations"
+        ]
+      },
+      {
+        "topic": "legal",
+        "episodes": 26,
+        "neighbours": [
+          "Risk: Inconsistent Sustainability Standards",
+          "owner",
+          "compliance",
+          "SAR Reporting Requirements",
+          "timestamp"
+        ]
+      }
+    ],
+    "artifacts": [
+      {
+        "artifact": "http://sharepoint/aml_(anti-money_laundering)_project/risk:_incomplete_regulatory_coverage_spec",
+        "episodes": 34
+      },
+      {
+        "artifact": "http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec",
+        "episodes": 25
+      },
+      {
+        "artifact": "http://sharepoint/aml_(anti-money_laundering)_project/sar_reporting_requirements_spec",
+        "episodes": 19
+      },
+      {
+        "artifact": "http://sharepoint/aml_(anti-money_laundering)_project/model_feature_engineering_spec",
+        "episodes": 16
+      },
+      {
+        "artifact": "SharePoint",
+        "episodes": 8
+      }
+    ],
+    "participants": [
+      {
+        "speaker": "User_12",
+        "utterances": 94,
+        "episodes": 63,
+        "share": 0.235
+      },
+      {
+        "speaker": "User_9",
+        "utterances": 86,
+        "episodes": 56,
+        "share": 0.215
+      },
+      {
+        "speaker": "User_5",
+        "utterances": 85,
+        "episodes": 56,
+        "share": 0.212
+      },
+      {
+        "speaker": "User_2",
+        "utterances": 79,
+        "episodes": 57,
+        "share": 0.198
+      },
+      {
+        "speaker": "User_10",
+        "utterances": 26,
+        "episodes": 23,
+        "share": 0.065
+      },
+      {
+        "speaker": "User_13",
+        "utterances": 16,
+        "episodes": 14,
+        "share": 0.04
+      },
+      {
+        "speaker": "User_1",
+        "utterances": 9,
+        "episodes": 8,
+        "share": 0.022
+      },
+      {
+        "speaker": "User_7",
+        "utterances": 5,
+        "episodes": 5,
+        "share": 0.013
+      }
+    ],
+    "decisions": [
+      {
+        "verb": "CONFIRMS",
+        "subject": "compliance",
+        "object": "Finance",
+        "fact": "Compliance confirms ownership mappings are clean.",
+        "valid_from": "2025-07-27T10:04:44Z",
+        "degree": 8733
+      },
+      {
+        "verb": "OWNS",
+        "subject": "compliance",
+        "object": "compliance",
+        "fact": "Compliance owns the fallback evidence set if effective date stays log-only.",
+        "valid_from": null,
+        "degree": 8622
+      },
+      {
+        "verb": "LOCKS",
+        "subject": "compliance",
+        "object": "compliance",
+        "fact": "Compliance will lock the critical-row definition.",
+        "valid_from": null,
+        "degree": 8622
+      },
+      {
+        "verb": "OWNS",
+        "subject": "Ops",
+        "object": "Finance",
+        "fact": "Ops owns confirmed cases.",
+        "valid_from": null,
+        "degree": 7647
+      },
+      {
+        "verb": "CONFIRMS",
+        "subject": "Ops",
+        "object": "compliance",
+        "fact": "Ops confirms whether any downstream scenarios still need coverage.",
+        "valid_from": null,
+        "degree": 7536
+      },
+      {
+        "verb": "CONFIRMS",
+        "subject": "Ops",
+        "object": "compliance",
+        "fact": "Ops confirms propagation of the stamped master",
+        "valid_from": null,
+        "degree": 7536
+      },
+      {
+        "verb": "OWNS",
+        "subject": "compliance",
+        "object": "Ops",
+        "fact": "Compliance owns the register, and Ops keeps the daily row updates current.",
+        "valid_from": null,
+        "degree": 7536
+      },
+      {
+        "verb": "CONFIRMS",
+        "subject": "legal",
+        "object": "compliance",
+        "fact": "Legal and Compliance must confirm the final control language before pre-tagging of fallback items proceeds.",
+        "valid_from": null,
+        "degree": 7170
+      },
+      {
+        "verb": "FREEZES",
+        "subject": "compliance",
+        "object": "legal",
+        "fact": "Compliance is responsible for freezing jurisdiction-specific exceptions.",
+        "valid_from": null,
+        "degree": 7170
+      },
+      {
+        "verb": "FREEZES",
+        "subject": "Ops",
+        "object": "Ops",
+        "fact": "Ops freezes the listed IDs once the open-gap map lands.",
+        "valid_from": null,
+        "degree": 6450
+      },
+      {
+        "verb": "LOCKS",
+        "subject": "Ops",
+        "object": "Ops",
+        "fact": "Can we treat this as the final control shape and close the July 27 risk path?",
+        "valid_from": "2025-07-27T00:00:00Z",
+        "degree": 6450
+      },
+      {
+        "verb": "FREEZES",
+        "subject": "Ops",
+        "object": "Ops",
+        "fact": "Ops freezes listed IDs off that version today.",
+        "valid_from": "2025-07-27T00:00:00Z",
+        "degree": 6450
+      },
+      {
+        "verb": "OWNS",
+        "subject": "Ops",
+        "object": "legal",
+        "fact": "Ops owns the ownership map.",
+        "valid_from": null,
+        "degree": 6084
+      },
+      {
+        "verb": "OWNS",
+        "subject": "compliance",
+        "object": "owner",
+        "fact": "Compliance owns the owner.",
+        "valid_from": null,
+        "degree": 5991
+      },
+      {
+        "verb": "OWNS",
+        "subject": "compliance",
+        "object": "owner",
+        "fact": "Compliance owns final call on remediation routing",
+        "valid_from": null,
+        "degree": 5991
+      },
+      {
+        "verb": "OWNS",
+        "subject": "compliance",
+        "object": "owner",
+        "fact": "Compliance owns the rule decision.",
+        "valid_from": null,
+        "degree": 5991
+      },
+      {
+        "verb": "OWNS",
+        "subject": "compliance",
+        "object": "owner",
+        "fact": "Compliance is the owner of exception decisions in http://sharepoint/customer_onboarding_optimization/kyc_vendor_selection_spec.",
+        "valid_from": null,
+        "degree": 5991
+      },
+      {
+        "verb": "FREEZES",
+        "subject": "compliance",
+        "object": "owner",
+        "fact": "Compliance freezes only unmapped jurisdiction or scenario as the must-gap set Friday, against the one-file cut.",
+        "valid_from": null,
+        "degree": 5991
+      },
+      {
+        "verb": "OWNS",
+        "subject": "compliance",
+        "object": "owner",
+        "fact": "Compliance owns the exception log owner in the risk:_esg_data_provider_reliability_spec document.",
+        "valid_from": null,
+        "degree": 5991
+      },
+      {
+        "verb": "FREEZES",
+        "subject": "compliance",
+        "object": "owner",
+        "fact": "Compliance can freeze only rows with field ID, retrieval path, owner, approval date, and status right after that.",
+        "valid_from": null,
+        "degree": 5991
+      }
+    ],
+    "open_threads": [
+      {
+        "verb": "REQUIRES_CONFIRMATION_FROM",
+        "subject": "compliance",
+        "object": "data-engineering",
+        "fact": "Data Engineering must confirm rule owners and evidence expectations for the regulatory compliance gap spec before anything is locked down.",
+        "asked_at": null,
+        "degree": 5936
+      },
+      {
+        "verb": "REQUIRES",
+        "subject": "Reporting",
+        "object": "compliance",
+        "fact": "compliance wrap-up requires alignment on data-match exceptions and segregation-of-duties sign-off",
+        "asked_at": null,
+        "degree": 5446
+      },
+      {
+        "verb": "REQUIRES",
+        "subject": "compliance",
+        "object": "Reporting",
+        "fact": "Compliance requires Reporting to confirm the handoff rules in the investigation workflow definition specification before testing starts.",
+        "asked_at": null,
+        "degree": 5446
+      },
+      {
+        "verb": "REQUIRES",
+        "subject": "Reporting",
+        "object": "compliance",
+        "fact": "Reporting requires Compliance to flag any new guidance that could shift the control design in the SAR reporting requirements specification.",
+        "asked_at": null,
+        "degree": 5446
+      },
+      {
+        "verb": "REQUIRES",
+        "subject": "engineering",
+        "object": "compliance",
+        "fact": "Engineering requires Compliance to pre-tag approved fallback items in the SAR reporting requirements specification.",
+        "asked_at": null,
+        "degree": 5440
+      },
+      {
+        "verb": "REQUIRES",
+        "subject": "engineering",
+        "object": "compliance",
+        "fact": "Engineering requires Compliance to confirm the final control language before pre-tagging fallback items.",
+        "asked_at": null,
+        "degree": 5440
+      },
+      {
+        "verb": "NEEDS",
+        "subject": "QA",
+        "object": "compliance",
+        "fact": "QA needs a hard bar to prevent rerunning without control",
+        "asked_at": null,
+        "degree": 5440
+      },
+      {
+        "verb": "REQUIRES",
+        "subject": "compliance",
+        "object": "engineering",
+        "fact": "Compliance requires the exact gap disposition reason to be included in the matrix.",
+        "asked_at": null,
+        "degree": 5440
+      },
+      {
+        "verb": "REQUIRES",
+        "subject": "compliance",
+        "object": "Product",
+        "fact": "Compliance requires that screening inputs be clean and traceable.",
+        "asked_at": null,
+        "degree": 4881
+      },
+      {
+        "verb": "REQUIRES",
+        "subject": "compliance",
+        "object": "http://sharepoint/regulatory_compliance_program/develop_training_materials_spec",
+        "fact": "Compliance requires a quick check on any final wording changes in the develop_training_materials_spec.",
+        "asked_at": null,
+        "degree": 4814
+      },
+      {
+        "verb": "REQUIRES",
+        "subject": "compliance",
+        "object": "audit trail",
+        "fact": "Compliance requires that audit trail be maintained.",
+        "asked_at": null,
+        "degree": 4608
+      },
+      {
+        "verb": "REQUIRES",
+        "subject": "compliance",
+        "object": "provisional",
+        "fact": "Compliance requires that anything not meeting the signed-off criteria stays provisional.",
+        "asked_at": null,
+        "degree": 4532
+      },
+      {
+        "verb": "REQUIRES",
+        "subject": "compliance",
+        "object": "Internal Audit",
+        "fact": "Compliance requires the frozen snapshot and sign-off to be tied together for closure.",
+        "asked_at": null,
+        "degree": 4483
+      },
+      {
+        "verb": "REQUESTS",
+        "subject": "compliance",
+        "object": "leadership",
+        "fact": "Compliance requests a leadership call on ownership for the investigation handoff.",
+        "asked_at": null,
+        "degree": 4467
+      },
+      {
+        "verb": "REQUIRES",
+        "subject": "RACI",
+        "object": "Finance",
+        "fact": "The hard intake gate requires blanks to be rejected.",
+        "asked_at": null,
+        "degree": 4467
+      }
+    ]
+  },
+  "timings": {
+    "revisions": 1.57,
+    "topics": 0.122,
+    "artifacts": 0.009,
+    "participants": 0.009,
+    "decisions": 0.976,
+    "open_threads": 0.844
+  },
+  "episodes_in_group": 5964,
+  "episodes_digested": 80,
+  "deduped": {
+    "revisions": 10,
+    "decisions": 7,
+    "open_threads": 6
+  }
+}

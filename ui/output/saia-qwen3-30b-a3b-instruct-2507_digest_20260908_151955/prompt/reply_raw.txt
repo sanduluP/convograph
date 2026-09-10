@@ -1,0 +1,97 @@
+{
+  "title": "Compliance Freeze Points",
+  "anchors": [
+    {
+      "label": "Compliance Review",
+      "glyph": "padlock",
+      "from_facts": [0]
+    },
+    {
+      "label": "Data Integrity",
+      "glyph": "shield",
+      "from_facts": [2]
+    },
+    {
+      "label": "Control Ownership",
+      "glyph": "anchor",
+      "from_facts": [12]
+    },
+    {
+      "label": "Approval Trails",
+      "glyph": "bridge",
+      "from_facts": [20]
+    },
+    {
+      "label": "Frozen Templates",
+      "glyph": "key",
+      "from_facts": [9]
+    },
+    {
+      "label": "Risk Thresholds",
+      "glyph": "split road",
+      "from_facts": [4]
+    }
+  ],
+  "links": [
+    {
+      "from": 0,
+      "to": 1,
+      "label": "locked by"
+    },
+    {
+      "from": 1,
+      "to": 2,
+      "label": "blocked"
+    },
+    {
+      "from": 2,
+      "to": 3,
+      "label": "replaced"
+    },
+    {
+      "from": 3,
+      "to": 4,
+      "label": "sealed"
+    },
+    {
+      "from": 4,
+      "to": 5,
+      "label": "frozen"
+    }
+  ],
+  "notes": [
+    {
+      "text": "Open: User_13 needs spec update posted now.",
+      "anchor": 0
+    },
+    {
+      "text": "Open: Data must confirm backup coverage and overlap tagging.",
+      "anchor": 1
+    },
+    {
+      "text": "Open: Control-impact must be in summary before Ops acts.",
+      "anchor": 2
+    },
+    {
+      "text": "Open: Legal and Risk must sign off on wording before metrics close.",
+      "anchor": 3
+    },
+    {
+      "text": "Open: User_3 must lock checklist with exact build hash.",
+      "anchor": 4
+    },
+    {
+      "text": "Open: Mismatch reconciliation required before clean set freeze.",
+      "anchor": 5
+    },
+    {
+      "text": "Settled: Compliance owns exception log and escalation triggers.",
+      "anchor": 0
+    },
+    {
+      "text": "Settled: Compliance owns decision threshold for flagging breaches.",
+      "anchor": 1
+    }
+  ],
+  "dropped": [7, 9]
+}

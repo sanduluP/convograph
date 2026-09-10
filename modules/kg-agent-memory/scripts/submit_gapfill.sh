@@ -45,11 +45,42 @@ GROUP_ID="${GROUP_ID:-gmb_finance_full}"
 WINDOW="${WINDOW:-5}"
 WALLTIME="${WALLTIME:-8}"   # ~2.4 h of work; 8 h leaves room for a slow card
 
+# ── the extraction configuration MUST match the original ingest ──────────────
+# A gap-fill adds episodes to an EXISTING graph, so any setting that changes what
+# the extractor produces has to be the same one the graph was built with. The
+# speaker-free corpus was ingested with GRAPHITI_EXCLUDE_SPEAKERS=1 and
+# STRICT_PROMPT=1 (see submit_speaker_free_full.sh); filling its gaps without
+# those flags would insert 229 windows full of person-rooted facts into the one
+# graph whose entire value is that it has none. Nothing would error — the graph
+# would just quietly stop meaning what we say it means.
+EXCLUDE_SPEAKERS="${EXCLUDE_SPEAKERS:-0}"
+STRICT_PROMPT="${STRICT_PROMPT:-0}"
+
+# The guard, because remembering the flag is not a plan.
+if [[ "${GROUP_ID}" == *speaker_free* && "${EXCLUDE_SPEAKERS}" != "1" ]]; then
+  echo "🚫 '${GROUP_ID}' is a speaker-free graph but EXCLUDE_SPEAKERS=${EXCLUDE_SPEAKERS}."
+  echo "   Filling it without that flag would add person-rooted facts to the one"
+  echo "   graph whose value is that it has none. Re-run with:"
+  echo "       EXCLUDE_SPEAKERS=1 STRICT_PROMPT=1 GROUP_ID=${GROUP_ID} \\"
+  echo "       STORE=${STORE} bash scripts/submit_gapfill.sh"
+  exit 1
+fi
+# And the reverse: never strip speakers from a graph that was built with them.
+if [[ "${GROUP_ID}" != *speaker_free* && "${EXCLUDE_SPEAKERS}" == "1" ]]; then
+  echo "🚫 EXCLUDE_SPEAKERS=1 but '${GROUP_ID}' was ingested WITH speakers."; exit 1
+fi
+
+# SLURM job names must be readable in squeue (CLAUDE.md rule 8) - one gap-fill
+# looks exactly like another otherwise.
+JOB_NAME="gapfill_${GROUP_ID}"
+
 echo "🩹 gap-fill submission"
 echo "   store    : ${STORE}"
 echo "   group    : ${GROUP_ID}"
+echo "   job      : ${JOB_NAME}"
 echo "   window   : ${WINDOW}  (must match the original ingest, or the window"
 echo "              numbering shifts and resume matches the wrong episodes)"
+echo "   speakers : $([[ "${EXCLUDE_SPEAKERS}" == "1" ]] && echo "EXCLUDED (speaker-free)" || echo "included")"
 echo "   walltime : ${WALLTIME} h"
 echo ""
 
@@ -62,10 +93,13 @@ RETRIEVE_ONLY=0 \
 INGEST_ONLY=1 \
 CONTROL_BM25=0 \
 GRAPHITI_MAX_CONSECUTIVE_FAILURES=25 \
-  nohup bash scripts/srun_submit.sh all gmb_gapfill 8 1 96G "${WALLTIME}" \
-    scripts/cluster_ingest_job.sh > /tmp/submit_gapfill.log 2>&1 &
+GRAPHITI_EXCLUDE_SPEAKERS="${EXCLUDE_SPEAKERS}" \
+STRICT_PROMPT="${STRICT_PROMPT}" \
+DOMAIN="${DOMAIN:-Finance}" \
+  nohup bash scripts/srun_submit.sh all "${JOB_NAME}" 8 1 96G "${WALLTIME}" \
+    scripts/cluster_ingest_job.sh > "/tmp/submit_${JOB_NAME}.log" 2>&1 &
 
 wait
-cat /tmp/submit_gapfill.log
+cat "/tmp/submit_${JOB_NAME}.log"
 echo ""
 echo "✅ submitted — watch with: squeue -u abuali"

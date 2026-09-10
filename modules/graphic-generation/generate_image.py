@@ -48,7 +48,7 @@ import time
 
 DEFAULT_CAPTION = (
     "A hand-drawn sticky-note style icon of a calendar with a red circle on one "
-    "date, graphic-recording marker style, white background"
+    "date, graphic-recording style, white background"
 )
 MODEL_ID = os.getenv("FLUX_MODEL_ID", "black-forest-labs/FLUX.1-schnell")
 

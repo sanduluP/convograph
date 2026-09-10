@@ -65,20 +65,39 @@ def _load_env_file(path: str) -> None:
 def _build_client() -> Graphiti:
     llm_config = LLMConfig(
         api_key=os.getenv("GRAPHITI_LLM_API_KEY", "ollama"),
-        model=os.getenv("GRAPHITI_LLM_MODEL", "qwen2.5:3b-instruct"),
-        small_model=os.getenv("GRAPHITI_LLM_MODEL", "qwen2.5:3b-instruct"),
-        base_url=os.getenv("GRAPHITI_LLM_BASE_URL", "http://localhost:11434/v1"),
+        model=os.getenv("GRAPHITI_LLM_MODEL", "qwen3-30b-a3b-instruct-2507"),
+        small_model=os.getenv("GRAPHITI_LLM_MODEL", "qwen3-30b-a3b-instruct-2507"),
+        base_url=os.getenv("GRAPHITI_LLM_BASE_URL",
+                           "https://chat-ai.academiccloud.de/v1"),
         temperature=float(os.getenv("GRAPHITI_TEMPERATURE", "0.2")),
-        max_tokens=4096,
+        # 8192, matching cluster_ingest_job.sh so the UI path and the cluster
+        # path cannot produce different graphs from the same transcript.
+        #
+        # It is NOT a fix for the JSONDecodeError this hit on 2026-09-07. That
+        # looked like token-ceiling truncation — the reply died at char 16,589,
+        # suspiciously near 4,096 tokens — but the cluster gap-fill running at
+        # 8192 failed at char 16,657 / 16,629 / 16,576 on the same day. Same
+        # position, double the budget: the ceiling is not the cause.
+        #
+        # The real cause is the repetition loop already documented for the
+        # original ingest: the model gets stuck repeating, ONE json string grows
+        # to ~16 KB, and the parse dies inside it. More output budget just buys
+        # a longer loop. 38 of 6,002 windows still fail this way (0.6%), and
+        # they are skipped rather than allowed to kill the run.
+        #
+        # Both places take the same value. The config's max_tokens used to be a
+        # hardcoded 4096 while only the client read the environment, so raising
+        # GRAPHITI_MAX_TOKENS moved one of the two and appeared to do nothing.
+        max_tokens=int(os.getenv("GRAPHITI_MAX_TOKENS", "8192")),
     )
     llm_client = OpenAIGenericClient(
-        config=llm_config, max_tokens=int(os.getenv("GRAPHITI_MAX_TOKENS", "4096"))
+        config=llm_config, max_tokens=int(os.getenv("GRAPHITI_MAX_TOKENS", "8192"))
     )
     embedder = OpenAIEmbedder(config=OpenAIEmbedderConfig(
         api_key=os.getenv("GRAPHITI_EMBED_API_KEY", "ollama"),
-        embedding_model=os.getenv("GRAPHITI_EMBED_MODEL", "bge-m3:latest"),
+        embedding_model=os.getenv("GRAPHITI_EMBED_MODEL", "bge-m3"),
         embedding_dim=int(os.getenv("GRAPHITI_EMBED_DIM", "1024")),
-        base_url=os.getenv("GRAPHITI_EMBED_BASE_URL", "http://localhost:11434/v1"),
+        base_url=os.getenv("GRAPHITI_EMBED_BASE_URL", "http://localhost:11435/v1"),
     ))
     cross_encoder = OpenAIRerankerClient(config=llm_config)
 
@@ -108,8 +127,21 @@ def _build_client() -> Graphiti:
         os.environ["NEO4J_URI"], os.environ["NEO4J_USER"], os.environ["NEO4J_PASSWORD"],
         database=os.getenv("NEO4J_DATABASE", "neo4j"),
     )
+    # max_coroutines is passed EXPLICITLY rather than left to graphiti-core's
+    # SEMAPHORE_LIMIT environment variable, because that variable is read at
+    # IMPORT time (graphiti_core/helpers.py:38) and this module loads its .env
+    # inside main() — long after `from graphiti_core import Graphiti` at the top
+    # of this file. Setting it in .env alone would be read as 20 and silently
+    # ignored. The constructor argument overrides it and cannot be sequenced
+    # wrong.
+    #
+    # Why 4: extraction runs against SAIA, and measured 2026-09-07 SAIA serves 4
+    # concurrent requests cleanly but loses roughly 3 of 8 at eight — as empty
+    # HTTP 500s, not 429, so no client backs off and it surfaces as extraction
+    # simply failing. graphiti-core's default of 20 sits far past that.
     return Graphiti(graph_driver=driver, llm_client=llm_client,
-                     embedder=embedder, cross_encoder=cross_encoder)
+                     embedder=embedder, cross_encoder=cross_encoder,
+                     max_coroutines=int(os.getenv("SEMAPHORE_LIMIT", "4")))
 
 
 def _windows(lines: list[str], size: int) -> list[list[str]]:
@@ -293,6 +325,53 @@ async def query_only(group_id: str, limit: int | None = None,
             "source": "existing-graph", "mode": "facts"}
 
 
+async def list_groups() -> dict:
+    """Every group_id in the store, with what the UI needs to rank them.
+
+    WHY THIS EXISTS: the UI used to ask for a group_id in a text box, defaulting
+    to the one graph that existed. Nothing stops there being many - every UI
+    ingest writes a fresh ui_<stamp> group, and a module 1 meeting will be one
+    more. The dropdown that replaces the text box has to come from the database,
+    not from a hardcoded string, or the second graph is invisible.
+
+    RANKING: superseded facts first. The whole point of a temporal KG is showing
+    what CHANGED, so the group with the most overturned decisions is the most
+    worth drawing, and the UI auto-runs on the first entry - so this order is
+    a product decision, not cosmetics. Ties break on episode count, then name,
+    so the default is stable across page loads.
+
+    Two queries, both aggregates done IN THE DATABASE. gmb_finance_full alone
+    has 111,258 fact edges; pulling them client-side to count took 44 s in
+    _read_window_run's first attempt, and this runs on every fresh page load.
+    """
+    graphiti = _build_client()
+    erecords, _, _ = await graphiti.driver.execute_query(
+        "MATCH (e:Episodic) WHERE e.group_id IS NOT NULL "
+        "RETURN e.group_id AS gid, count(e) AS episodes"
+    )
+    frecords, _, _ = await graphiti.driver.execute_query(
+        "MATCH ()-[r:RELATES_TO]->() WHERE r.fact IS NOT NULL AND r.group_id IS NOT NULL "
+        "RETURN r.group_id AS gid, count(r) AS facts, "
+        "       sum(CASE WHEN r.invalid_at IS NOT NULL THEN 1 ELSE 0 END) AS superseded"
+    )
+    await graphiti.close()
+
+    by_gid: dict[str, dict] = {}
+    for r in erecords:
+        by_gid.setdefault(r["gid"], {"group_id": r["gid"], "episodes": 0,
+                                     "facts": 0, "superseded": 0})
+        by_gid[r["gid"]]["episodes"] = int(r["episodes"])
+    for r in frecords:
+        by_gid.setdefault(r["gid"], {"group_id": r["gid"], "episodes": 0,
+                                     "facts": 0, "superseded": 0})
+        by_gid[r["gid"]]["facts"] = int(r["facts"])
+        by_gid[r["gid"]]["superseded"] = int(r["superseded"])
+
+    groups = sorted(by_gid.values(),
+                    key=lambda g: (-g["superseded"], -g["episodes"], g["group_id"]))
+    return {"groups": groups}
+
+
 async def ingest(text: str, group_id: str) -> dict:
     prompts_override.apply_overrides()
     graphiti = _build_client()
@@ -301,25 +380,103 @@ async def ingest(text: str, group_id: str) -> dict:
     lines = [ln for ln in text.splitlines() if ln.strip()]
     windows = _windows(lines, WINDOW_LINES)
 
+    # ── speaker exclusion, the SAME mechanism the cluster ingest uses ────────
+    # Measured on the merged full-Finance graph: 94.1% of 111,258 facts start at
+    # a person and only 0.4% join two domain concepts — a star around the twelve
+    # speakers, not a map of the domain. That is fatal for a board, because the
+    # lines BETWEEN concepts are what a graphic recording is made of.
+    #
+    # This is NOT done by removing names from the text. That was tried and moved
+    # person-rooted facts from 89.6% to 90.4%, i.e. nothing: the model ignores
+    # the hint. `excluded_entity_types` is enforced in graphiti-core's CODE — an
+    # excluded node is dropped before it enters the graph, and edge extraction
+    # then runs against the surviving entity list, so a speaker-rooted fact
+    # becomes impossible to emit rather than merely discouraged.
+    #
+    # Imported lazily and from the ONE place it is defined (the retriever used by
+    # the cluster jobs) so the UI path and the cluster path cannot drift into two
+    # different definitions of "speaker-free".
+    episode_kwargs: dict = {}
+    if os.getenv("GRAPHITI_EXCLUDE_SPEAKERS", "0") == "1":
+        from graphiti_retriever import _speaker_exclusion  # noqa: PLC0415
+        et, ex = _speaker_exclusion()
+        episode_kwargs = {"entity_types": et, "excluded_entity_types": ex}
+        print("[ui_ingest] 🚫 SPEAKER EXCLUSION ON — speakers will not become nodes",
+              file=sys.stderr, flush=True)
+
     prev_uuids: list[str] = []
     now = datetime.now(timezone.utc)
+    total = len(windows)
+    skipped: list[int] = []
+    consecutive = 0
+    # One bad window must not kill the run. ~0.6% of windows fail a REPETITION
+    # LOOP in the extraction model: it gets stuck, one JSON string grows to ~16 KB
+    # and the parse dies inside it (measured corpus-wide: 38 of 6,002, always at
+    # char ~16,3xx). That is content behaviour, not an outage, and it is not
+    # fixable with a bigger token budget - the cluster runs at 8192 and fails at
+    # the same position a 4096 run does.
+    #
+    # The cluster ingest has always skipped these; this path did not, so a single
+    # window could end an 81-window job - or a user's board generation, since the
+    # UI calls the same function.
+    MAX_CONSECUTIVE = int(os.getenv("GRAPHITI_MAX_CONSECUTIVE_FAILURES", "5"))
     for i, window in enumerate(windows):
         if not window:
             continue
-        res = await graphiti.add_episode(
-            name=f"{group_id}_w{i}",
-            episode_body="\n".join(window),
-            source=EpisodeType.message,
-            source_description="UI-submitted transcript",
-            reference_time=now,
-            group_id=group_id,
-            previous_episode_uuids=prev_uuids,
-        )
+        print(f"[ui_ingest] window {i + 1}/{total} …", file=sys.stderr, flush=True)
+        try:
+            res = await graphiti.add_episode(
+                name=f"{group_id}_w{i}",
+                episode_body="\n".join(window),
+                source=EpisodeType.message,
+                source_description="UI-submitted transcript",
+                reference_time=now,
+                group_id=group_id,
+                previous_episode_uuids=prev_uuids,
+                **episode_kwargs,
+            )
+        except Exception as exc:                                   # noqa: BLE001
+            skipped.append(i)
+            consecutive += 1
+            print(f"[ui_ingest] ⚠️  window {i + 1}/{total} FAILED, skipping "
+                  f"({type(exc).__name__}: {str(exc)[:120]})",
+                  file=sys.stderr, flush=True)
+            # A RUN of failures is different from scattered ones: it means the
+            # endpoint or the network died, and continuing would quietly produce
+            # a holey graph that looks complete.
+            if consecutive >= MAX_CONSECUTIVE:
+                raise RuntimeError(
+                    f"{consecutive} consecutive windows failed - this is an "
+                    f"endpoint or network problem, not bad content. "
+                    f"Skipped so far: {skipped}") from exc
+            continue
+        consecutive = 0
         prev_uuids = [res.episode.uuid]
+
+    # A holey graph is the dangerous outcome, not a loud failure: it loads, it
+    # answers queries, and it draws a board. Nothing about it says a third of the
+    # meeting is missing. Measured 2026-09-08: this phase at 12-line windows lost
+    # 9 of its first 15 and would have produced a confident, half-blind board.
+    # So the loss rate is REPORTED as a rate, and refused past a point.
+    if skipped:
+        rate = len(skipped) / max(1, total)
+        print(f"[ui_ingest] ⚠️  {len(skipped)}/{total} window(s) skipped "
+              f"({rate:.0%}): {skipped}", file=sys.stderr, flush=True)
+        max_loss = float(os.getenv("GRAPHITI_MAX_SKIP_RATE", "0.15"))
+        if rate > max_loss:
+            raise RuntimeError(
+                f"{rate:.0%} of windows failed extraction ({len(skipped)}/{total}) "
+                f"— above the {max_loss:.0%} ceiling, so this graph is too "
+                f"incomplete to summarise the meeting. The usual cause is an "
+                f"episode size that makes the extraction reply long enough to "
+                f"trigger the repetition loop: try UI_INGEST_WINDOW_LINES=5. "
+                f"Raise GRAPHITI_MAX_SKIP_RATE to accept it anyway."
+            )
 
     facts = await _read_facts(graphiti, group_id)
     await graphiti.close()
-    return {"group_id": group_id, "episodes": len(windows), "facts": facts,
+    return {"group_id": group_id, "episodes": len(windows) - len(skipped),
+            "windows_total": total, "windows_skipped": skipped, "facts": facts,
             "source": "fresh-ingest"}
 
 
@@ -329,7 +486,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--text-file",
                         help="Transcript to ingest. Not needed with --query-only.")
-    parser.add_argument("--group-id", required=True)
+    parser.add_argument("--group-id",
+                        help="Required for everything except --list-groups.")
+    parser.add_argument("--list-groups", action="store_true",
+                        help="Print every group_id in the store with its episode, "
+                             "fact and superseded-fact counts, most superseded "
+                             "first. Reads nothing else; the UI builds its "
+                             "dropdown from this.")
     parser.add_argument("--query-only", action="store_true",
                         help="Do NOT extract. Read the facts of an EXISTING group "
                              "and return them. This is how module 3 is meant to be "
@@ -342,13 +505,26 @@ def main() -> None:
                              "messages AND their facts - instead of loose facts. "
                              "One episode is a 5-message window (~13 facts). The "
                              "run with the most superseded facts is chosen.")
+    parser.add_argument("--max-facts", type=int, default=40,
+                        help="Cap how many facts a WINDOW run returns (--limit "
+                             "is the equivalent for plain fact mode, which "
+                             "window mode ignores). Fact edges are reused across "
+                             "episodes, so 2 windows can pull back 150+ facts "
+                             "without this - superseded ones come first.")
     parser.add_argument("--env-file", default=os.path.join(os.path.dirname(__file__), ".env"))
     args = parser.parse_args()
 
     _load_env_file(args.env_file)
 
+    if args.list_groups:
+        print(json.dumps(asyncio.run(list_groups())))
+        return
+    if not args.group_id:
+        parser.error("--group-id is required unless --list-groups is given")
+
     if args.query_only:
-        result = asyncio.run(query_only(args.group_id, args.limit, args.windows))
+        result = asyncio.run(query_only(args.group_id, args.limit, args.windows,
+                                        args.max_facts))
     else:
         if not args.text_file:
             parser.error("--text-file is required unless --query-only is given")

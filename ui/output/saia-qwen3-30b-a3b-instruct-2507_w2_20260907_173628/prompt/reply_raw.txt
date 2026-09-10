@@ -1,0 +1,43 @@
+{
+  "title": "Freeze Control Chain",
+  "anchors": [
+    {
+      "label": "Frozen Owner Chain",
+      "glyph": "padlock",
+      "from_facts": [11]
+    },
+    {
+      "label": "Live Bridge Coverage",
+      "glyph": "bridge",
+      "from_facts": [12]
+    },
+    {
+      "label": "Validated CIDRs",
+      "glyph": "shield",
+      "from_facts": [5]
+    }
+  ],
+  "links": [
+    {
+      "from": 0,
+      "to": 2,
+      "label": "After Vendor posts"
+    },
+    {
+      "from": 2,
+      "to": 1,
+      "label": "Then Security locks"
+    }
+  ],
+  "notes": [
+    {
+      "text": "Joint approval on runbook by July 19",
+      "anchor": 0
+    },
+    {
+      "text": "Rollback owner and trigger must be stamped",
+      "anchor": 0
+    }
+  ],
+  "dropped": [0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 13, 14, 15, 16, 17, 18]
+}

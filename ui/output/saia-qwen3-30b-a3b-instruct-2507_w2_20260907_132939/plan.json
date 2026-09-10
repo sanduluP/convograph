@@ -1,0 +1,314 @@
+{
+  "title": "Final Control Lock",
+  "anchors": [
+    {
+      "label": "Frozen Owner Chain",
+      "glyph": "padlock",
+      "from_facts": [
+        25
+      ]
+    },
+    {
+      "label": "Auditable Handoff",
+      "glyph": "bridge",
+      "from_facts": [
+        35
+      ]
+    },
+    {
+      "label": "Validated CIDRs",
+      "glyph": "shield",
+      "from_facts": [
+        13
+      ]
+    },
+    {
+      "label": "Timestamped Coverage",
+      "glyph": "key",
+      "from_facts": [
+        34
+      ]
+    }
+  ],
+  "links": [
+    {
+      "from": 0,
+      "to": 1,
+      "label": "locks"
+    },
+    {
+      "from": 1,
+      "to": 2,
+      "label": "enables"
+    },
+    {
+      "from": 2,
+      "to": 3,
+      "label": "secures"
+    }
+  ],
+  "notes": [
+    {
+      "text": "Joint approval model rejected; single chain now locked.",
+      "anchor": 0
+    },
+    {
+      "text": "Rollback owner and trigger now stamped in spec.",
+      "anchor": 0
+    },
+    {
+      "text": "Support must post live bridge details by EOD Thursday.",
+      "anchor": 3
+    }
+  ],
+  "dropped": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    36,
+    37,
+    38,
+    39
+  ],
+  "_provider": "saia",
+  "_model": "qwen3-30b-a3b-instruct-2507",
+  "_n_facts_in": 40,
+  "_windows": 2,
+  "_group_id": "gmb_finance_full",
+  "_plan_seconds": 6.71,
+  "_validation": [
+    "fact indices used more than once: [13]"
+  ],
+  "_facts": [
+    {
+      "fact": "User_12 requests Vendor to post the endpoint, cadence, and named owner in the spec by EOD July 16.",
+      "valid_at": "2025-07-16T00:00:00.000000000+00:00",
+      "invalid_at": "2025-07-16T23:59:59.000000000+00:00"
+    },
+    {
+      "fact": "User_12 supports closing the vendor integration complexity risk as Detected after Vendor and Security post required evidence by EOD July 16.",
+      "valid_at": "2025-07-16T00:00:00.000000000+00:00",
+      "invalid_at": "2025-07-17T00:00:00.000000000+00:00"
+    },
+    {
+      "fact": "User_12 requires Vendor to post the endpoint in the spec by EOD July 16.",
+      "valid_at": "2025-07-16T00:00:00.000000000+00:00",
+      "invalid_at": "2025-07-17T00:00:00.000000000+00:00"
+    },
+    {
+      "fact": "User_12 requires that Vendor and Security post required evidence by EOD July 16.",
+      "valid_at": "2025-07-16T00:00:00.000000000+00:00",
+      "invalid_at": "2025-07-17T17:46:28.000000000+00:00"
+    },
+    {
+      "fact": "User_12 requests Vendor to post Security approver, workflow-log/ticket-trail evidence path, and validated allowlist in http://sharepoint/treasury_management_system_implementation/risk:_vendor_integration_complexity_spec by EOD July 16.",
+      "valid_at": "2025-07-16T00:00:00.000000000+00:00",
+      "invalid_at": "2025-07-17T00:00:00.000000000+00:00"
+    },
+    {
+      "fact": "User_12 requires Vendor to post endpoint, cadence, and named owner by EOD July 16.",
+      "valid_at": "2025-07-16T00:00:00.000000000+00:00",
+      "invalid_at": "2025-07-16T23:59:59.000000000+00:00"
+    },
+    {
+      "fact": "User_12 requires Vendor to post the Security approver in http://sharepoint/treasury_management_system_implementation/risk:_vendor_integration_complexity_spec by EOD July 16.",
+      "valid_at": "2025-07-16T00:00:00.000000000+00:00",
+      "invalid_at": "2025-07-17T23:02:35.000000000+00:00"
+    },
+    {
+      "fact": "User_12 requires Vendor to post the validated allowlist in http://sharepoint/treasury_management_system_implementation/risk:_vendor_integration_complexity_spec by EOD July 16.",
+      "valid_at": "2025-07-16T00:00:00.000000000+00:00",
+      "invalid_at": "2025-07-17T23:02:35.000000000+00:00"
+    },
+    {
+      "fact": "User_3 is comfortable marking the phase as Completed if the exact artifact type, primary, backup, and trigger text are posted by EOD today.",
+      "valid_at": "2025-07-17T00:00:00.000000000+00:00",
+      "invalid_at": "2025-07-18T00:00:00.000000000+00:00"
+    },
+    {
+      "fact": "User_12 requires Security to lock the validated CIDRs after Vendor posts the frozen values by EOD July 16.",
+      "valid_at": "2025-07-17T00:00:00.000000000+00:00",
+      "invalid_at": "2025-07-17T17:46:28.000000000+00:00"
+    },
+    {
+      "fact": "User_12 supports closing the transport boundary as Detected after Vendor posts endpoint, cadence, and named owner by EOD July 16 and Security locks validated CIDRs.",
+      "valid_at": "2025-07-17T00:00:00.000000000+00:00",
+      "invalid_at": "2025-07-17T16:39:43.000000000+00:00"
+    },
+    {
+      "fact": "User_3 requires Finance Ops and IT to post the exact artifact type by EOD today.",
+      "valid_at": "2025-07-17T00:00:00.000000000+00:00",
+      "invalid_at": "2025-07-17T23:59:59.000000000+00:00"
+    },
+    {
+      "fact": "User_3 requires Finance Ops and IT to post the exact trigger text by EOD today.",
+      "valid_at": "2025-07-17T00:00:00.000000000+00:00",
+      "invalid_at": "2025-07-17T23:59:59.000000000+00:00"
+    },
+    {
+      "fact": "User_12 requests Security to lock the validated CIDRs after Vendor posts the frozen values by EOD July 16.",
+      "valid_at": "2025-07-17T00:00:00.000000000+00:00",
+      "invalid_at": "2025-07-17T00:00:00.000000000+00:00"
+    },
+    {
+      "fact": "User_3 requires Finance Ops and IT to post primary, backup, trigger text, and artifact type by EOD today.",
+      "valid_at": "2025-07-17T00:00:00.000000000+00:00",
+      "invalid_at": "2025-07-17T09:45:02.000000000+00:00"
+    },
+    {
+      "fact": "User_3 requires Finance Ops and IT to post the backup by EOD today.",
+      "valid_at": "2025-07-17T00:00:00.000000000+00:00",
+      "invalid_at": "2025-07-17T23:55:21.000000000+00:00"
+    },
+    {
+      "fact": "User_3 requires Finance Ops and IT to post the primary by EOD today.",
+      "valid_at": "2025-07-17T00:00:00.000000000+00:00",
+      "invalid_at": "2025-07-17T23:59:59.000000000+00:00"
+    },
+    {
+      "fact": "User_1 requires joint approval on the runbook at http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec before July 19.",
+      "valid_at": "2025-07-17T22:46:21.000000000+00:00",
+      "invalid_at": "2025-07-17T23:56:49.000000000+00:00"
+    },
+    {
+      "fact": "User_12 requires Support to post hours against the frozen chain by EOD Thursday.",
+      "valid_at": "2025-07-17T22:46:21.000000000+00:00",
+      "invalid_at": "2025-07-17T23:45:59.000000000+00:00"
+    },
+    {
+      "fact": "User_12 requires ProjectManager to stamp the owner chain in the spec by EOD Thursday.",
+      "valid_at": "2025-07-17T22:46:21.000000000+00:00",
+      "invalid_at": "2025-07-17T23:59:59.000000000+00:00"
+    },
+    {
+      "fact": "User_1 prefers joint approval for the runbook at http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec before July 19.",
+      "valid_at": "2025-07-17T22:46:21.000000000+00:00",
+      "invalid_at": "2025-07-19T00:00:00.000000000+00:00"
+    },
+    {
+      "fact": "User_1 requires joint approval on the runbook at http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec before July 19.",
+      "valid_at": "2025-07-17T22:46:21.000000000+00:00",
+      "invalid_at": "2025-07-19T00:00:00.000000000+00:00"
+    },
+    {
+      "fact": "User_12 requires ProjectManager to stamp the handoff timing in the spec by EOD Thursday.",
+      "valid_at": "2025-07-17T22:46:21.000000000+00:00",
+      "invalid_at": "2025-07-17T23:59:59.000000000+00:00"
+    },
+    {
+      "fact": "User_12 requires that the final support roster and handoff timing be frozen and auditable by July 19.",
+      "valid_at": "2025-07-17T22:46:21.000000000+00:00",
+      "invalid_at": "2025-07-19T00:00:00.000000000+00:00"
+    },
+    {
+      "fact": "User_3 requests Finance Ops and IT to post the reusable evidence artifact by Thursday EOD against http://sharepoint/treasury_management_system_implementation/cash_management_module_build_spec.",
+      "valid_at": "2025-07-17T22:46:21.000000000+00:00",
+      "invalid_at": "2025-07-17T23:15:11.000000000+00:00"
+    },
+    {
+      "fact": "User_12 requests ProjectManager to stamp the owner chain and handoff timing in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec by EOD Thursday.",
+      "valid_at": "2025-07-17T22:46:21.000000000+00:00",
+      "invalid_at": "2025-07-18T23:59:59.000000000+00:00"
+    },
+    {
+      "fact": "User_3 requires Finance Ops and IT to post the reusable evidence artifact by Thursday EOD.",
+      "valid_at": "2025-07-17T22:46:21.000000000+00:00",
+      "invalid_at": "2025-07-17T23:55:21.000000000+00:00"
+    },
+    {
+      "fact": "User_12 requires Support to post live bridge names, hours, and coverage by EOD Thursday.",
+      "valid_at": "2025-07-17T22:46:21.000000000+00:00",
+      "invalid_at": "2025-07-17T23:45:59.000000000+00:00"
+    },
+    {
+      "fact": "User_12 requires that ProjectManager stamp the owner chain and handoff timing by EOD Thursday.",
+      "valid_at": "2025-07-17T22:46:21.000000000+00:00",
+      "invalid_at": "2025-07-17T23:59:59.000000000+00:00"
+    },
+    {
+      "fact": "User_12 requires Vendor to post the named owner in the spec by EOD July 16.",
+      "valid_at": "2025-07-17T22:46:21.000000000+00:00",
+      "invalid_at": "2025-07-16T23:59:59.000000000+00:00"
+    },
+    {
+      "fact": "User_12 requests Support to post live bridge names, hours, and coverage against the frozen chain in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec by EOD Thursday to keep July 19 clean and auditable.",
+      "valid_at": "2025-07-17T22:46:21.000000000+00:00",
+      "invalid_at": "2025-07-17T23:49:56.000000000+00:00"
+    },
+    {
+      "fact": "User_12 requires Support to post coverage against the frozen chain by EOD Thursday.",
+      "valid_at": "2025-07-17T22:46:21.000000000+00:00",
+      "invalid_at": "2025-07-17T23:45:59.000000000+00:00"
+    },
+    {
+      "fact": "User_12 requires Support to post live bridge names against the frozen chain by EOD Thursday.",
+      "valid_at": "2025-07-17T22:46:21.000000000+00:00",
+      "invalid_at": "2025-07-17T23:45:59.000000000+00:00"
+    },
+    {
+      "fact": "User_1 wants to protect July 19 by closing the dry-run control gap.",
+      "valid_at": "2025-07-17T22:50:03.000000000+00:00",
+      "invalid_at": "2025-07-17T23:56:49.000000000+00:00"
+    },
+    {
+      "fact": "User_2 requests that timestamped bridge coverage be posted by EOD.",
+      "valid_at": "2025-07-17T22:50:03.000000000+00:00",
+      "invalid_at": "2025-07-17T23:48:20.000000000+00:00"
+    },
+    {
+      "fact": "User_3 requests that the owner chain be frozen in the production deployment readiness spec by EOD Thursday.",
+      "valid_at": "2025-07-17T22:50:03.000000000+00:00",
+      "invalid_at": "2025-07-18T23:59:59.000000000+00:00"
+    },
+    {
+      "fact": "User_3 wants the exact handoff trigger to be stamped in the production deployment readiness spec.",
+      "valid_at": "2025-07-17T22:50:03.000000000+00:00",
+      "invalid_at": "2025-07-17T23:59:38.000000000+00:00"
+    },
+    {
+      "fact": "User_2 requests that backup coverage be posted by EOD.",
+      "valid_at": "2025-07-17T22:50:03.000000000+00:00",
+      "invalid_at": "2025-07-17T23:56:28.000000000+00:00"
+    },
+    {
+      "fact": "User_3 requests that the handoff timing be frozen in the production deployment readiness spec by EOD Thursday.",
+      "valid_at": "2025-07-17T22:50:03.000000000+00:00",
+      "invalid_at": "2025-07-17T23:59:59.000000000+00:00"
+    },
+    {
+      "fact": "User_1 requests that the backup approver be stamped in the production deployment readiness spec.",
+      "valid_at": "2025-07-17T22:50:03.000000000+00:00",
+      "invalid_at": "2025-07-17T23:58:02.000000000+00:00"
+    }
+  ]
+}

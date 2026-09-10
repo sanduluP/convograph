@@ -1,0 +1,96 @@
+## What this meeting was about
+
+- compliance — in 65 windows (with spec, rule-version, SAR Reporting Requirements, approved-history)
+- Operations — in 42 windows (with screenshot, timestamp, define treasury requirements spec, Monitoring)
+- data — in 37 windows (with source-defect / mixed / workflow-noise split, Risk: Inconsistent KYC Records, owner, flagged deltas)
+- owner — in 35 windows (with Ops, Finance, Legal, compliance)
+- data-engineering — in 34 windows (with source-path diff, final lineage diff, published hash, extraction pipelines)
+- Model Risk — in 34 windows (with cutoff approval, exception approver path, tolerance band, Phase 2)
+- Incomplete Regulatory Coverage — in 30 windows (with compliance, high-risk items, centralized triage path, data)
+- engineering — in 28 windows (with matrix and separate gap list, log-only gaps, 2:00 PM ET, field ID)
+
+## Documents it kept returning to
+
+- http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec — in 27 windows
+- http://sharepoint/aml_(anti-money_laundering)_project/sar_reporting_requirements_spec — in 22 windows
+- http://sharepoint/aml_(anti-money_laundering)_project/model_feature_engineering_spec — in 15 windows
+
+## What changed
+
+[0] User_1 requires the archive to be read-only for 30-day retention.  →  (replacement unknown)
+[1] User_7 refers to the Orion review last quarter  →  (replacement unknown)
+[2] User_7 requires the new data-handling approval trail to be added to the current evidence pack.  →  User_7 pushed for verification to be stamped by Legal by EOD July 18.
+[3] User_7 asks Ops to confirm which requirements are still in flux in the compliance review spec.  →  User_7 requires UX to validate the repeat-user fast path variant in http://sharepoint/customer_onboarding_optimization/ux_prototype_approval_spec today.
+[4] User_13 applies compliance rules to the Capital Allocation Strategy Draft, requiring hard-coded evidence standards, named owners, and re-approval triggers.  →  User_13 froze the master version now.
+[5] User_13 recommends freezing acceptable sustainable investment criteria with Finance owning the final approval call.  →  User_13 suggests fast-tracking revised examples through same-day review to avoid delays.
+[6] User_1 agrees with keeping Risk as a required reviewer on any threshold or disclosure change in the Capital Allocation Strategy Draft.  →  User_1 wants Legal to review the policy approval gate spec for any wording shifts that could move control mapping.
+[7] User_1 identifies July 6 as the freeze point for the baseline, requiring only blocker-level edits after that date.  →  User_1 has a deadline of 29 July for adding a named fallback for urgent threshold changes with the assumption log clause-linked before review.
+[8] User_7 believes the blocked overwrite/disclosure-note tests should be frozen in the design spec today.  →  User_7 confirms that Legal, Finance, and Risk will sign the frozen wording in http://sharepoint/regulatory_compliance_program/policy_approval_gate_spec today.
+[9] User_7 suggests locking the template structure to prevent assumptions from shifting, based on experience from the Orion reporting rollout.  →  User_7 recommended locking the disclosure and consent wording now to prevent ongoing compliance revisions and avoid UAT noise.
+[10] User_1 has experience with the risk of a jurisdiction split forcing a redo of controls and evidence mapping two weeks before sign-off, as seen in Project Northstar.  →  (replacement unknown)
+[11] User_3 confirms that Sustainability is a named approver.  →  User_3 mandates Sustainability as a mandatory gate for approval.
+[12] User_13 waits for updated evidence before closing final sign-off.  →  User_13 waits for the August 17 cleanup pass to harden Reporting.
+[13] User_13 waits for late follow-ups before closing final sign-off.  →  User_13 waits for the August 17 cleanup pass to harden Reporting.
+[14] User_12 has concern about control ownership.  →  (replacement unknown)
+[15] User_7 requires Ops to confirm the control mapping in http://sharepoint/customer_onboarding_optimization/compliance_review_gate_spec today.  →  User_7 requires Product, Ops, and Support to green-check routing, field mapping, and labels by EOD.
+[16] Ops confirms segment-level capacity by EOD.  →  Ops posts the gap-by-field list in http://sharepoint/aml_(anti-money_laundering)_project/risk:_case_backlog_surge_spec by EOD today.
+[17] User_1 suggested pinning audit-trail fields before 2025-07-19 to prevent issues.  →  User_1 hard-freezes pre-7/19 rows on owner acceptance.
+[18] User_1 suggested pinning sign-off owners before 2025-07-19 to ensure stability.  →  User_1 hard-freezes pre-7/19 rows on owner acceptance.
+[19] User_12 freezes clean lanes now.  →  (replacement unknown)
+[20] User_7 requires that Ops post the drift fallback in http://sharepoint/customer_onboarding_optimization/compliance_review_gate_spec today.  →  User_7 requires the owner, backup, cutoff, and rollback trigger to be stamped in implement_report_generation_engine_spec today.
+[21] User_2 reports that the Operations Runbook is 37% through.  →  (replacement unknown)
+[22] User_13 is coordinating with Finance, ESG, and Operations to align on evidence standards and interim assumptions for incomplete impact data.  →  User_13 needs a final pass from the operational owners to confirm whether the proposed retention windows and escalation triggers are workable in practice.
+[23] User_13 will fold product labels from marketing, UI, and disclosures into the conflict log.  →  User_13 would route any remaining wording changes into the change log only.
+[24] User_13 states that once the fallback path is closed, they will be in better shape for the July 19 control set.  →  User_13 keeps July 29 firmly On-Track.
+
+## What was settled
+
+[25] User_13 confirmed that User_1's approach of keeping the clean set moving is acceptable, based on the lessons from Project Haven.
+[26] User_13 requires @Ops to lock the intake tag today.
+[27] User_13 agrees to freeze the redline if Ops cannot confirm in writing that the current revision only changes interpretation, not control logic.
+[28] User_13 advocates freezing incomplete records to prevent drift and ensure data integrity.
+[29] User_13 confirms that the stale-owner trigger must be stamped as part of the closure process.
+[30] User_7 confirmed User_13's position that the narrow redline is the right control and that Ops should remain focused on retention, escalation, and evidence-handling.
+[31] User_7 requires that @source_owner confirm field defaults and extract timing today.
+[32] User_13 states that Investment should validate issuer relevance.
+[33] User_1 states that Finance owns the fallback methods.
+[34] User_1 confirms that they are comfortable sealing on owner/ETA now, given the stronger evidence chain.
+[35] User_1 requests that Ops confirm owner and due date on each row in-thread.
+[36] User_12 asks @source_owner to confirm the top 5 fields by EOD.
+[37] User_10 confirms that the 14:30 UTC post is live and not draft-only.
+[38] User_9 acknowledges that User_13 owns the validation rule, which was the cleanest split in AML.
+[39] User_2 states that if the forecast scope confirmation lands cleanly, User_12 can lock the requirements pack and close Define Treasury Requirements as Completed.
+[40] Compliance owns final wording.
+[41] User_13 states that Compliance owns the exception log and screening-rule escalation triggers.
+[42] User_13 proposes that Compliance owns the decision threshold for flagging breaches.
+[43] User_13 assigns Compliance ownership of policy exceptions.
+[44] User_13 states that Compliance can own the validation rulebook.
+
+## Still open
+
+[45] User_13 requests User_3 to confirm the spec update is posted now.
+[46] User_13 requests User_3 to lock down the logic in the ESG screening criteria phase to prevent accidental greenwashing.
+[47] User_12 requires one verbatim mapping note to prevent drift in RCP.
+[48] User_13 requires control-impact to be included in the summary before Ops can touch anything.
+[49] User_5 requests that Legal and Risk provide one final sign-off on the precise wording before calling Define Impact Metrics Completed.
+[50] User_13 requires that the log name the exact threshold, owner, and decision date.
+[51] User_12 requests User_3 to confirm the SharePoint gate is live.
+[52] User_12 requests User_3 to confirm the spec is live today.
+[53] User_12 requests User_3 to lock the checklist today, including defect ID, reversal-path confirmation, environment ID, rerun timestamp, and exact build hash.
+[54] User_13 requires a single approval trail on the runbook version lock to avoid conflicting sources of truth on go-live day.
+[55] User_1 requires that mismatch reconciliation be in place before freezing the clean set in the Define Impact Metrics Spec.
+[56] User_1 requires Data to confirm live backup coverage plus overlap tagging in http://sharepoint/sustainable_finance_strategy/risk:_esg_data_provider_reliability_spec to be happy to freeze the core fields.
+[57] User_5 requires that User_1 reconcile only against the exact record in http://sharepoint/sustainable_finance_strategy/risk:_inconsistent_sustainability_standards_spec once the four-field stamp is posted.
+[58] User_1 states that Legal and Compliance need to confirm the policy basis against http://sharepoint/sustainable_finance_strategy/risk:_inconsistent_sustainability_standards_spec before downstream teams hard-code the wrong rules.
+[59] User_5 requests a quick ops + analyst check-in today to confirm triage order, evidence handoff timing, and who’s clearing the highest-risk cases first.
+
+## Who was in the room
+
+- User_12 — 23% of utterances
+- User_5 — 22% of utterances
+- User_9 — 21% of utterances
+- User_2 — 20% of utterances
+- User_10 — 6% of utterances
+- User_13 — 4% of utterances
+- User_1 — 2% of utterances
+- User_7 — 1% of utterances

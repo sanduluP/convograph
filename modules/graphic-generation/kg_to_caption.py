@@ -46,7 +46,7 @@ PROMPT_FILE = os.getenv(
     "CAPTION_PROMPT",
     os.path.join(os.path.dirname(__file__), "prompts", "image_caption_system.txt"),
 )
-STYLE_SUFFIX = ", hand-drawn sticky-note icon style, marker on white paper"
+STYLE_SUFFIX = ", hand-drawn sticky-note icon style, black ink on white paper"
 MAX_WORDS = 30
 
 

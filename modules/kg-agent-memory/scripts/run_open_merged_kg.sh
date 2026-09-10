@@ -23,7 +23,8 @@
 #
 #  Usage:
 #      bash scripts/run_open_merged_kg.sh              # stitched merge (default)
-#      STORE=nostitch bash scripts/run_open_merged_kg.sh
+#      STORE=nostitch     bash scripts/run_open_merged_kg.sh
+#      STORE=speaker_free bash scripts/run_open_merged_kg.sh
 #      SKIP_SYNC=1    bash scripts/run_open_merged_kg.sh   # already downloaded
 # =============================================================================
 
@@ -40,7 +41,12 @@ STORE="${STORE:-full}"
 case "${STORE}" in
   full)     REMOTE_STORE="/fscratch/abuali/neo4j/merged/gmb_finance_full" ;;
   nostitch) REMOTE_STORE="/fscratch/abuali/neo4j/merged/gmb_finance_nostitch" ;;
-  *) echo "❌ unknown STORE='${STORE}' (expected: full | nostitch)"; exit 1 ;;
+  # The speaker-free corpus: the same conversations re-ingested with speaker
+  # names stripped from the text. Its group_id is finance_speaker_free, NOT
+  # gmb_finance_* - mixing those up reads the wrong graph and looks like a
+  # result rather than a mistake, which is why the merge job grew its own guard.
+  speaker_free) REMOTE_STORE="/fscratch/abuali/neo4j/merged/finance_speaker_free" ;;
+  *) echo "❌ unknown STORE='${STORE}' (expected: full | nostitch | speaker_free)"; exit 1 ;;
 esac
 
 # Where the store lands locally, and what the container is called. Both are
@@ -69,6 +75,18 @@ mkdir -p "${LOG_DIR}"
   if [[ "${SKIP_SYNC}" == "1" ]]; then
     echo "⏭️  SKIP_SYNC=1 — using the copy already on disk"
   else
+    # Neo4j inside the container runs as uid 7474 and REWRITES these files, so a
+    # second rsync into an existing store dies with "Permission denied" on every
+    # file the server touched — and rsync exits 23 having transferred only part
+    # of the tree, leaving a store that is half old and half new. That store
+    # still starts, and still answers queries, with silently mixed data.
+    # So: take ownership back before every sync. Cheap, and idempotent.
+    if [[ -d "${LOCAL_ROOT}/data" ]] && [[ -n "$(find "${LOCAL_ROOT}/data" ! -user "$(id -un)" -print -quit 2>/dev/null)" ]]; then
+      echo "🔑 reclaiming ownership from the container's uid (7474 → $(id -u))…"
+      docker run --rm -v "${LOCAL_ROOT}:/data" alpine:3 \
+        chown -R "$(id -u):$(id -g)" /data
+    fi
+
     echo "📥 rsyncing the store from Pegasus (a few GB — this is the slow part)…"
     mkdir -p "${LOCAL_ROOT}"
     # --delete keeps the local copy an exact mirror: a half-synced store would

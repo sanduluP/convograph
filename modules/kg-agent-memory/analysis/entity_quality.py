@@ -47,10 +47,23 @@ NEO4J_PASSWORD = os.environ.get("NEO4J_PASSWORD", "graphiti123")
 
 # Role words that mark a name as a PERSON even when it is not `User_N` — taken
 # from the corpus's own `speaker_role` vocabulary, not invented here.
+# Words that make a SHORT name a person. Kept narrow on purpose: these are job
+# titles, not the departments and topics people talk about.
+#
+# `ops`, `legal`, `security`, `compliance`, `risk`, `it`, `bi` and `cab` used to
+# be in here, and on the speaker-free graph that was actively misleading —
+# `compliance` (4,311 edges), `legal` (2,859), `Ops` (3,225), `owner` (1,680),
+# `risk` and `IT` are the graph's biggest DOMAIN entities, and counting them as
+# people inflated "person-rooted" and deflated "concept → concept" at once.
+# Recounted with only real speakers as persons, the speaker-free graph goes from
+# a reported 21.1% person-rooted / 3.2% concept→concept to 0.1% / 68.9%.
+#
+# `owner` is the borderline case and is excluded deliberately: in this corpus it
+# names a ROLE SLOT being assigned ("the owner chain", "stamp the owner"), which
+# is a thing the meeting decides about, not a participant.
 _ROLE_WORDS = {
-    "lead", "analyst", "manager", "owner", "engineer", "officer", "director",
-    "architect", "specialist", "coordinator", "consultant", "auditor", "head",
-    "ops", "legal", "security", "compliance", "risk", "it", "bi", "cab",
+    "lead", "analyst", "manager", "engineer", "officer", "director",
+    "architect", "specialist", "coordinator", "consultant", "auditor",
 }
 _USER_RE = re.compile(r"^user_\d+$", re.I)
 _URL_RE = re.compile(r"^https?://", re.I)
@@ -79,8 +92,16 @@ def classify(name: str) -> str:
     return "lowercase phrase"
 
 
-# The two buckets that represent an actual domain concept rather than a speaker.
-_CONCEPT_KINDS = {"proper noun / named thing"}
+# What counts as a domain concept rather than a speaker.
+#
+# "lowercase single word" and "lowercase phrase" are IN here, and that is the
+# point: this corpus's biggest domain entities are lowercase — `compliance`,
+# `legal`, `risk`, `owner`, `data`, `spec`, `timestamp`. Restricting concepts to
+# capitalised names filed all of them as "fragments", which made the
+# speaker-free graph look like 3.2% concept→concept when the real figure is
+# 68.9%. Capitalisation is a typing convention in chat, not a semantic class.
+_CONCEPT_KINDS = {"proper noun / named thing", "lowercase single word",
+                  "lowercase phrase"}
 _PERSON_KINDS = {"person (User_N)", "person (role)"}
 
 
