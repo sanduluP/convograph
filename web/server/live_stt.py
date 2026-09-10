@@ -39,32 +39,74 @@ GPU_LOCK = asyncio.Lock()
 GRACE_SECONDS = 600            # WS gone this long -> auto-end the session
 
 
+# Must match 09_live_stt.py's --sent-break-sec default: NeMo starts a NEW
+# sentence only after this much in-stream silence for a speaker, so settling
+# after (sent_break + margin) of silence guarantees the settled sentence will
+# never grow again — the model would put later words in a new sentence.
+SENT_BREAK_SEC = 4.0
+SETTLE_MARGIN_SEC = 1.0
+
+
 class TurnSettler:
     """Turns module 1's mutable sentence snapshots into immutable turns.
 
     Sentence identity: (speaker, start_time) — start_time is stable from the
     moment a sentence appears; words and end_time keep changing. A sentence is
-    FINAL when (a) a newer sentence by the same speaker exists, (b) it went
-    `settle_steps` consecutive snapshots without changing, (c) the stream hit
-    EOF, or (d) it scrolled off the snapshot tail. Only finals become turns;
-    the one still being spoken is emitted as a transient `turn_partial`.
+    FINAL when (a) a newer sentence by the same speaker exists, (b) it has
+    been stable AND the audio clock has moved >= sent_break + margin past its
+    end (real in-stream silence — NeMo can no longer extend it), (c) the
+    stream hit EOF, or (d) it scrolled off the snapshot tail. Only finals
+    become turns; the one still being spoken is a transient `turn_partial`.
+
+    Belt and braces: if a finalized sentence DOES grow again (it should not,
+    given rule (b), but rule (a)/(d) finals can in principle), the growth is
+    re-emitted as a continuation turn (`<id>+c<n>`) instead of being dropped —
+    words must never vanish. This was the bug behind 'live transcription stops
+    after the first pause': settled sentences kept growing invisibly.
     """
 
     def __init__(self, session: Session) -> None:
         self.session = session
-        self.seen: dict = {}        # id -> {"row": ..., "stable": n, "final": bool}
-        self.order: list = []       # ids in first-seen order
+        self.seen: dict = {}    # effective id -> {"row", "stable", "final"}
+        self.order: list = []   # effective ids in first-seen order
+        self.base: dict = {}    # raw sentence id -> {"consumed", "end", "k"}
 
     @staticmethod
-    def _id(row: dict) -> str:
+    def _raw_id(row: dict) -> str:
         return f"lt-{row['speaker']}-{int(row['start_time'] * 100)}"
 
-    def _finalize(self, sid: str) -> None:
+    def _effective(self, row: dict):
+        """Map a raw model sentence onto the entry we are currently growing:
+        the sentence itself, or its k-th continuation once earlier words have
+        already been emitted as final turns."""
+        rid = self._raw_id(row)
+        base = self.base.setdefault(rid, {"consumed": "", "end": None, "k": 0})
+        if not base["consumed"]:
+            return rid, row, base
+        words = row["words"]
+        rem = (words[len(base["consumed"]):] if words.startswith(base["consumed"])
+               else words).strip()
+        if not rem:
+            return None, None, base
+        eff = {"speaker": row["speaker"], "words": rem,
+               "start_time": base["end"] if base["end"] is not None
+               else row["start_time"],
+               "end_time": row["end_time"]}
+        return f"{rid}+c{base['k']}", eff, base
+
+    def _finalize(self, sid: str, raw_row: dict, base: dict) -> None:
         entry = self.seen[sid]
         if entry["final"]:
             return
         entry["final"] = True
         row = entry["row"]
+        if not row["words"].strip():
+            return
+        # Mark the raw sentence consumed up to here, so any later growth
+        # becomes a continuation entry rather than silence.
+        base["consumed"] = raw_row["words"]
+        base["end"] = row["end_time"]
+        base["k"] += 1
         # The final streaming flush can stamp times past the real audio end
         # (padding frames) — clamp, as the batch path (08) does.
         clamp = self.session.audio_seconds or row["end_time"]
@@ -76,43 +118,55 @@ class TurnSettler:
         }})
 
     def feed(self, snapshot: dict) -> None:
+        t_now = float(snapshot.get("t", 0.0))
         rows = snapshot.get("seglst", [])
+        active: dict = {}          # effective id -> (eff_row, raw_row, base)
         latest_by_speaker: dict = {}
-        for row in rows:
-            sid = self._id(row)
+        for raw in rows:
+            sid, eff, base = self._effective(raw)
+            if sid is None:
+                continue
             if sid not in self.seen:
-                self.seen[sid] = {"row": row, "stable": 0, "final": False}
+                self.seen[sid] = {"row": eff, "stable": 0, "final": False}
                 self.order.append(sid)
             else:
                 old = self.seen[sid]["row"]
-                if (old["words"], old["end_time"]) == (row["words"], row["end_time"]):
+                if (old["words"], old["end_time"]) == (eff["words"], eff["end_time"]):
                     self.seen[sid]["stable"] += 1
                 else:
                     self.seen[sid]["stable"] = 0
-                self.seen[sid]["row"] = row
-            prev = latest_by_speaker.get(row["speaker"])
-            if prev is None or row["start_time"] > prev[1]:
-                latest_by_speaker[row["speaker"]] = (self._id(row), row["start_time"])
+                self.seen[sid]["row"] = eff
+            active[sid] = (eff, raw, base)
+            prev = latest_by_speaker.get(eff["speaker"])
+            if prev is None or eff["start_time"] >= prev[1]:
+                latest_by_speaker[eff["speaker"]] = (sid, eff["start_time"])
 
-        in_snapshot = {self._id(r) for r in rows}
         settle_after = int(self.session.settings.get("settle_steps", 3))
+        gap_needed = SENT_BREAK_SEC + SETTLE_MARGIN_SEC
         last_ids = {sid for sid, _ in latest_by_speaker.values()}
 
         for sid in self.order:
             entry = self.seen[sid]
             if entry["final"]:
                 continue
+            row = entry["row"]
+            eff_raw_base = active.get(sid)
+            raw_row = eff_raw_base[1] if eff_raw_base else row
+            base = eff_raw_base[2] if eff_raw_base \
+                else self.base.get(self._raw_id(raw_row),
+                                   {"consumed": "", "end": None, "k": 0})
+            silent_for = t_now - row["end_time"]
             if snapshot.get("eof"):
-                self._finalize(sid)                       # rule (c)
-            elif sid not in in_snapshot and snapshot.get("dropped_before", 0) > 0:
-                self._finalize(sid)                       # rule (d): off the tail
-            elif sid not in last_ids:
-                self._finalize(sid)                       # rule (a): superseded
-            elif entry["stable"] >= settle_after:
-                self._finalize(sid)                       # rule (b): settled
+                self._finalize(sid, raw_row, base)        # rule (c)
+            elif sid not in active and snapshot.get("dropped_before", 0) > 0:
+                self._finalize(sid, raw_row, base)        # rule (d): off the tail
+            elif sid in active and sid not in last_ids:
+                self._finalize(sid, raw_row, base)        # rule (a): superseded
+            elif (entry["stable"] >= settle_after
+                  and silent_for >= gap_needed):
+                self._finalize(sid, raw_row, base)        # rule (b): real silence
             else:
                 # the sentence still being spoken -> transient partial
-                row = entry["row"]
                 label = row["speaker"]
                 self.session.speakers.setdefault(label, label)
                 self.session.emit("turn_partial", {
@@ -167,12 +221,17 @@ class LiveSTT:
         ]
 
     async def _spawn_ffmpeg(self) -> None:
+        # stderr goes to a per-session log: a decode failure here used to be
+        # invisible and left the UI saying "listening" over a dead chain.
+        log_dir = os.path.join(REPO_ROOT, "web", "output", self.session.id)
+        os.makedirs(log_dir, exist_ok=True)
+        self._ffmpeg_log = open(os.path.join(log_dir, "ffmpeg.log"), "ab")
         self.ffmpeg = await asyncio.create_subprocess_exec(
-            "ffmpeg", "-loglevel", "error", "-i", "pipe:0",
+            "ffmpeg", "-loglevel", "warning", "-i", "pipe:0",
             "-f", "s16le", "-ar", "16000", "-ac", "1", "pipe:1",
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.DEVNULL,
+            stderr=self._ffmpeg_log,
         )
         self._tasks.append(asyncio.create_task(self._pump_pcm(self.ffmpeg)))
 
@@ -262,6 +321,14 @@ class LiveSTT:
                 self.docker.stdin.close()
             except Exception:                                     # noqa: BLE001
                 pass
+        elif ffmpeg is self.ffmpeg and not self.stopped:
+            # ffmpeg died while it was still the CURRENT decoder (not a
+            # pause/reconnect swap): the audio chain is broken. Say so —
+            # pause/resume rebuilds the whole recorder+ffmpeg pair.
+            s.emit("error", {"stage": "live",
+                             "message": "audio decoder stopped (see "
+                                        "output/<session>/ffmpeg.log) — press "
+                                        "Pause then Resume to rebuild it"})
 
     async def _read_stderr(self) -> None:
         assert self.docker is not None

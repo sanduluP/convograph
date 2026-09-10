@@ -35,6 +35,7 @@ let graph3d = null;
 let compareGraph = null;
 let ws = null;           // live audio socket
 let recorder = null;     // MediaRecorder
+let micStream = null;    // getUserMedia stream — survives pause/resume
 
 /* ── boot: a session always exists; the app opens on the live view ────────── */
 
@@ -131,11 +132,21 @@ function connect() {
 
 /* ── live microphone (recording happens in THIS browser) ──────────────────── */
 
+function startRecorder() {
+  /* A FRESH MediaRecorder per (re)start: each one emits a complete webm
+     header, and the server pairs it with a fresh ffmpeg. Decoding across a
+     pause gap in one long stream is what used to kill the chain silently. */
+  recorder = new MediaRecorder(micStream, { mimeType: "audio/webm;codecs=opus" });
+  recorder.ondataavailable = (e) => {
+    if (e.data.size && ws?.readyState === WebSocket.OPEN) ws.send(e.data);
+  };
+  recorder.start(250);
+}
+
 async function startLive() {
   if (S.livePhase !== "off") { stopLiveCapture(); return; }
-  let stream;
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
   } catch {
     toast("Microphone blocked. Live capture needs a localhost or HTTPS "
         + "origin — open the app through your SSH tunnel.");
@@ -147,12 +158,7 @@ async function startLive() {
   ws = new WebSocket(`${proto}://${location.host}/api/session/${S.sid}/live`);
   ws.binaryType = "arraybuffer";
   ws.onopen = () => {
-    recorder = new MediaRecorder(stream, { mimeType: "audio/webm;codecs=opus" });
-    recorder.ondataavailable = (e) => {
-      if (e.data.size && ws?.readyState === WebSocket.OPEN) ws.send(e.data);
-    };
-    recorder.onstop = () => stream.getTracks().forEach((t) => t.stop());
-    recorder.start(250);
+    startRecorder();
     S.livePhase = "on";
     render();
   };
@@ -173,28 +179,37 @@ async function startLive() {
 }
 
 function stopRecorderOnly() {
-  try { recorder?.state !== "inactive" && recorder?.stop(); } catch {}
+  try { if (recorder && recorder.state !== "inactive") recorder.stop(); } catch {}
   recorder = null;
+}
+
+function releaseMic() {
+  micStream?.getTracks().forEach((t) => t.stop());
+  micStream = null;
 }
 
 function stopLiveCapture() {   // user toggled 🎙 off: end the session's audio
   try { ws?.send(JSON.stringify({ type: "stop" })); } catch {}
   stopRecorderOnly();
+  releaseMic();
   S.livePhase = "off";
   render();
 }
 
 async function pauseOrResume() {
   if (S.state === "listening") {
-    if (recorder?.state === "recording") recorder.pause();
+    // stop (not pause) the recorder: flushes its tail; mic stream stays live
+    stopRecorderOnly();
     if (ws?.readyState === WebSocket.OPEN)
       ws.send(JSON.stringify({ type: "pause" }));
     else await api(`/${S.sid}/pause`, { method: "POST" });
   } else if (S.state === "paused") {
-    if (recorder?.state === "paused") recorder.resume();
-    if (ws?.readyState === WebSocket.OPEN)
-      ws.send(JSON.stringify({ type: "resume" }));
-    else await api(`/${S.sid}/resume`, { method: "POST" });
+    if (ws?.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: "resume" }));  // server restarts ffmpeg
+      if (micStream) startRecorder();               // fresh recorder = fresh header
+    } else {
+      await api(`/${S.sid}/resume`, { method: "POST" });
+    }
   }
 }
 

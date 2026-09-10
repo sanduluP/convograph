@@ -155,6 +155,11 @@ async def live(ws: WebSocket, sid: str):
                 if cmd == "pause":
                     await pipeline.pause_session(s)
                 elif cmd == "resume":
+                    # The client restarts its MediaRecorder on resume (fresh
+                    # webm header), so the decoder must restart too — decoding
+                    # ACROSS a pause boundary is exactly what broke silently.
+                    if s.live is not None:
+                        await s.live.restart_ffmpeg()
                     await pipeline.resume_session(s)
                 elif cmd == "stop":
                     await pipeline.end_session(s)

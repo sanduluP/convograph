@@ -60,29 +60,34 @@ async def main() -> None:
 
     listener = asyncio.create_task(sse_listener(sid))
     ws_url = f"ws://localhost:8700/api/session/{sid}/live"
-    webm = open(FIXTURE, "rb").read()
-    # MediaRecorder(250ms) on 60s of ~483KB -> ~2KB per chunk
-    n_chunks = 60_000 // CHUNK_MS
-    csize = max(1, len(webm) // n_chunks)
+    # Two INDEPENDENT webm streams, exactly like the real client: pause stops
+    # the MediaRecorder, resume starts a fresh one (fresh header), and the
+    # server pairs it with a fresh ffmpeg.
+    part_a = open("tests/fixture_a.webm", "rb").read()
+    part_b = open("tests/fixture_b.webm", "rb").read()
 
-    async with websockets.connect(ws_url, max_size=None) as ws:
-        print("ws open — streaming at real-time pace (60 s)...")
+    async def stream(ws, blob, seconds):
+        n_chunks = int(seconds * 1000) // CHUNK_MS
+        csize = max(1, len(blob) // n_chunks)
         sent = 0
-        i = 0
-        paused_at = None
-        while sent < len(webm):
-            await ws.send(webm[sent:sent + csize])
+        while sent < len(blob):
+            await ws.send(blob[sent:sent + csize])
             sent += csize
-            i += 1
             await asyncio.sleep(CHUNK_MS / 1000)
-            if i == 120 and paused_at is None:          # ~30 s in: test pause
-                print("pausing 5 s...")
-                await ws.send(json.dumps({"type": "pause"}))
-                paused_at = time.monotonic()
-                await asyncio.sleep(5)
-                clock_before = clock_values[-1][1] if clock_values else 0
-                await ws.send(json.dumps({"type": "resume"}))
-                print(f"resumed (clock during pause: {clock_before}s)")
+
+    resume_marker = None
+    async with websockets.connect(ws_url, max_size=None) as ws:
+        print("ws open — streaming part A (30 s, real-time pace)...")
+        await stream(ws, part_a, 30)
+        print("pausing 5 s...")
+        await ws.send(json.dumps({"type": "pause"}))
+        await asyncio.sleep(5)
+        clock_at_pause = clock_values[-1][1] if clock_values else 0
+        await ws.send(json.dumps({"type": "resume"}))
+        resume_marker = len(events)          # events after this index = post-resume
+        print(f"resumed (clock froze at {clock_at_pause}s) — "
+              f"streaming part B (30 s, fresh webm header)...")
+        await stream(ws, part_b, 30)
         print("audio done — sending stop")
         await ws.send(json.dumps({"type": "stop"}))
         # keep the socket open until the server closes it
@@ -119,6 +124,16 @@ async def main() -> None:
                           if t == "turn_partial" and e["id"] == d["id"]
                           and i > idx_final]
         assert not later_partials, f"partial after final for {d['id']}"
+
+    # THE REGRESSION CHECK: transcription must CONTINUE after pause/resume.
+    post_partials = [d for i, (t, d) in enumerate(events)
+                     if t == "turn_partial" and i > resume_marker]
+    post_clock = [v for ts, v in clock_values if v > clock_at_pause + 2]
+    assert post_clock, \
+        f"audio clock never advanced past the pause point ({clock_at_pause}s)"
+    assert post_partials, "NO transcription activity after resume — regression!"
+    print(f"post-resume: clock reached {clock_values[-1][1]}s, "
+          f"{len(post_partials)} partial events")
 
     eps_done = {d["index"] for t, d in events
                 if t == "episode" and d["stage"] == "graphed"
