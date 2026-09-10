@@ -661,7 +661,9 @@ PLAN_README = {
     "_appended_from": "str — present only when appended: the board.excalidraw this run was placed after. That file is never modified; the merged canvas is THIS run's board.excalidraw.",
     "_appended_from_run": "str|null — the run folder of _appended_from, when it had one.",
     "_appended_from_sha256": "str — sha256 of _appended_from at append time, so a later edit to the base is detectable.",
-    "_append_direction": "str — 'below' (stacked) or 'right' (strip).",
+    "_append_direction": "str — below / above / right / left, or grid (fill a row, then wrap). Placement always clears everything already drawn.",
+    "_append_align": "str|null — 'start' shares the neighbouring block's left (or top) edge; 'center' centres on that neighbour. null for grid.",
+    "_append_columns": "int|null — grid only: blocks per row before wrapping.",
 }
 
 
@@ -723,17 +725,22 @@ def run_content_map(
     episode_start: int = 0,
     append_to: Optional[str] = None,
     append_direction: str = "below",
+    append_align: str = "start",
+    append_columns: int = 3,
     progress_cb: ProgressCB = None,
 ) -> dict:
     """Window -> board plan -> pictograms -> ONE content map. Returns a dict
     with the run directory and everything in it.
 
     APPENDING. Pass `append_to` (a previous run folder, or a .excalidraw) and
-    this meeting's block is placed `append_direction` of everything already on
-    that canvas, via render_board.append_scene. The previous file is read and
-    never written; the merged canvas is THIS run's board.excalidraw. With a
-    digest, `episode_start` says where this meeting begins — the caller
-    normally sets it to where the previous run's digest ended.
+    this meeting's block is placed `append_direction` (below / above / right /
+    left / grid) of everything already on that canvas, via
+    render_board.append_scene; `append_align` centres it on its neighbour or
+    shares the neighbour's edge, and `append_columns` is the grid's row
+    length. The previous file is read and never written; the merged canvas is
+    THIS run's board.excalidraw. With a digest, `episode_start` says where
+    this meeting begins — the caller normally sets it to where the previous
+    run's digest ended.
 
     Pass `text` to extract first (module 1's transcript -> a new graph), or
     leave it empty to read a group module 2 already built.
@@ -770,9 +777,12 @@ def run_content_map(
     base_scene = base_path = base_run = base_sha = None
     base_info: dict = {}
     if append_to:
-        if append_direction not in ("below", "right"):
-            raise PipelineError(f"append_direction must be 'below' or 'right', "
-                                f"got {append_direction!r}")
+        if append_direction not in render_board.DIRECTIONS:
+            raise PipelineError(f"append_direction must be one of "
+                                f"{render_board.DIRECTIONS}, got {append_direction!r}")
+        if append_align not in render_board.ALIGNS:
+            raise PipelineError(f"append_align must be one of "
+                                f"{render_board.ALIGNS}, got {append_align!r}")
         base_path, base_run = resolve_board(append_to)
         with open(base_path, "rb") as fh:
             raw = fh.read()
@@ -935,6 +945,8 @@ def run_content_map(
         plan["_appended_from_run"] = base_run
         plan["_appended_from_sha256"] = base_sha
         plan["_append_direction"] = append_direction
+        plan["_append_align"] = append_align if append_direction != "grid" else None
+        plan["_append_columns"] = append_columns if append_direction == "grid" else None
     if digest_result is not None:
         # The digest is written next to the plan: a board planned from it is only
         # auditable if the exact input survives beside the output.
@@ -986,7 +998,8 @@ def run_content_map(
     if base_scene is not None:
         merged = render_board.append_scene(
             base_scene, fresh, append_direction,
-            base_caption=base_info.get("label"), new_caption=new_label)
+            base_caption=base_info.get("label"), new_caption=new_label,
+            align=append_align, columns=append_columns)
         adebug = merged.pop("_layout_debug")
         blocks = adebug["blocks"]
         scene = merged
@@ -994,7 +1007,9 @@ def run_content_map(
         # strip of meetings is legitimately 4:1, and each block passed its own
         # aspect check on its own run.
         issues += preview_board.check(scene, aspect=None)
-        _log(progress_cb, f"🧷 appended {append_direction} onto "
+        how = (f"grid, {append_columns} per row" if append_direction == "grid"
+               else f"{append_direction}, {append_align}")
+        _log(progress_cb, f"🧷 appended ({how}) onto "
                           f"{os.path.basename(os.path.dirname(base_path))} — "
                           f"{blocks} meeting(s), canvas "
                           f"{adebug['canvas'][0]}x{adebug['canvas'][1]}")
@@ -1021,6 +1036,8 @@ def run_content_map(
         "used_digest": use_digest, "episode_start": episode_start,
         "appended_from": base_path,
         "append_direction": append_direction if base_path else None,
+        "append_align": append_align if base_path and append_direction != "grid" else None,
+        "append_columns": append_columns if base_path and append_direction == "grid" else None,
         "blocks": blocks,
         "plan_seconds": round(plan_secs, 2),
         "validation": problems, "layout_issues": issues, "debug": debug,

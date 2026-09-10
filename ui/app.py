@@ -62,13 +62,34 @@ st.set_page_config(page_title="Convograph", page_icon="🗂️", layout="wide")
 
 def render_excalidraw(scene: dict, height: int = 640) -> None:
     """Mount a live, editable Excalidraw canvas inline via esm.sh — the same
-    CDN-embed approach Excalidraw's own repo documents for bundler-free use."""
+    CDN-embed approach Excalidraw's own repo documents for bundler-free use.
+
+    FULL SCREEN. The iframe is `height` px tall inside the page, which is
+    cramped once a canvas holds several meetings. A button inside the iframe
+    calls the Fullscreen API on the iframe's own document, so the canvas takes
+    the whole screen; Esc, or the button again, returns to the page. This
+    works from inside a Streamlit component because the component iframe's
+    permission policy allows `fullscreen` (checked in the bundled IFrameUtil).
+    Excalidraw sizes itself to its container, so the root switches to 100vh
+    while full screen and a synthetic resize makes it re-measure.
+    """
     payload = json.dumps(scene).replace("</", "<\\/")
     html = f"""
     <style>
       html, body {{ margin: 0; height: 100%; background: #fff; }}
       #excalidraw-root {{ height: {height}px; width: 100%; }}
+      body.fs #excalidraw-root {{ height: 100vh; }}
+      #fs-btn {{
+        position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+        z-index: 20; padding: 6px 12px; border-radius: 8px;
+        border: 1px solid #ced4da; background: #fff; color: #1e1e1e;
+        font: 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.12);
+      }}
+      #fs-btn:hover {{ background: #f8f9fa; }}
     </style>
+    <button id="fs-btn" type="button"
+            title="Take the canvas full screen. Esc returns to the page.">⛶ Full screen</button>
     <div id="excalidraw-root"></div>
     <script>
       window.EXCALIDRAW_ASSET_PATH =
@@ -88,6 +109,34 @@ def render_excalidraw(scene: dict, height: int = 640) -> None:
       sceneData.scrollToContent = true;
       const root = createRoot(document.getElementById("excalidraw-root"));
       root.render(React.createElement(Excalidraw, {{ initialData: sceneData }}));
+
+      // ── full screen ──
+      const btn = document.getElementById("fs-btn");
+      const inFs = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
+      function sync() {{
+        const fs = inFs();
+        document.body.classList.toggle("fs", fs);
+        btn.textContent = fs ? "✕ Exit full screen (Esc)" : "⛶ Full screen";
+        // Excalidraw re-measures its container on window resize; the container
+        // just changed height without the window telling anyone.
+        window.dispatchEvent(new Event("resize"));
+      }}
+      btn.addEventListener("click", async () => {{
+        try {{
+          if (inFs()) {{
+            await (document.exitFullscreen
+                   ? document.exitFullscreen() : document.webkitExitFullscreen());
+          }} else {{
+            const el = document.documentElement;
+            await (el.requestFullscreen
+                   ? el.requestFullscreen() : el.webkitRequestFullscreen());
+          }}
+        }} catch (e) {{
+          btn.textContent = "Full screen blocked by the browser — use the canvas height control";
+        }}
+      }});
+      document.addEventListener("fullscreenchange", sync);
+      document.addEventListener("webkitfullscreenchange", sync);
     </script>
     """
     components.html(html, height=height, scrolling=False)
@@ -331,6 +380,8 @@ else:
 append_on = False
 append_to = None
 append_direction = "below"
+append_align = "start"
+append_columns = 3
 episode_start = 0
 if is_map:
     append_on = st.checkbox(
@@ -348,17 +399,41 @@ if is_map:
             dirs = list(by_dir)
             last = (st.session_state.get("last_result") or {}).get("run_dir")
             idx = dirs.index(last) if last in by_dir else 0
-            a_col, d_col = st.columns([3, 1])
+            a_col, d_col = st.columns([2, 1])
             with a_col:
                 append_to = st.selectbox(
                     "Previous board", dirs, index=idx,
                     format_func=lambda d: f"{os.path.basename(d)}  ·  {by_dir[d]['label']}",
                 )
             with d_col:
-                append_direction = st.radio(
-                    "Place the new meeting", ["below", "right"], horizontal=True,
-                    help="Below keeps a page-like shape; right makes a timeline strip.",
+                # Placement always clears everything already drawn; the choice
+                # is only WHERE. Grid is the one that scales past a handful of
+                # meetings — a strip or a column of ten is unreadable.
+                DIRECTION_LABELS = {
+                    "below": "below (stack)",
+                    "right": "right (strip)",
+                    "grid": "grid (fill a row, then wrap)",
+                    "above": "above",
+                    "left": "left",
+                }
+                append_direction = st.selectbox(
+                    "Place the new meeting", list(DIRECTION_LABELS),
+                    format_func=DIRECTION_LABELS.get,
+                    help="Grid fills a row left to right, then wraps to a new row "
+                         "below. Above and left grow the canvas backwards in "
+                         "reading order; use them deliberately.",
                 )
+            if append_direction == "grid":
+                append_columns = int(st.number_input(
+                    "Blocks per row", min_value=1, max_value=8, value=3,
+                    help="How many meetings sit side by side before the grid wraps."))
+            else:
+                centre = st.checkbox(
+                    "Centre on the neighbouring block",
+                    help="Off: the block shares its neighbour's left (or top) edge, "
+                         "which reads as a column. On: it is centred on that "
+                         "neighbour, which keeps a spine as blocks vary in width.")
+                append_align = "center" if centre else "start"
             if use_digest:
                 # Advancing the episode start only makes sense when this board
                 # digests the SAME graph the previous one did. A pasted
@@ -398,7 +473,8 @@ run_key = (
     existing_group_id if use_existing else text,
     int(windows), int(max_facts), provider, planner_model, int(columns),
     bool(use_digest), int(episode_limit),
-    bool(append_on), append_to, append_direction, int(episode_start),
+    bool(append_on), append_to, append_direction, append_align, int(append_columns),
+    int(episode_start),
 )
 
 clicked = st.button("🖍️ Generate board", type="primary", disabled=not ready)
@@ -431,6 +507,8 @@ if should_run:
                     episode_start=int(episode_start),
                     append_to=append_to if append_on else None,
                     append_direction=append_direction,
+                    append_align=append_align,
+                    append_columns=int(append_columns),
                     progress_cb=_progress,
                 )
             else:
@@ -479,7 +557,18 @@ if st.session_state.get("last_result"):
         )
     with open(result["board_path"]) as fh:
         scene = json.load(fh)
-    render_excalidraw(scene)
+    # Canvas height is a per-viewer convenience and deliberately NOT part of
+    # run_key: changing it only re-mounts the saved scene, never re-runs the
+    # pipeline. The real answer to "too small" is the ⛶ Full screen button on
+    # the canvas itself; this is the fallback for a browser that refuses it.
+    HEIGHTS = {"Compact": 640, "Tall": 1000, "Taller": 1400}
+    size = st.segmented_control(
+        "Canvas height", list(HEIGHTS), default="Compact",
+        selection_mode="single", label_visibility="collapsed",
+        help="Inline canvas height. For the whole screen, use ⛶ Full screen on "
+             "the canvas; Esc brings the page back.",
+    ) or "Compact"
+    render_excalidraw(scene, height=HEIGHTS[size])
     with st.expander("If the canvas above is blank"):
         st.markdown(
             f"The live embed loads Excalidraw from a CDN in your browser — if "

@@ -57,9 +57,17 @@ def main() -> None:
                     help="place this meeting's block onto an existing canvas: a "
                          "previous run folder, or a board.excalidraw. That file "
                          "is never modified.")
-    ap.add_argument("--append-direction", choices=["below", "right"], default="below",
+    ap.add_argument("--append-direction",
+                    choices=["below", "above", "right", "left", "grid"], default="below",
                     help="where the new block goes relative to everything already "
-                         "drawn (default below, which keeps a page-like shape)")
+                         "drawn (default below). 'grid' fills a row left to right "
+                         "up to --append-columns blocks, then wraps to a new row.")
+    ap.add_argument("--append-align", choices=["start", "center"], default="start",
+                    help="how the block lines up with its neighbour on the other "
+                         "axis: share its left/top edge (start) or centre on it. "
+                         "Ignored for grid.")
+    ap.add_argument("--append-columns", type=int, default=3,
+                    help="grid only: blocks per row before wrapping (default 3)")
     ap.add_argument("--provider", default=None,
                     help="saia (default) or ollama — see board_plan.PROVIDERS")
     ap.add_argument("--model", default=None,
@@ -99,6 +107,8 @@ def main() -> None:
         episode_start=episode_start,
         append_to=args.append_to,
         append_direction=args.append_direction,
+        append_align=args.append_align,
+        append_columns=args.append_columns,
         progress_cb=print,          # the shell IS the progress bar here
     )
 
@@ -113,7 +123,10 @@ def main() -> None:
     else:
         print(f"🪟 windows : {result['windows']}")
     if result.get("appended_from"):
-        print(f"🧷 appended: {result['append_direction']} onto "
+        how = (f"grid, {result['append_columns']} per row"
+               if result["append_direction"] == "grid"
+               else f"{result['append_direction']}, {result['append_align']}")
+        print(f"🧷 appended: ({how}) onto "
               f"{result['appended_from']}  ({result['blocks']} meeting(s) on canvas)")
     status = "clean" if not result["validation"] else \
              f"{len(result['validation'])} problem(s)"

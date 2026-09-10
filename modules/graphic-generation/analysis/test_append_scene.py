@@ -70,6 +70,7 @@ def main() -> int:
         A = rb.build_scene(_plan(2, "Meeting one"), [img, None]); A.pop("_layout_debug")
         B = rb.build_scene(_plan(3, "Meeting two"), []);          B.pop("_layout_debug")
         C = rb.build_scene(_plan(2, "Meeting three"), []);        C.pop("_layout_debug")
+        D = rb.build_scene(_plan(2, "Meeting four"), []);         D.pop("_layout_debug")
         a_before = json.dumps(A, sort_keys=True)
         nA, nB, nC = len(A["elements"]), len(B["elements"]), len(C["elements"])
         check(len(A["files"]) == 1 and len(B["files"]) == 0,
@@ -130,12 +131,91 @@ def main() -> int:
         check(not any(e.get("isDeleted") for e in MH["elements"]), "tombstone not carried")
         check(len(MH["elements"]) == nA + nB + 2, "tombstone excluded from the count")
 
+        print("\n🧷 block bounds recorded in the captions")
+        bb = rb.block_bounds(M["elements"])
+        base_part, new_part = _split(M, nA)
+        check(len(bb) == 2, "two blocks recorded on the below-append")
+        check(all(abs(a - b) < 0.01 for a, b in zip(bb[0], rb._scene_bbox(base_part))),
+              "block 1 bbox matches its elements, caption included")
+        check(all(abs(a - b) < 0.01 for a, b in zip(bb[1], rb._scene_bbox(new_part))),
+              "block 2 bbox matches its elements, caption included")
+        old = json.loads(json.dumps(M))
+        for e in old["elements"]:
+            meta = (e.get("customData") or {}).get(rb.CAPTION_KEY)
+            if meta:
+                meta.pop("bbox", None)
+        check(len(rb.block_bounds(old["elements"])) == 1,
+              "captions without a bbox (older boards) fall back to one block")
+        check(len(rb.block_bounds(A["elements"])) == 1,
+              "an uncaptioned board is one block")
+
+        print("\n🧷 above and left")
+        Ab = rb.append_scene(A, B, "above", base_caption="m1", new_caption="m2")
+        Ab.pop("_layout_debug")
+        bb = rb.block_bounds(Ab["elements"])          # document order: base, new
+        check(bb[1][3] <= bb[0][1] - rb.APPEND_GAP + 0.01, "new block ends >= APPEND_GAP above base")
+        check(abs(bb[1][0] - bb[0][0]) < 0.01, "above: left-aligned to base")
+        check(pb.check(Ab, aspect=None) == [], "above: structural check clean")
+        Lf = rb.append_scene(A, B, "left", base_caption="m1", new_caption="m2")
+        Lf.pop("_layout_debug")
+        bb = rb.block_bounds(Lf["elements"])
+        check(bb[1][2] <= bb[0][0] - rb.APPEND_GAP + 0.01, "new block ends >= APPEND_GAP left of base")
+        check(abs(bb[1][1] - bb[0][1]) < 0.01, "left: top-aligned to base")
+        check(pb.check(Lf, aspect=None) == [], "left: structural check clean")
+
+        print("\n🧷 centre on the neighbour")
+        mid = lambda b: (b[0] + b[2]) / 2                      # noqa: E731
+        midy = lambda b: (b[1] + b[3]) / 2                     # noqa: E731
+        Cc = rb.append_scene(A, B, "below", align="center", base_caption="m1", new_caption="m2")
+        Cc.pop("_layout_debug")
+        bb = rb.block_bounds(Cc["elements"])
+        check(abs(mid(bb[1]) - mid(bb[0])) < 1.0,
+              f"below+center: x-centres agree ({mid(bb[0]):.1f} vs {mid(bb[1]):.1f})")
+        Cr = rb.append_scene(A, B, "right", align="center", base_caption="m1", new_caption="m2")
+        Cr.pop("_layout_debug")
+        bb = rb.block_bounds(Cr["elements"])
+        check(abs(midy(bb[1]) - midy(bb[0])) < 1.0,
+              f"right+center: y-centres agree ({midy(bb[0]):.1f} vs {midy(bb[1]):.1f})")
+        # Centring is on the NEIGHBOUR, not the canvas: after A-below-B, a third
+        # block below must centre on B (the bottom-most), not on the union.
+        Cn = rb.append_scene(Cc, C, "below", align="center", new_caption="m3")
+        Cn.pop("_layout_debug")
+        bb = rb.block_bounds(Cn["elements"])
+        check(abs(mid(bb[2]) - mid(bb[1])) < 1.0, "third block centres on the block above it")
+
+        print("\n🧷 grid, 2 per row")
+        G1 = rb.append_scene(A, B, "grid", columns=2, base_caption="m1", new_caption="m2")
+        G1.pop("_layout_debug")
+        bb = rb.block_bounds(G1["elements"])
+        check(bb[1][0] >= bb[0][2] + rb.APPEND_GAP - 0.01, "block 2 continues the row to the right")
+        check(abs(bb[1][1] - bb[0][1]) < 0.01, "block 2 top-aligned to the row")
+        G2 = rb.append_scene(G1, C, "grid", columns=2, new_caption="m3")
+        d3 = G2.pop("_layout_debug")
+        bb = rb.block_bounds(G2["elements"])
+        check(len(bb) == 3 and d3["blocks"] == 3 and d3["columns"] == 2, "three blocks, grid debug recorded")
+        row_bottom = max(bb[0][3], bb[1][3])
+        check(bb[2][1] >= row_bottom + rb.APPEND_GAP - 0.01, "block 3 wraps below the full first row")
+        check(abs(bb[2][0] - bb[0][0]) < 0.01, "block 3 returns to the first row's left margin")
+        check(pb.check(G2, aspect=None) == [], f"grid structural check clean: {pb.check(G2, aspect=None)}")
+        # A distinct fourth scene: re-appending B here would collide with B's
+        # own ids already on the canvas, which the guard rightly refuses.
+        G3 = rb.append_scene(G2, D, "grid", columns=2, new_caption="m4")
+        G3.pop("_layout_debug")
+        bb = rb.block_bounds(G3["elements"])
+        check(bb[3][0] >= bb[2][2] + rb.APPEND_GAP - 0.01 and abs(bb[3][1] - bb[2][1]) < 0.01,
+              "block 4 continues the second row")
+
         print("\n🧷 errors")
         try:
-            rb.append_scene(A, B, "left")
+            rb.append_scene(A, B, "diagonal")
             check(False, "bad direction raises ValueError")
         except ValueError:
             check(True, "bad direction raises ValueError")
+        try:
+            rb.append_scene(A, B, "below", align="middle")
+            check(False, "bad align raises ValueError")
+        except ValueError:
+            check(True, "bad align raises ValueError")
         dup = json.loads(json.dumps(B))
         dup["elements"][0]["id"] = A["elements"][0]["id"]
         try:
