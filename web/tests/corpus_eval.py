@@ -62,16 +62,24 @@ async def run_slice(client: httpx.AsyncClient, name: str, path: str) -> dict:
 
 
 async def main() -> None:
+    # optional slice filter: ./corpus_eval.py 03 04
+    wanted = sys.argv[1:]
+    slices = [s for s in SLICES if not wanted or any(s[0].startswith(w)
+                                                     for w in wanted)]
     results = []
     async with httpx.AsyncClient(timeout=60) as client:
-        for name, path, _ in SLICES:
+        for i, (name, path, _) in enumerate(slices):
+            if i:
+                print("  (pacing 120 s between slices — SAIA rate limits)",
+                      flush=True)
+                await asyncio.sleep(120)
             results.append(await run_slice(client, name, path))
 
     print("\n================ CORPUS EVALUATION ================")
     print(f"{'slice':<16} {'expect':<7} {'got':<4} {'facts':<6} "
           f"{'episodes':<9} verdict")
     failures = 0
-    for (name, _, expect), res in zip(SLICES, results):
+    for (name, _, expect), res in zip(slices, results):
         got = len(res["invalidated"])
         if expect == "== 0":
             ok = got == 0

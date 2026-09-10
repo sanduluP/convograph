@@ -194,6 +194,36 @@ async def episodizer(session: Session) -> None:
             cut()
 
 
+RATE_LIMIT_BACKOFFS = (60, 180, 420)   # seconds; SAIA limits are per-window-ish
+
+
+async def _ingest_with_backoff(session: Session, item: dict):
+    """A rate-limited episode must be RETRIED, not skipped — a skipped window
+    is silent data loss and (worse) a hole exactly where a supersession might
+    have been. Backoff pauses the serial ingest queue, which is the correct
+    behavior: episode order is what makes invalidation work."""
+    attempt = 0
+    while True:
+        try:
+            return await ingest_episode(session, item["index"], item["turns"])
+        except StageError as exc:
+            msg = str(exc)
+            if "RateLimit" not in msg and "Rate limit" not in msg:
+                raise
+            if attempt >= len(RATE_LIMIT_BACKOFFS):
+                raise StageError(
+                    f"still rate-limited after {attempt} retries — {msg}"
+                ) from exc
+            wait = RATE_LIMIT_BACKOFFS[attempt]
+            attempt += 1
+            session.emit("episode", {
+                "index": item["index"], "stage": "graphed", "status": "running",
+                "progress": 0.05,
+                "detail": f"extraction backend rate-limited — retry "
+                          f"{attempt}/{len(RATE_LIMIT_BACKOFFS)} in {wait}s"})
+            await asyncio.sleep(wait)
+
+
 async def ingest_worker(session: Session) -> None:
     render_tasks: List[asyncio.Task] = []
     while True:
@@ -209,7 +239,7 @@ async def ingest_worker(session: Session) -> None:
             session.emit("session", {"state": "ended"})
             return
         try:
-            added = await ingest_episode(session, item["index"], item["turns"])
+            added = await _ingest_with_backoff(session, item)
         except StageError as exc:
             session.emit("error", {"stage": "graph", "episode": item["index"],
                                    "message": str(exc)})
