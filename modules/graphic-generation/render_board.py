@@ -282,7 +282,10 @@ def _edge_point(cx: float, cy: float, w: float, h: float,
 # 2026-09-11). Bowing each arrow by a different amount moves its midpoint, and
 # therefore its label, off that shared crossing. A gentle curve also reads as
 # hand-drawn, which is the look this board is after.
-BOWS = (0.0, 0.13, -0.13, 0.22, -0.22, 0.3, -0.3)
+BOWS = (0.0, 0.07, -0.07, 0.12, -0.12, 0.17, -0.17)
+                       # Halved once the ring grew to the panel column's height:
+                       # bow is a fraction of LENGTH, so the same fraction on a
+                       # longer arrow became a visible dogleg rather than a curve.
 
 
 def _arrow(src: dict, dst: dict, label: str, bow: float = 0.0) -> list[dict]:
@@ -354,12 +357,20 @@ def _arrow(src: dict, dst: dict, label: str, bow: float = 0.0) -> list[dict]:
 
 
 # ── the board ───────────────────────────────────────────────────────────────
-def _node_positions(n: int, card_h: float) -> list[tuple[float, float]]:
+def _node_positions(n: int, card_h: float,
+                    min_height: float = 0.0) -> list[tuple[float, float]]:
     """Centre of each node, on an ellipse around the origin.
 
     The radius is derived, not fixed: adjacent points on a circle of radius R
     are 2*R*sin(pi/n) apart, so requiring that separation to clear one card
     plus MIN_NODE_GAP gives the R that guarantees no overlap for ANY n.
+
+    `min_height` is how tall the ring should be ALLOWED to grow to. The margin
+    panels are a tall column, and the ring is sized only by its node count — so
+    six anchors sat in the top half of the canvas with a quarter of the board
+    empty below them. Stretching the ring to the column's height fills that
+    space with the content map instead of with nothing. It is a floor, not a
+    target: a ring that is already taller is left alone.
     """
     if n == 1:
         return [(0.0, 0.0)]
@@ -385,18 +396,28 @@ def _node_positions(n: int, card_h: float) -> list[tuple[float, float]]:
     else:
         angles = [-90.0 + i * 360.0 / n for i in range(n)]
 
+    def place(rx: float, ry: float) -> list[tuple[float, float]]:
+        return [(rx * math.cos(math.radians(a)), ry * math.sin(math.radians(a)))
+                for a in angles]
+
     for _ in range(12):                 # bounded: each pass scales up, so it
                                         # terminates; the cap guards a bad RATIO
-        ry = rx / RATIO
-        pts = [(rx * math.cos(math.radians(a)), ry * math.sin(math.radians(a)))
-               for a in angles]
+        pts = place(rx, rx / RATIO)
         closest = min(math.dist(p, q)
                       for i, p in enumerate(pts) for q in pts[i + 1:])
         if closest >= need:
-            return pts
+            break
         rx *= need / closest * 1.02     # 2% over, so float error cannot leave it
                                         # a hair short and loop again
-    return pts
+
+    # The height stretch is applied AFTER rx has converged, never inside the
+    # loop. Inside, a tall ry separates the vertical neighbours immediately, the
+    # loop exits on the first pass, and rx stays at its floor — which turned a
+    # 2391x2062 board into a 1605x2062 one: the ring filled the height by going
+    # narrow, not by spreading out. Applied after, rx keeps the width it earned
+    # and ry only grows, so every separation the loop guaranteed still holds.
+    want_ry = max(0.0, (min_height - card_h) / 2)
+    return place(rx, max(rx / RATIO, want_ry))
 
 
 # ── side panels ─────────────────────────────────────────────────────────────
@@ -640,6 +661,73 @@ def _people_panel(x: float, y: float, people: list[dict], accent: str,
     return els, total_h
 
 
+def _build_panels(digest: dict | None, files: dict,
+                  log=None) -> tuple[list[dict], float]:
+    """The whole right-hand column, drawn at the origin. Returns (elements, height).
+
+    Drawn at (0, 0) and translated later because the ring wants to know how tall
+    this column is BEFORE it sizes itself, while this column does not care where
+    the ring ends up. Measuring first and placing second is the only ordering
+    that lets each one answer the other's question.
+    """
+    if not digest:
+        return [], 0.0
+    q = digest.get("queries", {})
+
+    panels = []
+    for title, rows, key, accent, tint, cap in (
+        ("⚠ Still open", q.get("open_threads", []), "fact", "#e8590c", "#fff4e6", 10),
+        ("✓ Decided", q.get("decisions", []), "fact", "#2f9e44", "#ebfbee", 10),
+    ):
+        if rows:
+            panels.append((title, [r.get(key, "") for r in rows if r.get(key)],
+                           accent, tint, cap))
+
+    # ── the icons the panels will actually need ─────────────────────────────
+    # Resolved in ONE batch before any drawing: the concepts are known from the
+    # text, so the (rare) generation of a missing one happens once, not per
+    # panel. Everything already cached costs nothing.
+    wanted = [c for _, items, _, _, cap in panels
+              for c in (icon_concept(i) for i in items[:cap]) if c]
+    icon_paths: dict[str, str] = {}
+    if wanted:
+        try:
+            import icons as icon_vocab                          # noqa: PLC0415
+            icon_paths = icon_vocab.ensure(wanted, log=log)
+        except Exception as exc:                                # noqa: BLE001
+            if log:
+                log(f"   ⚠️  concept icons unavailable ({type(exc).__name__})"
+                    f" — the panels will be text only")
+    icon_cache: dict[str, str] = {}
+
+    els: list[dict] = []
+    y = 0.0
+    for title, items, accent, tint, cap in panels:
+        part, h = _panel(0, y, f"{title}  ({len(items)})", items,
+                         accent, tint, max_items=cap,
+                         icon_paths=icon_paths, files=files,
+                         icon_cache=icon_cache)
+        els += part
+        y += h + PANEL_GAP
+
+    # The room goes LAST, and is drawn rather than listed — see _people_panel.
+    people = q.get("participants", [])
+    if people:
+        part, h = _people_panel(0, y, people, "#1971c2", "#e7f5ff")
+        els += part
+        y += h
+    else:
+        y = max(0.0, y - PANEL_GAP)    # no trailing gap below the last panel
+
+    if log and icon_paths:
+        tagged = sum(1 for _, items, _, _, cap in panels
+                     for i in items[:cap] if icon_concept(i) in icon_paths)
+        shown = sum(min(len(items), cap) for _, items, _, _, cap in panels)
+        log(f"   🖼  {tagged}/{shown} margin item(s) carry a concept icon "
+            f"({len(icon_cache)} distinct)")
+    return els, y
+
+
 def build_scene(plan: dict, images: list[str | None],
                 digest: dict | None = None, log=None) -> dict:
     """plan + one image path per anchor (None where FLUX failed) -> a scene.
@@ -704,8 +792,15 @@ def build_scene(plan: dict, images: list[str | None],
             "glyph": anchor.get("glyph", ""),
         })
 
+    # ── the margin panels, built BEFORE the ring is sized ───────────────────
+    # Their height does not depend on the ring at all — only on the digest text
+    # and PANEL_W — while the ring's ideal height DOES depend on theirs (see
+    # _node_positions' min_height). So they are drawn first, at the origin, and
+    # translated into place once the ring's right edge is known.
+    panel_els, panel_h = _build_panels(digest, files, log)
+
     tallest = max(m["card_h"] for m in measured)   # notes are inside the card
-    centres = _node_positions(len(anchors), tallest)
+    centres = _node_positions(len(anchors), tallest, min_height=panel_h)
 
     # ── pass 2: emit the elements ───────────────────────────────────────────
     elements: list[dict] = []
@@ -753,65 +848,16 @@ def build_scene(plan: dict, images: list[str | None],
                            bow=BOWS[drawn_links % len(BOWS)])
         drawn_links += 1
 
-    # ── margin panels, straight from the digest ─────────────────────────────
-    # Placed to the RIGHT of the ring, after the nodes are measured, so they
-    # never collide with it: the ring's width is known by now and the panels
-    # start past it.
-    panel_els: list[dict] = []
-    if digest:
-        q = digest.get("queries", {})
+    # ── margin panels ───────────────────────────────────────────────────────
+    # Built at the origin above (before the ring was sized, so the ring could be
+    # stretched to their height); moved into place now that the ring's right
+    # edge is known, which is what keeps them clear of it.
+    if panel_els:
         ring_right = max(e["x"] + e["width"] for e in elements)
-        px = ring_right + PANEL_GAP * 2
-        py = min(e["y"] for e in elements)
-
-        panels = []
-        for title, rows, key, accent, tint, cap in (
-            ("⚠ Still open", q.get("open_threads", []), "fact", "#e8590c", "#fff4e6", 10),
-            ("✓ Decided", q.get("decisions", []), "fact", "#2f9e44", "#ebfbee", 10),
-        ):
-            if rows:
-                panels.append((title, [r.get(key, "") for r in rows if r.get(key)],
-                               accent, tint, cap))
-        # ── the icons the panels will actually need ─────────────────────────
-        # Resolved in ONE batch before any drawing: the concepts are known from
-        # the text, so the (rare) generation of a missing one happens once, not
-        # per panel. Everything already cached costs nothing.
-        wanted = [c for _, items, _, _, cap in panels
-                  for c in (icon_concept(i) for i in items[:cap]) if c]
-        icon_paths: dict[str, str] = {}
-        if wanted:
-            try:
-                import icons as icon_vocab                      # noqa: PLC0415
-                icon_paths = icon_vocab.ensure(wanted, log=log)
-            except Exception as exc:                            # noqa: BLE001
-                if log:
-                    log(f"   ⚠️  concept icons unavailable ({type(exc).__name__})"
-                        f" — the panels will be text only")
-        icon_cache: dict[str, str] = {}
-
-        for title, items, accent, tint, cap in panels:
-            els, h = _panel(px, py, f"{title}  ({len(items)})", items,
-                            accent, tint, max_items=cap,
-                            icon_paths=icon_paths, files=files,
-                            icon_cache=icon_cache)
-            panel_els += els
-            py += h + PANEL_GAP
-
-        # The room goes LAST, and is drawn rather than listed — see _people_panel.
-        # ◆ rather than a 🗣 emoji: the other two headings use ⚠ and ✓, plain
-        # symbols every font has, while a colour emoji falls back to a tofu box
-        # in the PNG preview, which is the surface Faris actually looks at.
-        people = q.get("participants", [])
-        if people:
-            els, h = _people_panel(px, py, people, "#1971c2", "#e7f5ff")
-            panel_els += els
-
-        if log and icon_paths:
-            tagged = sum(1 for _, items, _, _, cap in panels
-                         for i in items[:cap] if icon_concept(i) in icon_paths)
-            shown = sum(min(len(items), cap) for _, items, _, _, cap in panels)
-            log(f"   🖼  {tagged}/{shown} margin item(s) carry a concept icon "
-                f"({len(icon_cache)} distinct)")
+        ring_top = min(e["y"] for e in elements)
+        for e in panel_els:
+            e["x"] = round(e["x"] + ring_right + PANEL_GAP * 2, 2)
+            e["y"] = round(e["y"] + ring_top, 2)
     elements += panel_els
 
     # ── normalise: shift everything to (PAD, PAD + TITLE_BAND) ──────────────
