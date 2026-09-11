@@ -393,6 +393,7 @@ if should_run:
                     existing_group_id=existing_group_id if use_existing else None,
                 )
             status.update(label="Done", state="complete", expanded=False)
+            st.session_state.last_log = lines
             st.session_state.last_result = result
             st.session_state.last_key = run_key
             st.session_state.pop("last_failed_key", None)
@@ -444,6 +445,35 @@ if st.session_state.get("last_result"):
     with open(result["board_path"]) as fh:
         scene = json.load(fh)
     render_excalidraw(scene)
+
+    # ── the run's own record, kept ──────────────────────────────────────────
+    # These are the two questions asked whenever a board looks wrong: what did
+    # the cypher queries return, and what did the planner do with it. Both were
+    # on screen during the run and then thrown away.
+    log = st.session_state.get("last_log") or []
+    if log:
+        with st.expander("🧾 Run log — what each stage returned", expanded=False):
+            st.code("\n".join(log), language=None)
+
+    plan = result.get("plan")
+    if plan:
+        with st.expander("🧭 What the planner returned", expanded=False):
+            st.caption(f"{plan.get('_n_facts_in', '?')} digest items in → "
+                       f"{len(plan.get('anchors', []))} anchors, "
+                       f"{len(plan.get('links', []))} links, "
+                       f"{len(plan.get('notes', []))} notes, "
+                       f"{len(plan.get('dropped', []))} dropped. "
+                       f"The margins bypass the planner and come straight from "
+                       f"the digest.")
+            for problem in result.get("validation", []):
+                st.warning(problem)
+            st.json({k: v for k, v in plan.items()
+                     # _facts and _raw_reply are long and are on disk; showing
+                     # them here buries the plan they are context for.
+                     if k not in ("_facts", "_raw_reply")}, expanded=False)
+            if plan.get("_raw_reply"):
+                st.caption("Raw reply, before JSON extraction:")
+                st.code(plan["_raw_reply"][:4000], language="json")
     with st.expander("If the canvas above is blank"):
         st.markdown(
             f"The live embed loads Excalidraw from a CDN in your browser — if "
