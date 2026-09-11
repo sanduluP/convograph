@@ -1,0 +1,481 @@
+{
+  "title": "Cutover Readiness Freeze",
+  "anchors": [
+    {
+      "label": "ProjectManager",
+      "glyph": "padlock",
+      "from_facts": [
+        0,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44
+      ]
+    },
+    {
+      "label": "Handoff Trigger",
+      "glyph": "bridge",
+      "from_facts": [
+        7,
+        26,
+        45,
+        46,
+        49
+      ]
+    },
+    {
+      "label": "Runbook",
+      "glyph": "shield",
+      "from_facts": [
+        2,
+        30,
+        31,
+        38,
+        42,
+        52,
+        53,
+        55,
+        56,
+        57,
+        58,
+        59
+      ]
+    },
+    {
+      "label": "Monitoring",
+      "glyph": "key",
+      "from_facts": [
+        8,
+        34,
+        42,
+        48,
+        52
+      ]
+    },
+    {
+      "label": "Backup Contacts",
+      "glyph": "anchor",
+      "from_facts": [
+        3,
+        31,
+        37,
+        39,
+        40,
+        41,
+        43
+      ]
+    },
+    {
+      "label": "Rollback Path",
+      "glyph": "split road",
+      "from_facts": [
+        6,
+        14,
+        18,
+        44,
+        50,
+        55
+      ]
+    }
+  ],
+  "links": [
+    {
+      "from": 0,
+      "to": 1,
+      "label": "locked by"
+    },
+    {
+      "from": 0,
+      "to": 2,
+      "label": "replaced"
+    },
+    {
+      "from": 0,
+      "to": 5,
+      "label": "frozen"
+    },
+    {
+      "from": 2,
+      "to": 4,
+      "label": "requires"
+    },
+    {
+      "from": 1,
+      "to": 5,
+      "label": "defines"
+    }
+  ],
+  "notes": [
+    {
+      "text": "Open: Requires owner chain in spec.",
+      "anchor": 1
+    },
+    {
+      "text": "Open: Requires handoff path.",
+      "anchor": 1
+    },
+    {
+      "text": "Open: Requires confirmation of blocked approvals.",
+      "anchor": 1
+    },
+    {
+      "text": "Open: Requires access review sign-off from Ops, Security, Support.",
+      "anchor": 1
+    },
+    {
+      "text": "Open: Requires timestamped fallback path.",
+      "anchor": 1
+    },
+    {
+      "text": "Open: Requires rollback trigger.",
+      "anchor": 5
+    },
+    {
+      "text": "Open: Requires final reporting validation.",
+      "anchor": 5
+    },
+    {
+      "text": "Open: Requires 24-hour roster check under pressure.",
+      "anchor": 4
+    }
+  ],
+  "dropped": [
+    7,
+    9
+  ],
+  "_raw_reply": "{\n  \"title\": \"Cutover Readiness Freeze\",\n  \"anchors\": [\n    {\n      \"label\": \"ProjectManager\",\n      \"glyph\": \"padlock\",\n      \"from_facts\": [0, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44]\n    },\n    {\n      \"label\": \"Handoff Trigger\",\n      \"glyph\": \"bridge\",\n      \"from_facts\": [7, 26, 45, 46, 49]\n    },\n    {\n      \"label\": \"Runbook\",\n      \"glyph\": \"shield\",\n      \"from_facts\": [2, 30, 31, 38, 42, 52, 53, 55, 56, 57, 58, 59]\n    },\n    {\n      \"label\": \"Monitoring\",\n      \"glyph\": \"key\",\n      \"from_facts\": [8, 34, 42, 48, 52]\n    },\n    {\n      \"label\": \"Backup Contacts\",\n      \"glyph\": \"anchor\",\n      \"from_facts\": [3, 31, 37, 39, 40, 41, 43]\n    },\n    {\n      \"label\": \"Rollback Path\",\n      \"glyph\": \"split road\",\n      \"from_facts\": [6, 14, 18, 44, 50, 55]\n    }\n  ],\n  \"links\": [\n    {\n      \"from\": 0,\n      \"to\": 1,\n      \"label\": \"locked by\"\n    },\n    {\n      \"from\": 0,\n      \"to\": 2,\n      \"label\": \"replaced\"\n    },\n    {\n      \"from\": 0,\n      \"to\": 5,\n      \"label\": \"frozen\"\n    },\n    {\n      \"from\": 2,\n      \"to\": 4,\n      \"label\": \"requires\"\n    },\n    {\n      \"from\": 1,\n      \"to\": 5,\n      \"label\": \"defines\"\n    }\n  ],\n  \"notes\": [\n    {\n      \"text\": \"Open: Requires owner chain in spec.\",\n      \"anchor\": 1\n    },\n    {\n      \"text\": \"Open: Requires handoff path.\",\n      \"anchor\": 1\n    },\n    {\n      \"text\": \"Open: Requires confirmation of blocked approvals.\",\n      \"anchor\": 1\n    },\n    {\n      \"text\": \"Open: Requires access review sign-off from Ops, Security, Support.\",\n      \"anchor\": 1\n    },\n    {\n      \"text\": \"Open: Requires timestamped fallback path.\",\n      \"anchor\": 1\n    },\n    {\n      \"text\": \"Open: Requires rollback trigger.\",\n      \"anchor\": 5\n    },\n    {\n      \"text\": \"Open: Requires final reporting validation.\",\n      \"anchor\": 5\n    },\n    {\n      \"text\": \"Open: Requires 24-hour roster check under pressure.\",\n      \"anchor\": 4\n    }\n  ],\n  \"dropped\": [7, 9]\n}",
+  "_provider": "saia",
+  "_model": "qwen3-30b-a3b-instruct-2507",
+  "_n_facts_in": 60,
+  "_source": "digest",
+  "_anchor_range": [
+    4,
+    6
+  ],
+  "_windows": 2,
+  "_group_id": "treasury_prod_deploy_speaker_free",
+  "_plan_seconds": 4.17,
+  "_validation": [
+    "fact indices used more than once: [7, 26, 30, 31, 34, 37, 38, 39, 40, 41, 42, 43, 44, 52, 55]"
+  ],
+  "_facts": [
+    {
+      "fact": "ProjectManager protects July 19 by freezing the control chain and handoff time",
+      "invalid_at": "2026-09-08T00:00:00Z[UTC]",
+      "valid_at": "2026-07-19T00:00:00Z"
+    },
+    {
+      "fact": "Finance is responsible for locking the final cutover window on July 19.",
+      "invalid_at": "2026-09-08T13:37:25Z[UTC]",
+      "valid_at": "2026-07-19T00:00:00Z"
+    },
+    {
+      "fact": "Production Deployment Readiness is scheduled to go live on July 19.",
+      "invalid_at": "2026-09-08T13:37:25Z[UTC]",
+      "valid_at": "2026-07-19T00:00:00Z"
+    },
+    {
+      "fact": "Production Deployment Readiness has a cutover date of July 19.",
+      "invalid_at": "2026-09-08T00:00:00Z",
+      "valid_at": "2026-07-19T00:00:00Z[UTC]"
+    },
+    {
+      "fact": "The control IDs must be version-locked by July 19.",
+      "invalid_at": "2026-09-08T13:37:25Z[UTC]",
+      "valid_at": "2026-07-19T00:00:00Z"
+    },
+    {
+      "fact": "The PMO is requested to lock the 30-minute alignment this week.",
+      "invalid_at": "2026-09-15T00:00:00Z",
+      "valid_at": "2026-09-08T00:00:00Z"
+    },
+    {
+      "fact": "Infrastructure is participating in a cross-functional dependency check this week.",
+      "invalid_at": "2026-09-14T23:59:59Z",
+      "valid_at": "2026-09-08T00:00:00Z"
+    },
+    {
+      "fact": "The handoff trigger is to be frozen in the SharePoint document http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec by Friday EOD.",
+      "invalid_at": "2026-09-11T23:59:59Z",
+      "valid_at": "2026-09-08T13:37:25Z"
+    },
+    {
+      "fact": "ProjectManager is responsible for freezing the evidence owner in the spec by Friday EOD.",
+      "invalid_at": "2026-09-11T23:59:59Z",
+      "valid_at": "2026-09-08T13:37:25Z"
+    },
+    {
+      "fact": "Security is to confirm monitoring thresholds by EOD Friday.",
+      "invalid_at": "2026-09-11T00:00:00Z",
+      "valid_at": "2026-09-08T00:00:00Z"
+    },
+    {
+      "fact": "ProjectManager sets Thursday as the hard stop for named sign-off.",
+      "invalid_at": "2026-09-11T00:00:00Z",
+      "valid_at": "2026-09-08T00:00:00Z"
+    },
+    {
+      "fact": "Operations is to confirm who can actually pull the cutover hold by EOD Friday.",
+      "invalid_at": "2026-09-11T23:59:59Z",
+      "valid_at": "2026-09-08T13:37:25Z"
+    },
+    {
+      "fact": "Infrastructure is to confirm access approvals by EOD Friday.",
+      "invalid_at": "2026-09-11T23:59:59Z",
+      "valid_at": "2026-09-08T13:37:25Z"
+    },
+    {
+      "fact": "ProjectManager is responsible for freezing the chain in the spec by Thursday EOD.",
+      "invalid_at": "2026-09-10T23:59:59Z",
+      "valid_at": "2026-09-08T00:00:00Z"
+    },
+    {
+      "fact": "ProjectManager is to post the rollback constraint by EOD Thursday.",
+      "invalid_at": "2026-09-10T23:59:59Z",
+      "valid_at": "2026-09-08T13:37:25Z"
+    },
+    {
+      "fact": "Support must post timestamped bridge coverage against the frozen chain in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec by Thursday EOD",
+      "invalid_at": "2026-09-10T23:59:59Z",
+      "valid_at": "2026-09-08T13:37:25Z"
+    },
+    {
+      "fact": "primary handoff owner missing = backup approver should be stamped in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec by Thursday EOD",
+      "invalid_at": "2026-09-10T23:59:59Z",
+      "valid_at": "2026-09-08T13:37:25Z"
+    },
+    {
+      "fact": "Operations lead as final sign-off should be stamped in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec by Thursday EOD",
+      "invalid_at": "2026-09-10T23:59:59Z",
+      "valid_at": "2026-09-08T00:00:00Z"
+    },
+    {
+      "fact": "The exact fallback path must be frozen in the production deployment readiness spec by Thursday EOD.",
+      "invalid_at": "2026-09-10T23:59:59Z",
+      "valid_at": "2026-09-08T00:00:00Z"
+    },
+    {
+      "fact": "Project Manager creates a clean record to freeze against before Friday review",
+      "invalid_at": "2026-09-11T00:00:00Z",
+      "valid_at": "2026-09-08T13:37:25Z"
+    },
+    {
+      "fact": "Support is to post evidence owner by EOD Thursday.",
+      "invalid_at": "2026-09-10T23:59:59Z",
+      "valid_at": "2026-09-08T00:00:00Z"
+    },
+    {
+      "fact": "Operations confirms go-live coverage by Thursday EOD in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec.",
+      "invalid_at": "2026-09-10T23:59:59Z",
+      "valid_at": "2026-09-08T00:00:00Z"
+    },
+    {
+      "fact": "Operations submits named sign-off and timestamped evidence by Thursday EOD",
+      "invalid_at": "2026-09-10T23:59:59Z",
+      "valid_at": "2026-09-08T00:00:00Z"
+    },
+    {
+      "fact": "Infrastructure is to confirm any environment gaps by Friday.",
+      "invalid_at": "2026-09-11T00:00:00Z",
+      "valid_at": "2026-09-08T13:37:25Z"
+    },
+    {
+      "fact": "treasury_ops must bring the open dependency list against the production_deployment_readiness_spec by Friday.",
+      "invalid_at": "2026-09-11T00:00:00Z",
+      "valid_at": "2026-09-08T13:37:25.634425Z"
+    },
+    {
+      "fact": "ProjectManager confirms that the spec shows only the go/no-go owner can hold cutover.",
+      "invalid_at": null,
+      "valid_at": null
+    },
+    {
+      "fact": "ProjectManager stamps validator, backup contacts, and handoff time in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec",
+      "invalid_at": null,
+      "valid_at": null
+    },
+    {
+      "fact": "ProjectManager freezes the chain in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec today.",
+      "invalid_at": null,
+      "valid_at": "2026-09-08T00:00:00Z"
+    },
+    {
+      "fact": "The ProjectManager is to lock the final fallback chain in the spec today.",
+      "invalid_at": null,
+      "valid_at": "2026-09-08T00:00:00Z"
+    },
+    {
+      "fact": "ProjectManager is to freeze the control chain structure in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec today.",
+      "invalid_at": null,
+      "valid_at": "2026-09-08T00:00:00Z"
+    },
+    {
+      "fact": "ProjectManager freezes primary, backup, and approver in the runbook.",
+      "invalid_at": null,
+      "valid_at": "2026-09-08T13:37:25Z"
+    },
+    {
+      "fact": "ProjectManager must lock primary/backup contacts and evidence owner in the runbook.",
+      "invalid_at": null,
+      "valid_at": "2026-09-08T13:37:25Z"
+    },
+    {
+      "fact": "Operations is to freeze the access-control change against the spec at http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec.",
+      "invalid_at": null,
+      "valid_at": "2026-09-08T13:37:25Z"
+    },
+    {
+      "fact": "Finance is responsible for locking the final cutover window in the production readiness spec.",
+      "invalid_at": null,
+      "valid_at": null
+    },
+    {
+      "fact": "Security confirms access provisioning and rollback owner in the production readiness spec.",
+      "invalid_at": null,
+      "valid_at": null
+    },
+    {
+      "fact": "ProjectManager locks incident commander backup in the spec.",
+      "invalid_at": null,
+      "valid_at": null
+    },
+    {
+      "fact": "ProjectManager is responsible for freezing named backup contacts before full-run commitment.",
+      "invalid_at": null,
+      "valid_at": null
+    },
+    {
+      "fact": "ProjectManager freezes one backup per function.",
+      "invalid_at": null,
+      "valid_at": null
+    },
+    {
+      "fact": "ProjectManager is to freeze the backup in the runbook.",
+      "invalid_at": null,
+      "valid_at": "2026-09-08T13:37:25Z"
+    },
+    {
+      "fact": "ProjectManager locks backup contacts in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec today.",
+      "invalid_at": null,
+      "valid_at": "2026-09-08T00:00:00Z"
+    },
+    {
+      "fact": "ProjectManager freezes backup contacts today.",
+      "invalid_at": null,
+      "valid_at": "2026-09-08T00:00:00Z"
+    },
+    {
+      "fact": "ProjectManager stamps the backup contacts in the readiness spec today.",
+      "invalid_at": null,
+      "valid_at": "2026-09-08T00:00:00Z"
+    },
+    {
+      "fact": "ProjectManager confirms monitoring gaps.",
+      "invalid_at": null,
+      "valid_at": "2026-09-08T13:37:25Z"
+    },
+    {
+      "fact": "ProjectManager is responsible for freezing a single rollback decision owner before full-run commitment.",
+      "invalid_at": null,
+      "valid_at": null
+    },
+    {
+      "fact": "The ProjectManager can stamp the final rollback owner in the spec once the live bridge roster is confirmed.",
+      "invalid_at": null,
+      "valid_at": null
+    },
+    {
+      "fact": "The production deployment readiness spec requires the owner chain.",
+      "invalid_at": null,
+      "valid_at": null
+    },
+    {
+      "fact": "The production deployment readiness spec requires a handoff path.",
+      "invalid_at": null,
+      "valid_at": null
+    },
+    {
+      "fact": "The production deployment readiness spec requires confirmation of any blocked approvals.",
+      "invalid_at": null,
+      "valid_at": "2026-09-08T13:37:25Z"
+    },
+    {
+      "fact": "The production readiness spec requires access review sign-off from Ops, Security, and Support.",
+      "invalid_at": null,
+      "valid_at": "2026-09-08T13:37:25Z"
+    },
+    {
+      "fact": "The readiness spec should require a timestamped fallback path to prevent soft sign-off.",
+      "invalid_at": null,
+      "valid_at": null
+    },
+    {
+      "fact": "The production deployment readiness spec requires a rollback trigger.",
+      "invalid_at": null,
+      "valid_at": null
+    },
+    {
+      "fact": "The production deployment readiness spec requires final reporting validation.",
+      "invalid_at": null,
+      "valid_at": "2026-09-08T13:37:25Z"
+    },
+    {
+      "fact": "Runbooks require monitoring to be tight.",
+      "invalid_at": null,
+      "valid_at": null
+    },
+    {
+      "fact": "Cutover validation requires tight runbooks.",
+      "invalid_at": null,
+      "valid_at": null
+    },
+    {
+      "fact": "The July 19 cutover requires a confirmed staffed bridge roster.",
+      "invalid_at": null,
+      "valid_at": null
+    },
+    {
+      "fact": "Runbooks require rollback planning to be tight.",
+      "invalid_at": null,
+      "valid_at": null
+    },
+    {
+      "fact": "Remaining sign-offs require tight runbooks.",
+      "invalid_at": null,
+      "valid_at": null
+    },
+    {
+      "fact": "Runbooks require hypercare ownership to be tight.",
+      "invalid_at": null,
+      "valid_at": null
+    },
+    {
+      "fact": "Support alignment requires tight runbooks.",
+      "invalid_at": null,
+      "valid_at": null
+    },
+    {
+      "fact": "Support requires a 24-hour roster check to ensure the fallback chain can execute under pressure.",
+      "invalid_at": null,
+      "valid_at": null
+    }
+  ],
+  "_facts_before_dedupe": 60,
+  "_deduped": false
+}

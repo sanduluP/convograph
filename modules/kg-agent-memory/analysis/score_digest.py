@@ -16,13 +16,20 @@ That second one is exactly what Q1's revision spine claims to recover. So the
 question stops being "does this look right" and becomes "is the ground-truth
 revision in the digest's top N, and where".
 
-WHAT IS AND IS NOT MEASURED
----------------------------
-Matching is LEXICAL — token-set F1 over content words, the same approach
-fact_redundancy uses. Deliberately not an embedding model: this has to be
-reproducible with no GPU, no API key and no drift between runs, and the failure
-mode is the safe one. A paraphrase with no shared vocabulary scores 0 here even
-though a human would call it a hit, so every number this prints is a FLOOR.
+HOW MATCHING WORKS, AND WHY IT CHANGED
+-------------------------------------
+SEMANTIC, via bge-m3 on unicorn. It was lexical token-set F1 first, chosen for
+reproducibility, and that was the wrong call: the two sides share MEANING, not
+words. Ground truth is a human-written label ("Deployment and Operations
+Readiness"); the digest speaks the graph's vocabulary ("monitoring, Ops,
+runbook, deployment support"). Measured 2026-09-08 on the real phase, the
+lexical scorer rated the CORRECT revision at 0.151 and the CORRECT topic at
+0.20, both under its own 0.25 threshold, and reported recall 0.0 for a digest
+that had actually found the right material.
+
+A lexical fallback remains for when the embedder is unreachable, and the output
+always says which mode produced the numbers — the two are not comparable and a
+mixed table would be worse than no table.
 
 A per-phase score is also weak on its own: one revision and one topic is a
 sample of one. The output is built to aggregate across phases, which is what
@@ -42,7 +49,40 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from analysis.fact_redundancy import tokens  # noqa: E402  (one tokeniser, reused)
+from analysis.fact_redundancy import tokens  # noqa: E402  (lexical fallback)
+
+# bge-m3, the same embedder Graphiti uses for this corpus — so "similar" means
+# the same thing here as it does inside the graph.
+EMBED_URL = os.getenv("GRAPHITI_EMBED_BASE_URL", "http://localhost:11435/v1")
+EMBED_MODEL = os.getenv("GRAPHITI_EMBED_MODEL", "bge-m3")
+
+
+def embed(texts: list[str]) -> list[list[float]] | None:
+    """Embed a batch. None if the embedder is unreachable, so the caller can
+    fall back rather than fail — a scorer that needs a tunnel to run at all is
+    a scorer that will not be run."""
+    import json as _json
+    import urllib.error
+    import urllib.request
+    try:
+        req = urllib.request.Request(
+            f"{EMBED_URL.rstrip('/')}/embeddings",
+            data=_json.dumps({"model": EMBED_MODEL, "input": texts}).encode(),
+            headers={"Content-Type": "application/json",
+                     "Authorization": "Bearer ollama"})
+        with urllib.request.urlopen(req, timeout=120) as r:
+            body = _json.loads(r.read())
+        return [d["embedding"] for d in
+                sorted(body["data"], key=lambda d: d["index"])]
+    except Exception:                                          # noqa: BLE001
+        return None
+
+
+def cosine(a: list[float], b: list[float]) -> float:
+    num = sum(x * y for x, y in zip(a, b))
+    na = sum(x * x for x in a) ** 0.5
+    nb = sum(y * y for y in b) ** 0.5
+    return num / (na * nb) if na and nb else 0.0
 
 
 def f1(a: set[str], b: set[str]) -> float:
@@ -58,34 +98,78 @@ def f1(a: set[str], b: set[str]) -> float:
     return 2 * p * r / (p + r)
 
 
-def best_match(target: str, candidates: list[str]) -> tuple[int, float]:
-    """(index, score) of the candidate closest to target. (-1, 0.0) if none."""
+def best_match(target: str, candidates: list[str],
+               vectors: dict | None = None) -> tuple[int, float]:
+    """(index, score) of the candidate closest to target. (-1, 0.0) if none.
+
+    Uses the precomputed embedding table when there is one, cosine on bge-m3;
+    otherwise token-set F1. The scales are NOT comparable — cosine on this model
+    puts unrelated text around 0.4-0.6, so the thresholds differ by mode.
+    """
+    if vectors is not None:
+        tv = vectors.get(target)
+        if tv is not None:
+            best, best_i = 0.0, -1
+            for i, c in enumerate(candidates):
+                cv = vectors.get(c)
+                if cv is None:
+                    continue
+                sc = cosine(tv, cv)
+                if sc > best:
+                    best, best_i = sc, i
+            return best_i, best
     t = tokens(target)
     best, best_i = 0.0, -1
     for i, c in enumerate(candidates):
-        s = f1(t, tokens(c))
-        if s > best:
-            best, best_i = s, i
+        sc = f1(t, tokens(c))
+        if sc > best:
+            best, best_i = sc, i
     return best_i, best
 
 
-def score(digest: dict, gt: dict, threshold: float = 0.25) -> dict:
+# Thresholds are per-MODE because the two scales have nothing to do with each
+# other. Token-set F1 is ~0 for unrelated text; bge-m3 cosine puts unrelated
+# text around 0.4-0.6 because every sentence shares the same embedding
+# neighbourhood of "English about work". 0.70 was chosen against the negative
+# control, not the positive one: the unrelated corpus digest scores below it.
+DEFAULT_THRESHOLD = {"embedding": 0.70, "lexical": 0.25}
+
+
+def score(digest: dict, gt: dict, threshold: float | None = None) -> dict:
     """Compare one digest against one phase's ground truth."""
     q = digest.get("queries", {})
+
+    # ── embed everything in ONE batch ───────────────────────────────────────
+    # Collected first so the embedder is called once rather than per comparison:
+    # the alternative is O(candidates x ground truth) round trips through an SSH
+    # tunnel, which is slow enough that nobody would run the scorer twice.
+    rev_rows = [f"{r.get('was','')} {r.get('became','') or ''}"
+                for r in q.get("revisions", [])]
+    topic_rows = [" ".join([t.get("topic", "")] + list(t.get("neighbours") or []))
+                  for t in q.get("topics", [])]
+    gt_revs = [" ".join(str(x) for x in
+                        (g.get("original_decision"), g.get("changed_to")) if x)
+               for g in gt.get("revisions", [])]
+    gt_topics = [g["topic"] for g in gt.get("topics", [])]
+
+    corpus = [t for t in (rev_rows + topic_rows + gt_revs + gt_topics) if t]
+    vecs = embed(corpus) if corpus else None
+    vectors = dict(zip(corpus, vecs)) if vecs else None
+    mode = "embedding" if vectors else "lexical"
+    threshold = threshold if threshold is not None else DEFAULT_THRESHOLD[mode]
+
     out: dict = {"phase": gt.get("phase"), "channel": gt.get("channel"),
-                 "threshold": threshold}
+                 "threshold": threshold, "mode": mode,
+                 "embed_model": EMBED_MODEL if vectors else None}
 
     # ── Q1: is the phase's REVERSED decision in the revision spine, and where? ──
     # Rank matters as much as presence. A board shows a handful of revisions, so
     # a ground-truth hit at position 24 of 25 would not reach the board even
     # though recall counts it.
     revisions = q.get("revisions", [])
-    rev_rows = [f"{r.get('was','')} {r.get('became','') or ''}" for r in revisions]
     rev_scores = []
-    for g in gt.get("revisions", []):
-        target = " ".join(str(x) for x in
-                          (g.get("original_decision"), g.get("changed_to")) if x)
-        i, s = best_match(target, rev_rows)
+    for target in gt_revs:
+        i, s = best_match(target, rev_rows, vectors)
         rev_scores.append({
             "ground_truth": target[:160],
             "found": bool(s >= threshold),
@@ -109,15 +193,11 @@ def score(digest: dict, gt: dict, threshold: float = 0.25) -> dict:
     # "owner", "timestamp". A topic counts as covered if ANY digest topic or its
     # neighbours overlap it, because a board names an idea through a cluster of
     # entities rather than one string.
-    topic_rows = []
-    for t in q.get("topics", []):
-        topic_rows.append(" ".join([t.get("topic", "")]
-                                   + list(t.get("neighbours") or [])))
     topic_scores = []
-    for g in gt.get("topics", []):
-        i, s = best_match(g["topic"], topic_rows)
+    for gt_topic in gt_topics:
+        i, s = best_match(gt_topic, topic_rows, vectors)
         topic_scores.append({
-            "ground_truth": g["topic"],
+            "ground_truth": gt_topic,
             "covered": bool(s >= threshold),
             "rank": (i + 1) if s >= threshold else None,
             "score": round(s, 3),
@@ -146,7 +226,10 @@ def score(digest: dict, gt: dict, threshold: float = 0.25) -> dict:
 
 
 def render(s: dict) -> str:
-    L = [f"# Digest score — {s['channel']} / {s['phase']}", ""]
+    L = [f"# Digest score — {s['channel']} / {s['phase']}", "",
+         f"matching: **{s['mode']}**"
+         + (f" (`{s['embed_model']}`)" if s.get("embed_model") else "")
+         + f", threshold {s['threshold']}", ""]
     r, t, p = s["revisions"], s["topics"], s["participants"]
 
     L += ["## Q1 · revision spine", ""]
@@ -186,8 +269,13 @@ def render(s: dict) -> str:
     if p["missed"]:
         L.append(f"- missed: {', '.join(p['missed'])}")
 
-    L += ["", "> Matching is lexical token-set F1, so a paraphrase sharing no "
-          "vocabulary scores 0. Every number here is a FLOOR."]
+    if s["mode"] == "lexical":
+        L += ["", "> ⚠️ The embedder was unreachable, so this fell back to lexical "
+              "token-set F1 — which rates a correct paraphrase at ~0.15 and calls "
+              "it a miss. Start the tunnel and re-run before quoting anything."]
+    else:
+        L += ["", f"> Cosine on `{s['embed_model']}`. Unrelated work text sits "
+              f"around 0.4-0.6 on this model, so {s['threshold']} is the bar, not 0."]
     return "\n".join(L) + "\n"
 
 
@@ -196,8 +284,8 @@ def main() -> None:
     ap.add_argument("--digest", required=True, help="a run's digest/digest.json")
     ap.add_argument("--ground-truth", required=True,
                     help="the phase's .ground_truth.json from extract_phase.py")
-    ap.add_argument("--threshold", type=float, default=0.25,
-                    help="token-set F1 above which two texts are the same thing")
+    ap.add_argument("--threshold", type=float, default=None,
+                    help="override the per-mode default (0.70 embedding, 0.25 lexical)")
     ap.add_argument("--out", default=None, help="write the score JSON here")
     args = ap.parse_args()
 

@@ -1,0 +1,97 @@
+{
+  "title": "Cutover Readiness Freeze",
+  "anchors": [
+    {
+      "label": "ProjectManager",
+      "glyph": "padlock",
+      "from_facts": [0, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44]
+    },
+    {
+      "label": "Handoff Trigger",
+      "glyph": "bridge",
+      "from_facts": [7, 26, 45, 46, 49]
+    },
+    {
+      "label": "Runbook",
+      "glyph": "shield",
+      "from_facts": [2, 30, 31, 38, 42, 52, 53, 55, 56, 57, 58, 59]
+    },
+    {
+      "label": "Monitoring",
+      "glyph": "key",
+      "from_facts": [8, 34, 42, 48, 52]
+    },
+    {
+      "label": "Backup Contacts",
+      "glyph": "anchor",
+      "from_facts": [3, 31, 37, 39, 40, 41, 43]
+    },
+    {
+      "label": "Rollback Path",
+      "glyph": "split road",
+      "from_facts": [6, 14, 18, 44, 50, 55]
+    }
+  ],
+  "links": [
+    {
+      "from": 0,
+      "to": 1,
+      "label": "locked by"
+    },
+    {
+      "from": 0,
+      "to": 2,
+      "label": "replaced"
+    },
+    {
+      "from": 0,
+      "to": 5,
+      "label": "frozen"
+    },
+    {
+      "from": 2,
+      "to": 4,
+      "label": "requires"
+    },
+    {
+      "from": 1,
+      "to": 5,
+      "label": "defines"
+    }
+  ],
+  "notes": [
+    {
+      "text": "Open: Requires owner chain in spec.",
+      "anchor": 1
+    },
+    {
+      "text": "Open: Requires handoff path.",
+      "anchor": 1
+    },
+    {
+      "text": "Open: Requires confirmation of blocked approvals.",
+      "anchor": 1
+    },
+    {
+      "text": "Open: Requires access review sign-off from Ops, Security, Support.",
+      "anchor": 1
+    },
+    {
+      "text": "Open: Requires timestamped fallback path.",
+      "anchor": 1
+    },
+    {
+      "text": "Open: Requires rollback trigger.",
+      "anchor": 5
+    },
+    {
+      "text": "Open: Requires final reporting validation.",
+      "anchor": 5
+    },
+    {
+      "text": "Open: Requires 24-hour roster check under pressure.",
+      "anchor": 4
+    }
+  ],
+  "dropped": [7, 9]
+}

@@ -1,0 +1,8 @@
+{"topic": "Support", "episodes": 42, "neighbours": ["support hours", "bridge", "24-hour roster check", "coverage", "evidence owners"]}
+{"topic": "ProjectManager", "episodes": 41, "neighbours": ["backup contacts", "rollback authority", "runbook", "evidence owners", "handoff trigger"]}
+{"topic": "runbook", "episodes": 40, "neighbours": ["ProjectManager", "cutover rehearsal ownership", "monitoring", "reconciliation owners", "backup contacts"]}
+{"topic": "backup contacts", "episodes": 37, "neighbours": ["ProjectManager", "runbook", "escalation ownership", "deployment support", "validation timestamp"]}
+{"topic": "Ops", "episodes": 36, "neighbours": ["monitoring", "evidence pack completeness", "coverage", "runbook", "escalation map"]}
+{"topic": "handoff trigger", "episodes": 28, "neighbours": ["ProjectManager", "rollback authority", "rollback decision path", "July 19 go-live path", "provisional thresholds"]}
+{"topic": "rollback decision path", "episodes": 28, "neighbours": ["ProjectManager", "runbook", "full end-to-end dry run", "FRA", "Support"]}
+{"topic": "monitoring", "episodes": 27, "neighbours": ["Ops", "Finance", "runbook", "deployment support", "treasury_ops"]}

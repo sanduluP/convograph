@@ -111,21 +111,42 @@ def _slice_clause(episode_limit: int, episode_start: int) -> str:
 def q1_revisions(s, g, slice_clause, limit=25) -> list[dict]:
     """Facts the conversation later overturned, with the fact that replaced them.
 
-    RANKING. A meeting can overturn hundreds of facts and a board has room for a
-    handful, so the cap is a SELECTION and the ordering is the whole argument.
-    Three signals, best first:
+    RANKING — chosen by MEASUREMENT, not intuition. A meeting can overturn
+    hundreds of facts and a board has room for a handful, so the ordering is the
+    whole argument.
 
-      1. EPISODE SPAN between the old fact and the new one. A decision revisited
-         many windows later is a genuine change of mind; one corrected two
-         minutes later is a typo. This is the strongest available signal and it
-         is purely structural.
-      2. ENDPOINT DEGREE — a revision about a hub entity touched more of the
-         meeting than one about something mentioned once.
-      3. Recency, as the tiebreak.
+    ⚠️ NO SIGNAL HERE RANKS THE REVISION THAT MATTERED. This is a measured
+    negative result, not an untested design, and it should be read before anyone
+    quotes a recall number from Q1.
 
-    Faris proposed degree as the primary signal; span beats it because degree
-    ranks the same handful of hub entities to the top of every query, so Q1 and
-    Q2 would return the same material. Degree still contributes as (2).
+    Scored against the one decision this phase actually reversed (2026-09-11,
+    157 superseded candidates), every signal available:
+
+        episodes the fact spans      rank  18/157   ← ARTEFACT, see below
+        successor + topic similarity       66
+        has an identified successor        73
+        similarity to top topics          125
+        composite span + degree           137
+        degree alone                      141
+        time span alone                   152
+
+    The 18 was not real. `size(r.episodes)` is 1 for 156 of the 157 facts, so
+    sorting by it is sorting by nothing; a stable sort then preserved input order
+    and the ground truth happened to sit at 18. Ranking on it in the query, where
+    degree breaks the ties, puts it back near the bottom.
+
+    Why the honest signals fail:
+      * TIME SPAN — the ground-truth fact has no valid_at at all (5 of 157 do
+        not), so any ordering on span decides its fate by an absent field.
+      * DEGREE — ProjectManager has 477 connections, so every revision touching
+        ProjectManager outranks everything regardless of content.
+      * TOPIC SIMILARITY — every fact in a project meeting is about the project.
+
+    So the ordering below is the most DEFENSIBLE one available, not a solution:
+    prefer revisions whose successor was actually identified, because those are
+    complete before/after pairs a board can draw, and break ties on degree. What
+    it does NOT claim is that the top of the list is the most important change.
+    Finding a signal that does is open work.
 
     The successor join is EXACT, not "the next fact afterwards": invalidation
     copies the new fact's valid_at into the old fact's invalid_at
@@ -147,15 +168,23 @@ def q1_revisions(s, g, slice_clause, limit=25) -> list[dict]:
             ORDER BY s2.created_at LIMIT 1
         }
         WITH r, a, b, successor,
-             CASE WHEN r.valid_at IS NULL THEN -1
+             CASE WHEN r.valid_at IS NULL THEN null
                   ELSE duration.between(r.valid_at, r.invalid_at).days END AS span_days,
              COUNT { (a)-[:RELATES_TO]-() } + COUNT { (b)-[:RELATES_TO]-() } AS degree
+        // span_days and degree are RETURNED but no longer order the result —
+        // they are context for a reader, and both were measured to rank the
+        // revision that mattered near the bottom. See the docstring.
+        WITH r, a, b, successor, span_days, degree,
+             size(r.episodes) AS episodes_spanned
         RETURN a.name AS subject, b.name AS object,
                r.fact AS was, successor AS became,
                toString(r.valid_at) AS valid_from,
                toString(r.invalid_at) AS changed_at,
-               span_days, degree
-        ORDER BY span_days DESC, degree DESC, r.invalid_at DESC
+               span_days, degree, episodes_spanned
+        // A complete before/after pair first — that is what a board can draw and
+        // what a reader can check. Everything after it is a weak tiebreak, and
+        // none of it is a claim about importance (see the docstring).
+        ORDER BY (successor IS NOT NULL) DESC, degree DESC, r.invalid_at DESC
         LIMIT $k
     """, g=g, k=limit)]
 

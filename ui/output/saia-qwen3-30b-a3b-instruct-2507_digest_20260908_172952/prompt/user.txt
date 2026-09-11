@@ -1,0 +1,91 @@
+## What this meeting was about
+
+- Support — in 42 windows (with support hours, bridge, 24-hour roster check, coverage)
+- ProjectManager — in 41 windows (with backup contacts, rollback authority, runbook, evidence owners)
+- runbook — in 40 windows (with ProjectManager, cutover rehearsal ownership, monitoring, reconciliation owners)
+- backup contacts — in 37 windows (with ProjectManager, runbook, escalation ownership, deployment support)
+- Ops — in 36 windows (with monitoring, evidence pack completeness, coverage, runbook)
+- handoff trigger — in 28 windows (with ProjectManager, rollback authority, rollback decision path, July 19 go-live path)
+- rollback decision path — in 28 windows (with ProjectManager, runbook, full end-to-end dry run, FRA)
+- monitoring — in 27 windows (with Ops, Finance, runbook, deployment support)
+
+## Documents it kept returning to
+
+- http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec — in 69 windows
+
+## What changed
+
+[0] ProjectManager protects July 19 by freezing the control chain and handoff time  →  Integration must confirm primary/backup coverage by EOD Friday.
+[1] Finance is responsible for locking the final cutover window on July 19.  →  (replacement unknown)
+[2] Production Deployment Readiness is scheduled to go live on July 19.  →  Production Deployment Readiness requires support coverage.
+[3] Production Deployment Readiness has a cutover date of July 19.  →  (replacement unknown)
+[4] The control IDs must be version-locked by July 19.  →  (replacement unknown)
+[5] The PMO is requested to lock the 30-minute alignment this week.  →  (replacement unknown)
+[6] Infrastructure is participating in a cross-functional dependency check this week.  →  (replacement unknown)
+[7] The handoff trigger is to be frozen in the SharePoint document http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec by Friday EOD.  →  (replacement unknown)
+[8] ProjectManager is responsible for freezing the evidence owner in the spec by Friday EOD.  →  (replacement unknown)
+[9] Security is to confirm monitoring thresholds by EOD Friday.  →  ProjectManager sets Friday as the deadline for final review.
+[10] ProjectManager sets Thursday as the hard stop for named sign-off.  →  ProjectManager sets Friday as the deadline for final review.
+[11] Operations is to confirm who can actually pull the cutover hold by EOD Friday.  →  (replacement unknown)
+[12] Infrastructure is to confirm access approvals by EOD Friday.  →  (replacement unknown)
+[13] ProjectManager is responsible for freezing the chain in the spec by Thursday EOD.  →  (replacement unknown)
+[14] ProjectManager is to post the rollback constraint by EOD Thursday.  →  (replacement unknown)
+[15] Support must post timestamped bridge coverage against the frozen chain in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec by Thursday EOD  →  (replacement unknown)
+[16] primary handoff owner missing = backup approver should be stamped in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec by Thursday EOD  →  (replacement unknown)
+[17] Operations lead as final sign-off should be stamped in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec by Thursday EOD  →  (replacement unknown)
+[18] The exact fallback path must be frozen in the production deployment readiness spec by Thursday EOD.  →  (replacement unknown)
+[19] Project Manager creates a clean record to freeze against before Friday review  →  ProjectManager sets Friday as the deadline for final review.
+[20] Support is to post evidence owner by EOD Thursday.  →  (replacement unknown)
+[21] Operations confirms go-live coverage by Thursday EOD in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec.  →  (replacement unknown)
+[22] Operations submits named sign-off and timestamped evidence by Thursday EOD  →  (replacement unknown)
+[23] Infrastructure is to confirm any environment gaps by Friday.  →  (replacement unknown)
+[24] treasury_ops must bring the open dependency list against the production_deployment_readiness_spec by Friday.  →  (replacement unknown)
+
+## What was settled
+
+[25] ProjectManager confirms that the spec shows only the go/no-go owner can hold cutover.
+[26] ProjectManager stamps validator, backup contacts, and handoff time in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec
+[27] ProjectManager freezes the chain in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec today.
+[28] The ProjectManager is to lock the final fallback chain in the spec today.
+[29] ProjectManager is to freeze the control chain structure in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec today.
+[30] ProjectManager freezes primary, backup, and approver in the runbook.
+[31] ProjectManager must lock primary/backup contacts and evidence owner in the runbook.
+[32] Operations is to freeze the access-control change against the spec at http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec.
+[33] Finance is responsible for locking the final cutover window in the production readiness spec.
+[34] Security confirms access provisioning and rollback owner in the production readiness spec.
+[35] ProjectManager locks incident commander backup in the spec.
+[36] ProjectManager is responsible for freezing named backup contacts before full-run commitment.
+[37] ProjectManager freezes one backup per function.
+[38] ProjectManager is to freeze the backup in the runbook.
+[39] ProjectManager locks backup contacts in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec today.
+[40] ProjectManager freezes backup contacts today.
+[41] ProjectManager stamps the backup contacts in the readiness spec today.
+[42] ProjectManager confirms monitoring gaps.
+[43] ProjectManager is responsible for freezing a single rollback decision owner before full-run commitment.
+[44] The ProjectManager can stamp the final rollback owner in the spec once the live bridge roster is confirmed.
+
+## Still open
+
+[45] The production deployment readiness spec requires the owner chain.
+[46] The production deployment readiness spec requires a handoff path.
+[47] The production deployment readiness spec requires confirmation of any blocked approvals.
+[48] The production readiness spec requires access review sign-off from Ops, Security, and Support.
+[49] The readiness spec should require a timestamped fallback path to prevent soft sign-off.
+[50] The production deployment readiness spec requires a rollback trigger.
+[51] The production deployment readiness spec requires final reporting validation.
+[52] Runbooks require monitoring to be tight.
+[53] Cutover validation requires tight runbooks.
+[54] The July 19 cutover requires a confirmed staffed bridge roster.
+[55] Runbooks require rollback planning to be tight.
+[56] Remaining sign-offs require tight runbooks.
+[57] Runbooks require hypercare ownership to be tight.
+[58] Support alignment requires tight runbooks.
+[59] Support requires a 24-hour roster check to ensure the fallback chain can execute under pressure.
+
+## Who was in the room
+
+- User_1 — 26% of utterances
+- User_3 — 25% of utterances
+- User_2 — 24% of utterances
+- User_12 — 22% of utterances
+- User_13 — 3% of utterances
