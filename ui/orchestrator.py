@@ -960,28 +960,70 @@ def run_content_map(
     _write_prompt(run_dir, messages, plan.get("_raw_reply", ""))
 
     # ── hop 3: one pictogram per anchor ─────────────────────────────────────
-    # The glyph, NOT the label: FLUX draws wordless objects and letters as
-    # gibberish, so only the glyph is ever allowed near it.
-    prompts = []
-    for a in anchors:
+    # Two sources, in this order:
+    #
+    #   1. the ENTITY VOCABULARY (icons.py), when the anchor's LABEL names a
+    #      thing we already have a picture of. Selection, not generation.
+    #   2. FLUX, on the planner's glyph phrase, for everything else.
+    #
+    # Why the vocabulary wins. Asked to invent a glyph the planner
+    # free-associates — on 2026-09-11 it returned Security -> "anchor",
+    # Finance -> "split road", Ops -> "key" — and FLUX then drew two of them
+    # covered in invented lettering ("ANCHER", "Tat Road"), because a nautical
+    # anchor and a road are things the training data almost always labels. A
+    # fixed picture per entity is semantically right, verified wordless, and
+    # costs nothing because it is cached.
+    #
+    # The glyph, NOT the label, is what ever reaches FLUX: it draws wordless
+    # objects well and letters as gibberish.
+    import icons as icon_vocab                                  # noqa: PLC0415
+
+    from_vocab: dict[int, str] = {}
+    for i, a in enumerate(anchors):
+        concept = icon_vocab.entity_for(a.get("label", ""))
+        if concept:
+            from_vocab[i] = concept
+    vocab_paths = icon_vocab.ensure(list(from_vocab.values()),
+                                    log=lambda m: _log(progress_cb, m)) \
+        if from_vocab else {}
+    # A concept whose icon could not be produced falls back to FLUX rather than
+    # to nothing — the anchor still gets a picture, just a generated one.
+    from_vocab = {i: c for i, c in from_vocab.items() if c in vocab_paths}
+    if from_vocab:
+        _log(progress_cb, "   🗂  " + ", ".join(
+            f"{anchors[i].get('label')} → {c}" for i, c in sorted(from_vocab.items()))
+            + "  (from the icon vocabulary, not generated)")
+
+    prompts, prompt_of = [], {}          # prompt_of: anchor index -> its slot in
+    for i, a in enumerate(anchors):      #            the FLUX batch
+        if i in from_vocab:
+            continue
         drawn, replaced = board_plan.safe_glyph(a.get("glyph", ""))
         if replaced:
             _log(progress_cb, f"   🔁 glyph {a.get('glyph')!r} → {drawn!r} "
                               f"(a {replaced} comes back covered in invented letters)")
             a["_glyph_drawn"] = drawn
             a["_glyph_replaced"] = replaced
+        prompt_of[i] = len(prompts)
         prompts.append(board_plan.glyph_to_prompt(a.get("glyph", "")))
     image_paths = _generate_images(prompts, progress_cb) if prompts else []
 
     kept = []
-    for i, path in enumerate(image_paths):
-        if not path:
+    for i, a in enumerate(anchors):
+        if i in from_vocab:
+            # Copied in like any other anchor image, so the run folder stays
+            # self-contained and a board opened next year still has its pictures.
+            a["_glyph_from_vocabulary"] = from_vocab[i]
+            path = vocab_paths[from_vocab[i]]
+        else:
+            slot = prompt_of.get(i)
+            path = image_paths[slot] if slot is not None and slot < len(image_paths) else None
+        if not path or not os.path.exists(path):
             kept.append(None)
             continue
         dest = os.path.join(run_dir, "images", f"{i:03d}.png")
         with open(path, "rb") as src, open(dest, "wb") as dst:
-            dst.write(src.read())      # copied INTO the run dir so the folder is
-                                       # self-contained and survives a cleanup
+            dst.write(src.read())
         kept.append(dest)
 
     # ── hop 4: the canvas ───────────────────────────────────────────────────
@@ -991,7 +1033,12 @@ def run_content_map(
     # build_scene takes the DIGEST as well: the margin panels (Still open,
     # Decided, In the room) are rendered straight from the cypher results rather
     # than through the planner, so the renderer needs them.
-    fresh = render_board.build_scene(plan, kept, digest_result)
+    fresh = render_board.build_scene(
+        plan, kept, digest_result,
+        # The renderer now talks to FLUX itself (only when a concept icon is
+        # missing from the cache), so it needs the same progress channel as
+        # every other hop — otherwise a 30 s icon batch looks like a hang.
+        log=lambda m: _log(progress_cb, m))
     debug = fresh.pop("_layout_debug")
     # The fresh block is checked ON ITS OWN, with the aspect rule, so a bad new
     # board is caught whether or not it is about to be appended.

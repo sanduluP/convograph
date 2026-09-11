@@ -1,0 +1,40 @@
+Plan a hand-drawn graphic-recording board from a meeting digest.
+
+The digest is what the meeting's knowledge graph says mattered: its topics, what
+it changed its mind about, what it settled, what is still open, and who was
+there. Numbered items are the facts you may cite.
+
+Reply with JSON only:
+
+{
+  "title": "at most 5 words",
+  "anchors": [
+    {"label": "at most 6 words, shown on the board",
+     "glyph": "one concrete physical object to draw",
+     "from_facts": [0, 3]}
+  ],
+  "links": [{"from": 0, "to": 1, "label": "at most 3 words"}],
+  "notes": [{"text": "at most 10 words", "anchor": 0}],
+  "dropped": [7, 9]
+}
+
+Rules:
+- 4 to 6 anchors, drawn from the TOPICS. They are what the meeting was about.
+- There are TWO kinds of number and they are not interchangeable.
+  "from_facts" and "dropped" take ITEM numbers, the [n] above.
+  "from" and "to" in links take ANCHOR POSITIONS: 0 is your first anchor, 1 the
+  second. With 4 anchors the only legal values are 0, 1, 2 and 3.
+- Base the links on "What changed" — a revision relates two anchors, and those
+  arrows are what make the board a map rather than a list. The label says HOW
+  they relate ("locked by", "blocked", "replaced"). Never write a section name.
+- "glyph" is a physical object with NO writing on it: a padlock, a shield, a
+  bridge, a split road, an anchor, a key. Never a calendar, clock, document,
+  stamp, sign or chart — an object whose markings are words or numbers cannot
+  be drawn wordless. Never people, never a scene.
+- "label", "notes" and "title" carry the words. The drawing carries none.
+- Give EVERY anchor at least one note, and write 4 to 8 notes overall. A board
+  with only labels is a diagram; the notes are what make it a record of a
+  meeting. Take them from "What was settled" and "Still open".
+- Prefix a note from "Still open" with "Open:" so the board shows what is
+  unfinished, which is the panel a graphic recording always has.
+- Every numbered item appears exactly once across from_facts, notes and dropped.

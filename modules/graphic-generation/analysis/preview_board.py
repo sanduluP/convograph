@@ -241,13 +241,29 @@ def check(scene: dict, aspect: tuple[float, float] | None = (0.4, 3.0)) -> list[
     # Cards must not overlap. Only rectangles are checked: text and images live
     # inside a card by construction, so a rectangle collision is the real signal.
     rects = [e for e in elements if e["type"] == "rectangle"]
+
+    def _contains(outer: dict, inner: dict) -> bool:
+        """Is `inner` entirely inside `outer` (1 px of tolerance for rounding)?"""
+        return (inner["x"] >= outer["x"] - 1
+                and inner["y"] >= outer["y"] - 1
+                and inner["x"] + inner["width"] <= outer["x"] + outer["width"] + 1
+                and inner["y"] + inner["height"] <= outer["y"] + outer["height"] + 1)
+
     for i, a in enumerate(rects):
         for b in rects[i + 1:]:
             ox = min(a["x"] + a["width"], b["x"] + b["width"]) - max(a["x"], b["x"])
             oy = min(a["y"] + a["height"], b["y"] + b["height"]) - max(a["y"], b["y"])
-            if ox > 0 and oy > 0:
-                problems.append(f"cards {a['id']} and {b['id']} overlap "
-                                f"by {ox:.0f}x{oy:.0f}px")
+            if ox <= 0 or oy <= 0:
+                continue
+            # CONTAINMENT IS NOT COLLISION. A margin panel is a rectangle that
+            # deliberately holds one small rectangle per item, so every panel
+            # reported an overlap against each of its own sticky notes — 25
+            # warnings per run, all false, which trains the reader to ignore the
+            # real ones. A box fully inside another box is the intended design.
+            if _contains(a, b) or _contains(b, a):
+                continue
+            problems.append(f"cards {a['id']} and {b['id']} overlap "
+                            f"by {ox:.0f}x{oy:.0f}px")
 
     # A bound arrow label sitting on a card is unreadable, and it is the defect a
     # generated ring layout produces most often: the label goes at the arrow's

@@ -55,6 +55,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import io
 import json
 import math
 import os
@@ -65,6 +66,15 @@ import time
 import uuid
 
 from PIL import Image
+
+# The concept-icon vocabulary lives next door. Imported defensively: the
+# renderer is also used by a pure-geometry test that has no icons on disk, and
+# a board without icons is still a board.
+try:
+    from icons import concept_for as icon_concept
+except Exception:                                              # noqa: BLE001
+    def icon_concept(_text: str) -> str | None:                # type: ignore
+        return None
 
 # ── geometry ────────────────────────────────────────────────────────────────
 IMG_W = 200            # displayed pictogram width; height follows aspect ratio
@@ -192,6 +202,42 @@ def _image(x: float, y: float, w: float, h: float, file_id: str,
     return el
 
 
+def _register_icon(path: str, files: dict, cache: dict[str, str],
+                   max_px: int = 128) -> str | None:
+    """Embed a concept icon once and hand back its fileId.
+
+    Two things happen here that do NOT happen for the anchor pictograms:
+
+    * DEDUPLICATION. Thirty margin items share maybe eight concepts, and
+      Excalidraw keys images by fileId — so the same icon must be embedded once
+      and referenced thirty times. Embedding per item would put the same 300 KB
+      into the scene eight times over.
+    * DOWNSCALING. An icon is drawn at ICON_PX (~34 px) but FLUX returns 1024 px.
+      Shipping the full-size PNG would inflate the .excalidraw file by an order
+      of magnitude for pixels no one will ever see. The anchor glyphs keep their
+      resolution because they ARE displayed large.
+    """
+    if path in cache:
+        return cache[path]
+    try:
+        with Image.open(path) as im:
+            im = im.convert("RGBA")
+            im.thumbnail((max_px, max_px))
+            buf = io.BytesIO()
+            im.save(buf, format="PNG")
+        raw = buf.getvalue()
+    except Exception:                                          # noqa: BLE001
+        return None        # a missing or broken icon costs an icon, not a board
+    file_id = _new_id()
+    files[file_id] = {
+        "mimeType": "image/png", "id": file_id,
+        "dataURL": "data:image/png;base64," + base64.b64encode(raw).decode("ascii"),
+        "created": _now_ms(), "lastRetrieved": _now_ms(),
+    }
+    cache[path] = file_id
+    return file_id
+
+
 def _text(x: float, y: float, lines: list[str], fs: float, color: str,
           gid: str | None = None, align: str = "left",
           box_w: float | None = None) -> dict:
@@ -229,13 +275,25 @@ def _edge_point(cx: float, cy: float, w: float, h: float,
     return cx + dx * s, cy + dy * s
 
 
-def _arrow(src: dict, dst: dict, label: str) -> list[dict]:
+# How far each successive arrow bows out of the straight line, as a fraction of
+# its own length. Nodes sit on a ring, so several links are DIAMETERS and every
+# one of them passes through the same centre point — where Excalidraw puts a
+# contained label. Three labels landed on top of each other (observed
+# 2026-09-11). Bowing each arrow by a different amount moves its midpoint, and
+# therefore its label, off that shared crossing. A gentle curve also reads as
+# hand-drawn, which is the look this board is after.
+BOWS = (0.0, 0.13, -0.13, 0.22, -0.22, 0.3, -0.3)
+
+
+def _arrow(src: dict, dst: dict, label: str, bow: float = 0.0) -> list[dict]:
     """One labelled arrow between two cards, bound at both ends.
 
     Returns [arrow] or [arrow, label_text]. The label is a CONTAINED text
     (containerId = the arrow), which is how Excalidraw keeps a label centred on
     an arrow as the arrow moves; a free text element beside the arrow would
     stay behind the moment anything is dragged.
+
+    `bow` curves the arrow sideways by that fraction of its length — see BOWS.
     """
     scx, scy = src["x"] + src["width"] / 2, src["y"] + src["height"] / 2
     dcx, dcy = dst["x"] + dst["width"] / 2, dst["y"] + dst["height"] / 2
@@ -243,11 +301,22 @@ def _arrow(src: dict, dst: dict, label: str) -> list[dict]:
     x0, y0 = _edge_point(scx, scy, src["width"], src["height"], dcx, dcy, 8)
     x1, y1 = _edge_point(dcx, dcy, dst["width"], dst["height"], scx, scy, 8)
 
+    dx, dy = x1 - x0, y1 - y0
+    length = math.hypot(dx, dy) or 1.0
+    # Unit vector at right angles to the line, so the bow is sideways rather
+    # than a change of length.
+    perp_x, perp_y = -dy / length, dx / length
+    mid_x = dx / 2 + perp_x * bow * length
+    mid_y = dy / 2 + perp_y * bow * length
+    points = ([[0, 0], [round(mid_x, 2), round(mid_y, 2)],
+               [round(dx, 2), round(dy, 2)]] if bow
+              else [[0, 0], [round(dx, 2), round(dy, 2)]])
+
     el = _base("arrow", x0, y0, x1 - x0, y1 - y0)
     el.update({
         "strokeColor": ARROW, "strokeWidth": 2,
         "roundness": {"type": 2},          # 2 = the curved multi-point style
-        "points": [[0, 0], [round(x1 - x0, 2), round(y1 - y0, 2)]],
+        "points": points,
         "lastCommittedPoint": None,
         # focus 0 = aim at the shape's centre; gap = how far short of the
         # outline the arrowhead stops.
@@ -268,7 +337,9 @@ def _arrow(src: dict, dst: dict, label: str) -> list[dict]:
         lines = _wrap(label, 150, LINK_FS)
         w, h = _text_size(lines, LINK_FS)
         txt = "\n".join(lines)
-        lab = _base("text", (x0 + x1) / 2 - w / 2, (y0 + y1) / 2 - h / 2, w, h)
+        # On the BOWED midpoint, not the straight one — otherwise the label sits
+        # off its own arrow, and back on the pile it was bowed away from.
+        lab = _base("text", x0 + mid_x - w / 2, y0 + mid_y - h / 2, w, h)
         lab.update({
             "strokeColor": ACCENT,
             "text": txt, "originalText": txt,
@@ -345,6 +416,11 @@ PANEL_GAP = 30
 PANEL_PAD = 14          # container edge → its contents
 NOTE_PAD = 7            # sticky-note edge → its text
 NOTE_GAP_Y = 7          # between two sticky notes
+ICON_PX = 44            # the concept icon on a sticky note. Big enough to read
+                        # the object at a glance, small enough that the note is
+                        # still mostly its sentence — the icon is a bookmark for
+                        # the eye, not the content.
+ICON_GAP = 9            # icon → its text
 
 
 # A SharePoint path is ~90 characters of which the last word is the only part
@@ -362,7 +438,10 @@ def _shorten_urls(text: str) -> str:
 
 
 def _panel(x: float, y: float, title: str, items: list[str],
-           accent: str, tint: str, max_items: int = 10) -> tuple[list[dict], float]:
+           accent: str, tint: str, max_items: int = 10,
+           icon_paths: dict[str, str] | None = None,
+           files: dict | None = None,
+           icon_cache: dict[str, str] | None = None) -> tuple[list[dict], float]:
     """One margin panel, drawn as a CARD with the items as sticky notes.
 
     It was plain grey text, which read as a footnote rather than part of the
@@ -370,21 +449,38 @@ def _panel(x: float, y: float, title: str, items: list[str],
     A graphic recorder does not write a list in the margin; they draw a titled
     block and put each item on its own tinted note. So: a rounded container in
     the panel's accent colour, a heading, and one small filled card per item.
+
+    Each note also carries a CONCEPT ICON on its left where one can be inferred
+    (see icons.py). That is the difference between a board with six drawings and
+    a board with thirty: the margins used to be text only, because they were
+    never given pictures. An item whose concept is unclear gets no icon and its
+    text simply runs the full width — a blank is honest, a wrong icon is not.
     """
     els: list[dict] = []
     gid = _new_id()
+    icon_paths = icon_paths or {}
 
     # Measure first — the container has to be drawn at its final height, and
-    # that depends on how the item text wraps.
+    # that depends on how the item text wraps AND on whether the note has an
+    # icon (an icon steals width from the text, which can add a line).
     shown = [_shorten_urls(i) for i in items[:max_items]]
     blocks = []
     inner_w = PANEL_W - 2 * PANEL_PAD
     for item in shown:
-        lines = _wrap(item, inner_w - 2 * NOTE_PAD, PANEL_ITEM_FS)
-        blocks.append((lines, _text_size(lines, PANEL_ITEM_FS)[1] + 2 * NOTE_PAD))
+        # The icon is chosen from the ORIGINAL item text, not the URL-shortened
+        # one: shortening throws away words the keyword match may need.
+        concept = icon_concept(item)
+        path = icon_paths.get(concept) if concept else None
+        text_w = inner_w - 2 * NOTE_PAD - ((ICON_PX + ICON_GAP) if path else 0)
+        lines = _wrap(item, text_w, PANEL_ITEM_FS)
+        text_h = _text_size(lines, PANEL_ITEM_FS)[1]
+        # A one-line note next to a 34 px icon has to grow to the icon's height,
+        # or the icon overflows the note it sits in.
+        h = max(text_h, ICON_PX if path else 0) + 2 * NOTE_PAD
+        blocks.append((lines, h, path, text_w))
 
     head_h = PANEL_TITLE_FS * LINE_H + 10
-    body_h = sum(h for _, h in blocks) + NOTE_GAP_Y * max(0, len(blocks) - 1)
+    body_h = sum(b[1] for b in blocks) + NOTE_GAP_Y * max(0, len(blocks) - 1)
     more_h = (PANEL_ITEM_FS * LINE_H + NOTE_GAP_Y) if len(items) > max_items else 0
     total_h = PANEL_PAD + head_h + body_h + more_h + PANEL_PAD
 
@@ -396,14 +492,28 @@ def _panel(x: float, y: float, title: str, items: list[str],
                      accent, gid, box_w=inner_w))
 
     cursor = y + PANEL_PAD + head_h
-    for lines, h in blocks:
+    for lines, h, path, text_w in blocks:
         note = _base("rectangle", x + PANEL_PAD, cursor, inner_w, h, [gid])
         note.update({"backgroundColor": "#ffffff", "strokeColor": accent,
                      "strokeWidth": 1, "roundness": {"type": 3},
                      "opacity": 100, "boundElements": []})
         els.append(note)
-        els.append(_text(x + PANEL_PAD + NOTE_PAD, cursor + NOTE_PAD, lines,
-                         PANEL_ITEM_FS, INK, gid, box_w=inner_w - 2 * NOTE_PAD))
+
+        text_x = x + PANEL_PAD + NOTE_PAD
+        if path and files is not None:
+            file_id = _register_icon(path, files, icon_cache if icon_cache
+                                     is not None else {})
+            if file_id:
+                # Centred on the note's height so a three-line item does not
+                # leave its icon stranded at the top.
+                els.append(_image(text_x, cursor + (h - ICON_PX) / 2,
+                                  ICON_PX, ICON_PX, file_id, gid))
+                text_x += ICON_PX + ICON_GAP
+        # Text is centred too, for the same reason in reverse: a short label
+        # beside a tall icon should sit on the icon's axis, not above it.
+        text_h = _text_size(lines, PANEL_ITEM_FS)[1]
+        els.append(_text(text_x, cursor + (h - text_h) / 2, lines,
+                         PANEL_ITEM_FS, INK, gid, box_w=text_w))
         cursor += h + NOTE_GAP_Y
 
     if len(items) > max_items:
@@ -416,7 +526,7 @@ def _panel(x: float, y: float, title: str, items: list[str],
 
 
 def build_scene(plan: dict, images: list[str | None],
-                digest: dict | None = None) -> dict:
+                digest: dict | None = None, log=None) -> dict:
     """plan + one image path per anchor (None where FLUX failed) -> a scene.
 
     A missing image is NOT fatal: the node is drawn with its label and its glyph
@@ -514,6 +624,9 @@ def build_scene(plan: dict, images: list[str | None],
                                   m["note_lines"], NOTE_FS, NOTE_GRAY, gid,
                                   align="center", box_w=IMG_W))
 
+    drawn_links = 0                           # counts arrows ACTUALLY drawn, so
+                                              # a dropped one does not consume a
+                                              # bow and leave a gap in the fan
     for link in plan.get("links", []):
         a, b = link.get("from"), link.get("to")
         if not (isinstance(a, int) and isinstance(b, int)):
@@ -521,7 +634,9 @@ def build_scene(plan: dict, images: list[str | None],
         if not (0 <= a < len(cards) and 0 <= b < len(cards)) or a == b:
             continue                          # a bad index is a plan bug; drop
                                               # the arrow, keep the board
-        elements += _arrow(cards[a], cards[b], link.get("label", ""))
+        elements += _arrow(cards[a], cards[b], link.get("label", ""),
+                           bow=BOWS[drawn_links % len(BOWS)])
+        drawn_links += 1
 
     # ── margin panels, straight from the digest ─────────────────────────────
     # Placed to the RIGHT of the ring, after the nodes are measured, so they
@@ -534,23 +649,53 @@ def build_scene(plan: dict, images: list[str | None],
         px = ring_right + PANEL_GAP * 2
         py = min(e["y"] for e in elements)
 
-        for title, rows, key, accent, tint in (
-            ("⚠ Still open", q.get("open_threads", []), "fact", "#e8590c", "#fff4e6"),
-            ("✓ Decided", q.get("decisions", []), "fact", "#2f9e44", "#ebfbee"),
+        panels = []
+        for title, rows, key, accent, tint, cap in (
+            ("⚠ Still open", q.get("open_threads", []), "fact", "#e8590c", "#fff4e6", 10),
+            ("✓ Decided", q.get("decisions", []), "fact", "#2f9e44", "#ebfbee", 10),
         ):
-            if not rows:
-                continue
-            items = [r.get(key, "") for r in rows if r.get(key)]
-            els, h = _panel(px, py, f"{title}  ({len(items)})", items, accent, tint)
-            panel_els += els
-            py += h + PANEL_GAP
-
+            if rows:
+                panels.append((title, [r.get(key, "") for r in rows if r.get(key)],
+                               accent, tint, cap))
         people = q.get("participants", [])
         if people:
-            items = [f"{p['speaker']} — {100 * p['share']:.0f}%" for p in people]
-            els, h = _panel(px, py, f"🗣 In the room  ({len(items)})", items,
-                            "#1971c2", "#e7f5ff", max_items=12)
+            # ◆ rather than a 🗣 emoji: the other two headings use ⚠ and ✓, which are
+            # plain symbols every font has. A colour emoji falls back to a tofu
+            # box in the PNG preview, which is the surface Faris actually looks at.
+            panels.append(("◆ In the room",
+                           [f"{p['speaker']} — {100 * p['share']:.0f}%" for p in people],
+                           "#1971c2", "#e7f5ff", 12))
+
+        # ── the icons the panels will actually need ─────────────────────────
+        # Resolved in ONE batch before any drawing: the concepts are known from
+        # the text, so the (rare) generation of a missing one happens once, not
+        # per panel. Everything already cached costs nothing.
+        wanted = [c for _, items, _, _, cap in panels
+                  for c in (icon_concept(i) for i in items[:cap]) if c]
+        icon_paths: dict[str, str] = {}
+        if wanted:
+            try:
+                import icons as icon_vocab                      # noqa: PLC0415
+                icon_paths = icon_vocab.ensure(wanted, log=log)
+            except Exception as exc:                            # noqa: BLE001
+                if log:
+                    log(f"   ⚠️  concept icons unavailable ({type(exc).__name__})"
+                        f" — the panels will be text only")
+        icon_cache: dict[str, str] = {}
+
+        for title, items, accent, tint, cap in panels:
+            els, h = _panel(px, py, f"{title}  ({len(items)})", items,
+                            accent, tint, max_items=cap,
+                            icon_paths=icon_paths, files=files,
+                            icon_cache=icon_cache)
             panel_els += els
+            py += h + PANEL_GAP
+        if log and icon_paths:
+            tagged = sum(1 for _, items, _, _, cap in panels
+                         for i in items[:cap] if icon_concept(i) in icon_paths)
+            shown = sum(min(len(items), cap) for _, items, _, _, cap in panels)
+            log(f"   🖼  {tagged}/{shown} margin item(s) carry a concept icon "
+                f"({len(icon_cache)} distinct)")
     elements += panel_els
 
     # ── normalise: shift everything to (PAD, PAD + TITLE_BAND) ──────────────
