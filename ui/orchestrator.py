@@ -790,7 +790,7 @@ def run_content_map(
     _log(progress_cb, f"🧩 drawing the content map — {len(anchors)} node(s), "
                       f"{sum(1 for k in kept if k)} pictogram(s)")
     board_path = os.path.join(run_dir, "board.excalidraw")
-    scene = render_board.build_scene(plan, kept)
+    scene = render_board.build_scene(plan, kept, digest_result)
     debug = scene.pop("_layout_debug")
     with open(board_path, "w") as fh:
         json.dump(scene, fh, indent=2)

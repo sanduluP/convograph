@@ -59,6 +59,7 @@ import json
 import math
 import os
 import random
+import re
 import textwrap
 import time
 import uuid
@@ -314,7 +315,64 @@ def _node_positions(n: int, card_h: float) -> list[tuple[float, float]]:
     return pts
 
 
-def build_scene(plan: dict, images: list[str | None]) -> dict:
+# ── side panels ─────────────────────────────────────────────────────────────
+# The planner compresses: given 60 citable items it returns 6 anchors and 8
+# notes and drops the rest. That is right for the MAP — a content map with
+# twenty nodes is unreadable — but wrong for the board, because the other 46
+# items are exactly the material a real graphic recording carries in its
+# margins: what was decided, what is still open, who was in the room.
+#
+# So those come STRAIGHT FROM THE DIGEST, not through the model. No selection
+# step means nothing is lost to compression, and the LLM is left doing the one
+# job only it can do: deciding what relates to what.
+PANEL_W = 300
+PANEL_TITLE_FS = 16
+PANEL_ITEM_FS = 12
+PANEL_GAP = 26
+
+
+# A SharePoint path is ~90 characters of which the last word is the only part
+# that identifies anything. textwrap cannot break it — there are no spaces — so
+# the line runs straight past the panel edge. Shortened to the leaf, which is
+# what a reader would say aloud anyway.
+_URL_RE = re.compile(r"https?://\S+")
+
+
+def _shorten_urls(text: str) -> str:
+    def leaf(m: re.Match) -> str:
+        tail = m.group(0).rstrip("/").rsplit("/", 1)[-1]
+        return tail[:48] if tail else m.group(0)[:48]
+    return _URL_RE.sub(leaf, text)
+
+
+def _panel(x: float, y: float, title: str, items: list[str],
+           accent: str, max_items: int = 10) -> tuple[list[dict], float]:
+    """One margin panel. Returns (elements, height consumed)."""
+    els: list[dict] = []
+    gid = _new_id()
+    head = _text(x, y, [title], PANEL_TITLE_FS, accent, gid)
+    els.append(head)
+    cursor = y + PANEL_TITLE_FS * LINE_H + 8
+
+    shown = [_shorten_urls(i) for i in items[:max_items]]
+    for item in shown:
+        lines = _wrap(f"• {item}", PANEL_W, PANEL_ITEM_FS)
+        h = _text_size(lines, PANEL_ITEM_FS)[1]
+        els.append(_text(x, cursor, lines, PANEL_ITEM_FS, NOTE_GRAY, gid,
+                         box_w=PANEL_W))
+        cursor += h + 6
+    if len(items) > max_items:
+        # Say what was cut. A panel that silently shows 10 of 15 is a panel that
+        # lies about how much is outstanding.
+        more = [f"+ {len(items) - max_items} more in digest/"]
+        els.append(_text(x, cursor, more, PANEL_ITEM_FS, accent, gid,
+                         box_w=PANEL_W))
+        cursor += PANEL_ITEM_FS * LINE_H + 6
+    return els, cursor - y
+
+
+def build_scene(plan: dict, images: list[str | None],
+                digest: dict | None = None) -> dict:
     """plan + one image path per anchor (None where FLUX failed) -> a scene.
 
     A missing image is NOT fatal: the node is drawn with its label and its glyph
@@ -421,6 +479,36 @@ def build_scene(plan: dict, images: list[str | None]) -> dict:
                                               # the arrow, keep the board
         elements += _arrow(cards[a], cards[b], link.get("label", ""))
 
+    # ── margin panels, straight from the digest ─────────────────────────────
+    # Placed to the RIGHT of the ring, after the nodes are measured, so they
+    # never collide with it: the ring's width is known by now and the panels
+    # start past it.
+    panel_els: list[dict] = []
+    if digest:
+        q = digest.get("queries", {})
+        ring_right = max(e["x"] + e["width"] for e in elements)
+        px = ring_right + PANEL_GAP * 2
+        py = min(e["y"] for e in elements)
+
+        for title, rows, key, accent in (
+            ("Still open", q.get("open_threads", []), "fact", "#e8590c"),
+            ("Decided", q.get("decisions", []), "fact", "#2f9e44"),
+        ):
+            if not rows:
+                continue
+            items = [r.get(key, "") for r in rows if r.get(key)]
+            els, h = _panel(px, py, f"{title}  ({len(items)})", items, accent)
+            panel_els += els
+            py += h + PANEL_GAP
+
+        people = q.get("participants", [])
+        if people:
+            items = [f"{p['speaker']} — {100 * p['share']:.0f}%" for p in people]
+            els, h = _panel(px, py, f"In the room  ({len(items)})", items,
+                            "#1971c2", max_items=12)
+            panel_els += els
+    elements += panel_els
+
     # ── normalise: shift everything to (PAD, PAD + TITLE_BAND) ──────────────
     # Done after the fact because the ellipse is built around the origin, which
     # puts half the board at negative coordinates.
@@ -451,6 +539,7 @@ def build_scene(plan: dict, images: list[str | None]) -> dict:
         "files": files,
         "_layout_debug": {
             "canvas": [round(board_w + 2 * PAD), round(max_y - min_y + 2 * PAD + TITLE_BAND)],
+            "panels": len(panel_els),
             "anchors": len(anchors),
             "images": sum(1 for m in measured if m["file_id"]),
             "links": sum(1 for e in elements if e["type"] == "arrow"),

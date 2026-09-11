@@ -281,6 +281,11 @@ if use_existing:
                      "corpora and meetings are always shown."):
             groups = real or groups     # never leave the picker empty
 
+        # Prefer a MEETING-sized graph as the default. "Most superseded" always
+        # puts the six-week corpus first, so the board everyone sees on load
+        # summarises a corpus and reads as a poor meeting summary. Anything under
+        # ~500 episodes is a meeting; the corpora are thousands.
+        groups = sorted(groups, key=lambda g: (g["episodes"] > 500, -g["superseded"]))
         gids = [g["group_id"] for g in groups]
         stats = {g["group_id"]: f"{g['episodes']} episodes · {g['facts']} facts · "
                                 f"{g['superseded']} superseded" for g in groups}
@@ -419,6 +424,23 @@ if st.session_state.get("last_result"):
                else f"⚠️ {len(result['validation'])} plan problem(s)")
             + f" · 📁 `{result['run_dir']}`"
         )
+    # The live embed is a preview; the real artifact is the FILE, and people want
+    # it in the desktop app where they can actually edit. A browser cannot open a
+    # local path, so offer the two things that do work: a download, and the path
+    # to paste.
+    b_col, p_col = st.columns([1, 3])
+    with b_col:
+        with open(result["board_path"], "rb") as fh:
+            st.download_button(
+                "⬇️ Open in Excalidraw", fh.read(),
+                file_name=os.path.basename(result["board_path"]),
+                mime="application/json",
+                help="Saves the .excalidraw file. Open it in the Excalidraw "
+                     "desktop app, the VS Code extension, or drag it onto "
+                     "excalidraw.com.")
+    with p_col:
+        st.code(result["board_path"], language=None)
+
     with open(result["board_path"]) as fh:
         scene = json.load(fh)
     render_excalidraw(scene)
