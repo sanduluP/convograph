@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/classical-b36e9241-0dd3-4e5c-8238-d5be0b9d8b5f/styles.css">
+<script src="_ds/classical-b36e9241-0dd3-4e5c-8238-d5be0b9d8b5f/_ds_bundle.js"></script>
+<script src="./image-slot.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap">
+<style>
+:root{--font-heading:"Geist",-apple-system,system-ui,sans-serif;--font-body:"Geist",-apple-system,system-ui,sans-serif;--font-heading-weight:600;
+--color-bg:#f5f5f7;--color-surface:#ffffff;--color-text:#1d1d1f;--color-divider:rgba(0,0,0,.08);
+--color-accent:#0a66ff;--color-accent-100:#eaf1ff;--color-accent-200:#d3e2ff;--color-accent-300:#a9c6ff;--color-accent-400:#6f9fff;--color-accent-500:#2f78ff;--color-accent-600:#0a5be6;--color-accent-700:#0846b4;--color-accent-800:#0a3480;--color-accent-900:#0b234f;
+--color-neutral-100:#fafafa;--color-neutral-200:#f0f0f2;--color-neutral-300:#e2e2e6;--color-neutral-400:#c4c4ca;--color-neutral-500:#9d9da5;--color-neutral-600:#76767f;--color-neutral-700:#5b5b63;--color-neutral-800:#3d3d44;--color-neutral-900:#1d1d1f;
+--radius-sm:4px;--radius-md:8px;--radius-lg:14px;--shadow-sm:0 1px 2px rgba(0,0,0,.06);--shadow-md:0 4px 14px rgba(0,0,0,.08);--shadow-lg:0 20px 50px rgba(0,0,0,.14)}
+body{letter-spacing:-.005em}
+h1,h2,h3,h4{letter-spacing:-.025em}
+h6{letter-spacing:.04em;font-size:11.5px;font-weight:500;text-transform:none}
+.btn{border-radius:999px;font-weight:500;font-size:13px}
+.btn-primary{background:var(--color-accent);border-color:var(--color-accent);color:#fff}
+.btn-primary:hover{background:var(--color-accent-600)}.btn-primary:active{background:var(--color-accent-700)}
+.btn-secondary{background:#fff;border-color:rgba(0,0,0,.1)}
+.btn-icon{border-radius:999px}
+.tag{border-radius:999px;font-weight:500;padding:3px 9px}
+.seg{border:0;background:var(--color-neutral-200);border-radius:999px;padding:2px;gap:2px}
+.seg-opt{border-radius:999px;font-weight:500;color:var(--color-neutral-700)}
+.seg-opt + .seg-opt{border-left:0}
+.seg-opt:has(input:checked){background:#fff;color:var(--color-text);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.input{background:#fff;border-radius:10px;border-color:rgba(0,0,0,.1)}
+.plate{filter:none;border:0;outline:0;border-radius:14px}
+.table th{text-transform:none;letter-spacing:0;font-size:12px;font-weight:500}
+.dv-card{border-radius:18px}
+body{margin:0;background:#e9e9ec;font-family:var(--font-body)}
+a{color:var(--color-accent)}a:hover{color:var(--color-accent-700)}
+.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}
+.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}
+.dv-tname{font:600 13px/1.2 system-ui,sans-serif;color:#1a1a1a}
+.dv-opts{display:flex;flex-wrap:wrap;gap:36px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}
+.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 system-ui,sans-serif;color:rgba(0,0,0,.55)}
+.dv-card{max-width:100%;background:var(--color-bg);border:1px solid rgba(0,0,0,.1);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06),0 24px 60px rgba(0,0,0,.08);overflow:hidden}
+.dv-opt:target .dv-oid{background:#2a78d6;color:#fff}
+.dv-next{margin:22px 0 0;font:12px/1.5 system-ui,sans-serif;color:rgba(0,0,0,.5)}
+.dv-note{max-width:820px;font:13px/1.6 var(--font-body);color:rgba(0,0,0,.65);margin:0 0 26px}
+@keyframes cg-pulse{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.6);opacity:.25}}
+@keyframes cg-caret{0%,49%{opacity:1}50%,100%{opacity:0}}
+@keyframes cg-sweep{0%{transform:translateX(-100%)}100%{transform:translateX(320%)}}
+@keyframes cg-drift{0%{transform:translate(0,0) scale(1)}50%{transform:translate(2%,-1.5%) scale(1.04)}100%{transform:translate(0,0) scale(1)}}
+@keyframes cg-ring{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+</style>
+</helmet>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Convograph v2 — sans-serif, modern re-skin of the four screens</span></div>
+<p class="dv-note">Assumptions: desktop web at 1440×900; up to four speakers; a session runs as a pipeline <em>transcribe → graph → render</em> per episode, so every screen carries the episode track along the bottom as the continuity spine. Transcript stays a narrow 300px rail; the graphic recording is the hero. Visual direction: modern sans (Geist), panels float as white cards on a cool grey ground, pill controls, one blue accent reserved for anything live or newly added. Speakers are told apart by four steps of the accent–neutral ramps rather than a rainbow. The knowledge graph orbits slowly in 3D; the newest node breathes.</p>
+<div class="dv-opts">
+
+<!-- ═══════════ 1a LIVE SESSION ═══════════ -->
+<div class="dv-opt" id="1a"><div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Live session — all three modules running, episode 8 in flight</div>
+<div class="dv-card" style="width:1440px;height:900px;display:grid;grid-template-rows:56px 1fr 64px;color:var(--color-text);background:var(--color-bg)" data-screen-label="1a Live session">
+  <!-- nav -->
+  <div style="display:flex;align-items:center;gap:22px;padding:0 24px">
+    <div style="font-family:var(--font-heading);font-weight:600;font-size:17px;letter-spacing:-.02em">Convograph</div>
+    <div style="width:1px;height:20px;background:var(--color-divider)"></div>
+    <div style="font-size:13px">Riverside allotment — planning call</div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--color-neutral-700)">
+      <span style="position:relative;width:8px;height:8px;display:inline-block"><span style="position:absolute;inset:0;border-radius:50%;background:var(--color-accent)"></span><span style="position:absolute;inset:0;border-radius:50%;background:var(--color-accent);animation:cg-pulse 1.8s ease-in-out infinite"></span></span>
+      <span style="font-variant-numeric:tabular-nums">{{ statusLabel }} · 12:48:06</span>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--color-neutral-700);margin-right:8px">
+        <span>Speakers</span>
+        <div style="display:flex">
+          <span style="width:22px;height:22px;border-radius:50%;border:1px solid var(--color-accent-500);background:var(--color-bg);display:grid;place-items:center;font-family:var(--font-heading);font-size:11px;font-weight:500;color:var(--color-accent-700)">M</span>
+          <span style="width:22px;height:22px;border-radius:50%;border:1px solid var(--color-accent-800);background:var(--color-bg);display:grid;place-items:center;font-family:var(--font-heading);font-size:11px;font-weight:500;color:var(--color-accent-800);margin-left:-6px">T</span>
+          <span style="width:22px;height:22px;border-radius:50%;border:1px solid var(--color-neutral-500);background:var(--color-bg);display:grid;place-items:center;font-family:var(--font-heading);font-size:11px;font-weight:500;color:var(--color-neutral-700);margin-left:-6px">I</span>
+          <span style="width:22px;height:22px;border-radius:50%;border:1px solid var(--color-neutral-900);background:var(--color-bg);display:grid;place-items:center;font-family:var(--font-heading);font-size:11px;font-weight:500;color:var(--color-neutral-900);margin-left:-6px">K</span>
+        </div>
+      </div>
+      <button class="btn btn-secondary" style="height:34px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="6" y="5" width="4" height="14" rx="1"></rect><rect x="14" y="5" width="4" height="14" rx="1"></rect></svg>Pause</button>
+      <button class="btn btn-secondary" style="height:34px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v3h16v-3"></path></svg>Export</button>
+      <button class="btn btn-primary" style="height:34px">End session</button>
+      <button class="btn btn-icon btn-secondary" aria-label="Settings" style="width:34px;height:34px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"></path></svg></button>
+    </div>
+  </div>
+
+  <!-- body -->
+  <div style="display:grid;grid-template-columns:300px 420px 1fr;min-height:0;gap:12px;padding:12px">
+    <!-- transcript -->
+    <div style="background:#fff;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 0 0 1px rgba(0,0,0,.05);overflow:hidden;display:flex;flex-direction:column;min-height:0">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;padding:16px 18px 10px">
+        <h6 style="margin:0;color:var(--color-neutral-700)">Transcript</h6>
+        <span style="font-size:11px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums">1,248 words</span>
+      </div>
+      <div style="flex:1;overflow:hidden;padding:0 18px;display:flex;flex-direction:column;gap:14px;font-size:12.5px;line-height:1.55;position:relative">
+        <div style="display:flex;align-items:center;gap:8px;color:var(--color-neutral-600);font-size:10px;letter-spacing:.1em;text-transform:uppercase"><span style="flex:1;height:1px;background:var(--color-divider)"></span>Episode 7 · 12:33<span style="flex:1;height:1px;background:var(--color-divider)"></span></div>
+        <div style="display:grid;grid-template-columns:22px 1fr;gap:8px;opacity:.55">
+          <span style="width:22px;height:22px;border-radius:50%;border:1px solid var(--color-accent-800);display:grid;place-items:center;font-family:var(--font-heading);font-size:11px;font-weight:500;color:var(--color-accent-800)">T</span>
+          <div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-neutral-600)"><span style="font-family:var(--font-heading);font-size:12.5px;font-weight:500;color:var(--color-text)">Tobias</span><span style="font-variant-numeric:tabular-nums">12:39</span></div><p style="margin:2px 0 0">So the revised figure is forty-two hundred, once we include the rainwater tank.</p></div>
+        </div>
+        <div style="display:grid;grid-template-columns:22px 1fr;gap:8px;opacity:.75">
+          <span style="width:22px;height:22px;border-radius:50%;border:1px solid var(--color-neutral-500);display:grid;place-items:center;font-family:var(--font-heading);font-size:11px;font-weight:500;color:var(--color-neutral-700)">I</span>
+          <div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-neutral-600)"><span style="font-family:var(--font-heading);font-size:12.5px;font-weight:500;color:var(--color-text)">Ines</span><span style="font-variant-numeric:tabular-nums">12:40</span></div><p style="margin:2px 0 0">Permit came through this morning, by the way. Signed by the council.</p></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;color:var(--color-accent-700);font-size:10px;letter-spacing:.1em;text-transform:uppercase"><span style="flex:1;height:1px;background:var(--color-accent-300)"></span>Episode 8 · 12:41<span style="flex:1;height:1px;background:var(--color-accent-300)"></span></div>
+        <div style="display:grid;grid-template-columns:22px 1fr;gap:8px">
+          <span style="width:22px;height:22px;border-radius:50%;border:1px solid var(--color-neutral-900);display:grid;place-items:center;font-family:var(--font-heading);font-size:11px;font-weight:500;color:var(--color-neutral-900)">K</span>
+          <div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-neutral-600)"><span style="font-family:var(--font-heading);font-size:12.5px;font-weight:500;color:var(--color-text)">Kofi</span><span style="font-variant-numeric:tabular-nums">12:43</span></div><p style="margin:2px 0 0">The soil test came back — heavy clay on the east side. We'll need raised beds there.</p></div>
+        </div>
+        <div style="display:grid;grid-template-columns:22px 1fr;gap:8px">
+          <span style="width:22px;height:22px;border-radius:50%;border:1px solid var(--color-accent-500);display:grid;place-items:center;font-family:var(--font-heading);font-size:11px;font-weight:500;color:var(--color-accent-700)">M</span>
+          <div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-neutral-600)"><span style="font-family:var(--font-heading);font-size:12.5px;font-weight:500;color:var(--color-text)">Maren</span><span style="font-variant-numeric:tabular-nums">12:45</span></div><p style="margin:2px 0 0">Then the bee hives can't go east either. Actually — Ines, didn't the council say no hives at all?</p></div>
+        </div>
+        <div style="display:grid;grid-template-columns:22px 1fr;gap:8px">
+          <span style="width:22px;height:22px;border-radius:50%;border:1px solid var(--color-neutral-500);display:grid;place-items:center;font-family:var(--font-heading);font-size:11px;font-weight:500;color:var(--color-neutral-700)">I</span>
+          <div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-neutral-600)"><span style="font-family:var(--font-heading);font-size:12.5px;font-weight:500;color:var(--color-text)">Ines</span><span style="font-variant-numeric:tabular-nums">12:47</span></div><p style="margin:2px 0 0">Right, that clause was in the permit. No apiaries. So we drop the hives and</p></div>
+        </div>
+        <div style="display:grid;grid-template-columns:22px 1fr;gap:8px">
+          <span style="width:22px;height:22px;border-radius:50%;border:1px solid var(--color-accent-500);display:grid;place-items:center;font-family:var(--font-heading);font-size:11px;font-weight:500;color:var(--color-accent-700);box-shadow:0 0 0 3px var(--color-accent-100)">M</span>
+          <div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-neutral-600)"><span style="font-family:var(--font-heading);font-size:12.5px;font-weight:500;color:var(--color-text)">Maren</span><span style="color:var(--color-accent-700)">speaking</span></div><p style="margin:2px 0 0;color:var(--color-neutral-800)">put the workshop series in that corner inst<span style="display:inline-block;width:1.5px;height:13px;background:var(--color-accent);vertical-align:-2px;margin-left:1px;animation:cg-caret 1s steps(1) infinite"></span></p></div>
+        </div>
+      </div>
+      <div style="padding:12px 18px;border-top:1px solid var(--color-divider);display:flex;align-items:center;gap:10px;font-size:11px;color:var(--color-neutral-600)">
+        <div style="display:flex;align-items:flex-end;gap:2px;height:14px">
+          <span style="width:2px;height:6px;background:var(--color-accent)"></span><span style="width:2px;height:12px;background:var(--color-accent)"></span><span style="width:2px;height:8px;background:var(--color-accent)"></span><span style="width:2px;height:14px;background:var(--color-accent)"></span><span style="width:2px;height:5px;background:var(--color-accent)"></span><span style="width:2px;height:10px;background:var(--color-accent)"></span>
+        </div>
+        <span>Studio mic · Whisper-large · 240 ms</span>
+      </div>
+    </div>
+
+    <!-- knowledge graph -->
+    <div style="background:#fff;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 0 0 1px rgba(0,0,0,.05);overflow:hidden;display:flex;flex-direction:column;min-height:0;position:relative">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;padding:16px 18px 10px">
+        <h6 style="margin:0;color:var(--color-neutral-700)">Knowledge graph</h6>
+        <span style="font-size:11px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums">14 facts · 19 relations</span>
+      </div>
+      <div style="flex:1;min-height:0;position:relative">
+        <svg ref="{{ graphFull }}" viewBox="0 0 420 560" style="width:100%;height:100%;display:block"></svg>
+        <div style="position:absolute;left:18px;bottom:14px;display:flex;flex-direction:column;gap:5px;font-size:11px;color:var(--color-neutral-700)">
+          <div style="display:flex;align-items:center;gap:7px"><span style="width:8px;height:8px;border-radius:50%;border:1px solid var(--color-neutral-700)"></span>Confirmed</div>
+          <div style="display:flex;align-items:center;gap:7px"><span style="width:8px;height:8px;border-radius:50%;background:var(--color-accent)"></span>Added this episode</div>
+          <div style="display:flex;align-items:center;gap:7px"><span style="width:8px;height:8px;border-radius:50%;border:1px dashed var(--color-neutral-600)"></span>Invalidated</div>
+        </div>
+        <div style="position:absolute;right:18px;bottom:14px;display:flex;gap:6px">
+          <button class="btn btn-icon btn-secondary" aria-label="Zoom out" style="width:28px;height:28px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14"></path></svg></button>
+          <button class="btn btn-icon btn-secondary" aria-label="Zoom in" style="width:28px;height:28px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"></path></svg></button>
+          <button class="btn btn-ghost" style="height:28px;font-size:13px">Compare episodes →</button>
+        </div>
+      </div>
+      <div style="padding:10px 18px 12px;border-top:1px solid var(--color-divider);font-size:11.5px;color:var(--color-neutral-700);display:flex;align-items:center;gap:8px">
+        <span style="width:6px;height:6px;border-radius:50%;background:var(--color-accent);animation:cg-pulse 1.4s ease-in-out infinite"></span>
+        <span>Extracting from episode 8 — <em>Bee hives</em> marked invalid, <em>Soil test</em> added</span>
+      </div>
+    </div>
+
+    <!-- graphic recording -->
+    <div style="background:#fff;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 0 0 1px rgba(0,0,0,.05);overflow:hidden;display:flex;flex-direction:column;min-height:0">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;padding:16px 22px 10px">
+        <h6 style="margin:0;color:var(--color-neutral-700)">Graphic recording</h6>
+        <div style="display:flex;align-items:center;gap:14px;font-size:11px;color:var(--color-neutral-600)">
+          <span>Painterly · Flux 1.1 · 1536×1024</span>
+          <div class="seg" style="height:26px"><label class="seg-opt" style="padding:0 10px;font-size:11px"><input type="radio" name="rv" defaultChecked="{{ true }}">Latest</label><label class="seg-opt" style="padding:0 10px;font-size:11px"><input type="radio" name="rv">Frames</label><label class="seg-opt" style="padding:0 10px;font-size:11px"><input type="radio" name="rv">Sketch layer</label></div>
+        </div>
+      </div>
+      <div style="flex:1;min-height:0;padding:0 22px 12px;position:relative">
+        <div class="plate" style="position:relative;width:100%;height:100%;overflow:hidden;background:var(--color-surface)">
+          <div style="position:absolute;inset:0;overflow:hidden">
+            <div style="position:absolute;inset:-6%;background:radial-gradient(ellipse 45% 40% at 28% 30%,#c9a56a 0%,transparent 70%),radial-gradient(ellipse 50% 45% at 70% 60%,#8d9a7a 0%,transparent 70%),radial-gradient(ellipse 40% 50% at 55% 20%,#e3d3b6 0%,transparent 70%),radial-gradient(ellipse 60% 40% at 30% 85%,#7e6a4d 0%,transparent 70%),linear-gradient(180deg,#efe6d7,#d9cdb8);filter:blur(2px) saturate(.85);animation:cg-drift 24s ease-in-out infinite"></div>
+            <image-slot id="rec-ep8" shape="rect" placeholder="Drop a Flux render — painterly recording of episode 8" style="position:absolute;inset:0;width:100%;height:100%;opacity:.96"></image-slot>
+          </div>
+          <!-- excalidraw sketch layer -->
+          <svg viewBox="0 0 640 520" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none" fill="none" stroke="#2d2b2b" stroke-width="1.3" stroke-linecap="round">
+            <path d="M120 130 C160 118, 200 140, 236 128" opacity=".7"></path>
+            <path d="M236 128 l-9 -4 m9 4 l-8 6" opacity=".7"></path>
+            <path d="M330 300 C360 330, 400 328, 440 350" opacity=".7"></path>
+            <path d="M440 350 l-10 -1 m10 1 l-5 -9" opacity=".7"></path>
+            <path d="M190 400 C230 388, 270 402, 300 380" opacity=".6" stroke-dasharray="4 5"></path>
+            <ellipse cx="92" cy="130" rx="46" ry="26" opacity=".75" transform="rotate(-4 92 130)"></ellipse>
+            <ellipse cx="300" cy="118" rx="60" ry="30" opacity=".75" transform="rotate(3 300 118)"></ellipse>
+            <ellipse cx="300" cy="300" rx="52" ry="28" opacity=".75"></ellipse>
+            <ellipse cx="485" cy="360" rx="54" ry="28" opacity=".75" transform="rotate(-3 485 360)"></ellipse>
+            <ellipse cx="150" cy="410" rx="46" ry="26" opacity=".6" stroke-dasharray="5 5"></ellipse>
+            <path d="M130 396 l40 28 M170 396 l-40 28" opacity=".55" stroke="#7d5411"></path>
+          </svg>
+          <div style="position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;font-family:var(--font-heading);color:#2d2b2b">
+            <span style="position:absolute;left:10.5%;top:23%;font-size:13px;font-weight:500">Riverside plot</span>
+            <span style="position:absolute;left:41%;top:20.5%;font-size:13px;font-weight:500">Permit · signed</span>
+            <span style="position:absolute;left:42.5%;top:55.5%;font-size:13px;font-weight:500">Budget €4,200</span>
+            <span style="position:absolute;left:69%;top:67%;font-size:13px;font-weight:500">Rainwater tank</span>
+            <span style="position:absolute;left:19%;top:76.5%;font-size:13px;font-weight:500;opacity:.55;text-decoration:line-through">Bee hives</span>
+            <span style="position:absolute;left:58%;top:34%;font-size:13px;opacity:.7">soil → clay, east</span>
+          </div>
+          <!-- brushing-in sweep -->
+          <div style="position:absolute;right:0;top:0;width:28%;height:100%;background:linear-gradient(90deg,transparent,rgba(243,242,242,.55) 50%,transparent);animation:cg-sweep 5s linear infinite;pointer-events:none"></div>
+          <div style="position:absolute;left:14px;bottom:12px;display:flex;align-items:center;gap:8px;padding:6px 10px;background:color-mix(in srgb,var(--color-bg) 82%,transparent);border:1px solid var(--color-divider);border-radius:var(--radius-md);font-size:11px;color:var(--color-neutral-800);pointer-events:none;backdrop-filter:blur(6px)">
+            <span style="width:6px;height:6px;border-radius:50%;background:var(--color-accent);animation:cg-pulse 1.4s ease-in-out infinite"></span>
+            Rendering episode 8 · pass 2 of 3
+            <span style="width:90px;height:1px;background:var(--color-neutral-300);position:relative;overflow:hidden"><span style="position:absolute;left:0;top:0;height:100%;width:62%;background:var(--color-accent)"></span></span>
+            <span style="font-variant-numeric:tabular-nums">62%</span>
+          </div>
+        </div>
+      </div>
+      <!-- frame strip -->
+      <div style="padding:10px 22px 12px;border-top:1px solid var(--color-divider);display:flex;align-items:center;gap:10px">
+        <span style="font-size:11px;color:var(--color-neutral-600);width:64px">Frames</span>
+        <div style="display:flex;gap:8px;flex:1">
+          <div style="width:54px;height:36px;background:linear-gradient(135deg,#e8dcc4,#b9a98a);border:1px solid var(--color-divider);opacity:.5"></div>
+          <div style="width:54px;height:36px;background:linear-gradient(135deg,#dfd3ba,#a8a384);border:1px solid var(--color-divider);opacity:.6"></div>
+          <div style="width:54px;height:36px;background:linear-gradient(135deg,#d8ccb2,#8e9678);border:1px solid var(--color-divider);opacity:.7"></div>
+          <div style="width:54px;height:36px;background:linear-gradient(135deg,#d2c6ab,#8a9270);border:1px solid var(--color-divider);opacity:.8"></div>
+          <div style="width:54px;height:36px;background:linear-gradient(135deg,#cfc1a3,#7e8a66);border:1px solid var(--color-divider);opacity:.9"></div>
+          <div style="width:54px;height:36px;background:linear-gradient(135deg,#cbbc9c,#7a8763);border:1px solid var(--color-divider)"></div>
+          <div style="width:54px;height:36px;background:linear-gradient(135deg,#c6b593,#748160);border:1px solid var(--color-accent)"></div>
+          <div style="width:54px;height:36px;border:1px dashed var(--color-accent-400);display:grid;place-items:center;font-size:10px;color:var(--color-accent-700)">8 …</div>
+        </div>
+        <span style="font-size:11px;color:var(--color-neutral-600);white-space:nowrap">Play</span>
+        <button class="btn btn-icon btn-secondary" aria-label="Play" style="width:28px;height:28px"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5v14l11-7z"></path></svg></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- episode track -->
+  <div style="display:grid;grid-template-columns:300px 1fr 200px;align-items:center;padding:0 24px;gap:20px">
+    <div style="font-size:11.5px;color:var(--color-neutral-700);display:flex;gap:14px"><span><b style="font-weight:600;color:var(--color-text)">8</b> episodes</span><span>·</span><span>7 graphed</span><span>·</span><span>6 rendered</span></div>
+    <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:6px">
+      <div style="display:flex;flex-direction:column;gap:4px"><div style="display:flex;gap:2px"><span style="flex:1;height:2px;background:var(--color-neutral-700)"></span><span style="flex:1;height:2px;background:var(--color-neutral-700)"></span><span style="flex:1;height:2px;background:var(--color-neutral-700)"></span></div><span style="font-size:10px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums">1 · 12:02</span></div>
+      <div style="display:flex;flex-direction:column;gap:4px"><div style="display:flex;gap:2px"><span style="flex:1;height:2px;background:var(--color-neutral-700)"></span><span style="flex:1;height:2px;background:var(--color-neutral-700)"></span><span style="flex:1;height:2px;background:var(--color-neutral-700)"></span></div><span style="font-size:10px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums">2 · 12:07</span></div>
+      <div style="display:flex;flex-direction:column;gap:4px"><div style="display:flex;gap:2px"><span style="flex:1;height:2px;background:var(--color-neutral-700)"></span><span style="flex:1;height:2px;background:var(--color-neutral-700)"></span><span style="flex:1;height:2px;background:var(--color-neutral-700)"></span></div><span style="font-size:10px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums">3 · 12:13</span></div>
+      <div style="display:flex;flex-direction:column;gap:4px"><div style="display:flex;gap:2px"><span style="flex:1;height:2px;background:var(--color-neutral-700)"></span><span style="flex:1;height:2px;background:var(--color-neutral-700)"></span><span style="flex:1;height:2px;background:var(--color-neutral-700)"></span></div><span style="font-size:10px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums">4 · 12:18</span></div>
+      <div style="display:flex;flex-direction:column;gap:4px"><div style="display:flex;gap:2px"><span style="flex:1;height:2px;background:var(--color-neutral-700)"></span><span style="flex:1;height:2px;background:var(--color-neutral-700)"></span><span style="flex:1;height:2px;background:var(--color-neutral-700)"></span></div><span style="font-size:10px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums">5 · 12:23</span></div>
+      <div style="display:flex;flex-direction:column;gap:4px"><div style="display:flex;gap:2px"><span style="flex:1;height:2px;background:var(--color-neutral-700)"></span><span style="flex:1;height:2px;background:var(--color-neutral-700)"></span><span style="flex:1;height:2px;background:var(--color-neutral-700)"></span></div><span style="font-size:10px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums">6 · 12:28</span></div>
+      <div style="display:flex;flex-direction:column;gap:4px"><div style="display:flex;gap:2px"><span style="flex:1;height:2px;background:var(--color-neutral-700)"></span><span style="flex:1;height:2px;background:var(--color-neutral-700)"></span><span style="flex:1;height:2px;background:var(--color-accent)"></span></div><span style="font-size:10px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums">7 · 12:33</span></div>
+      <div style="display:flex;flex-direction:column;gap:4px"><div style="display:flex;gap:2px"><span style="flex:1;height:2px;background:var(--color-accent)"></span><span style="flex:1;height:2px;background:var(--color-accent);opacity:.55"></span><span style="flex:1;height:2px;border-top:1px dashed var(--color-neutral-400)"></span></div><span style="font-size:10px;color:var(--color-accent-700);font-variant-numeric:tabular-nums">8 · live</span></div>
+    </div>
+    <div style="font-size:10.5px;color:var(--color-neutral-600);display:flex;flex-direction:column;gap:2px;line-height:1.3"><span>▬ transcribed &nbsp;▬ graphed &nbsp;▬ rendered</span><span>Episode ≈ 5 min or a topic shift</span></div>
+  </div>
+</div></div>
+
+<!-- ═══════════ 1b SPEAKER IDENTIFICATION ═══════════ -->
+<div class="dv-opt" id="1b"><div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>First minutes — speakers detected by voice, renamed inline in the transcript</div>
+<div class="dv-card" style="width:1440px;height:900px;display:grid;grid-template-rows:56px 1fr 64px;color:var(--color-text);background:var(--color-bg)" data-screen-label="1b Speaker identification">
+  <div style="display:flex;align-items:center;gap:22px;padding:0 24px">
+    <div style="font-family:var(--font-heading);font-weight:600;font-size:17px;letter-spacing:-.02em">Convograph</div>
+    <div style="width:1px;height:20px;background:var(--color-divider)"></div>
+    <div style="font-size:13px;color:var(--color-neutral-600);font-style:italic">Untitled session — name it when you like</div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--color-neutral-700)">
+      <span style="position:relative;width:8px;height:8px;display:inline-block"><span style="position:absolute;inset:0;border-radius:50%;background:var(--color-accent)"></span><span style="position:absolute;inset:0;border-radius:50%;background:var(--color-accent);animation:cg-pulse 1.8s ease-in-out infinite"></span></span>
+      <span style="font-variant-numeric:tabular-nums">Listening · 00:01:52</span>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+      <span class="tag tag-accent">3 of 4 voices identified</span>
+      <button class="btn btn-secondary" style="height:34px">Pause</button>
+      <button class="btn btn-primary" style="height:34px">End session</button>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:300px 420px 1fr;min-height:0;gap:12px;padding:12px">
+    <div style="background:#fff;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 0 0 1px rgba(0,0,0,.05);overflow:hidden;display:flex;flex-direction:column;min-height:0">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;padding:16px 18px 10px">
+        <h6 style="margin:0;color:var(--color-neutral-700)">Transcript</h6>
+        <span style="font-size:11px;color:var(--color-neutral-600)">Click a name to rename</span>
+      </div>
+      <div style="flex:1;overflow:hidden;padding:0 18px;display:flex;flex-direction:column;gap:14px;font-size:12.5px;line-height:1.55">
+        <div style="display:flex;align-items:center;gap:8px;color:var(--color-accent-700);font-size:10px;letter-spacing:.1em;text-transform:uppercase"><span style="flex:1;height:1px;background:var(--color-accent-300)"></span>Episode 1 · 00:00<span style="flex:1;height:1px;background:var(--color-accent-300)"></span></div>
+        <div style="display:grid;grid-template-columns:22px 1fr;gap:8px">
+          <span style="width:22px;height:22px;border-radius:50%;border:1px solid var(--color-accent-500);display:grid;place-items:center;font-family:var(--font-heading);font-size:11px;font-weight:500;color:var(--color-accent-700)">M</span>
+          <div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-neutral-600)"><span style="font-family:var(--font-heading);font-size:12.5px;font-weight:500;color:var(--color-text);border-bottom:1px dotted var(--color-neutral-400)">Maren</span><span style="font-variant-numeric:tabular-nums">00:04</span></div><p style="margin:2px 0 0">Okay, everyone's here. Let's start with the plot itself — Riverside, the strip behind the mill.</p></div>
+        </div>
+        <div style="display:grid;grid-template-columns:22px 1fr;gap:8px">
+          <span style="width:22px;height:22px;border-radius:50%;border:1px solid var(--color-accent-800);display:grid;place-items:center;font-family:var(--font-heading);font-size:11px;font-weight:500;color:var(--color-accent-800)">T</span>
+          <div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-neutral-600)"><span style="font-family:var(--font-heading);font-size:12.5px;font-weight:500;color:var(--color-text);border-bottom:1px dotted var(--color-neutral-400)">Tobias</span><span style="font-variant-numeric:tabular-nums">00:21</span></div><p style="margin:2px 0 0">I priced it roughly — thirty-eight hundred for beds, fencing and the shed.</p></div>
+        </div>
+        <!-- inline rename in progress -->
+        <div style="display:grid;grid-template-columns:22px 1fr;gap:8px;position:relative">
+          <span style="width:22px;height:22px;border-radius:50%;border:1px solid var(--color-neutral-500);display:grid;place-items:center;font-family:var(--font-heading);font-size:11px;font-weight:500;color:var(--color-neutral-700)">3</span>
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--color-neutral-600)">
+              <span style="display:inline-flex;align-items:center;gap:6px"><input class="input" value="Ine" style="width:110px;min-height:24px;padding:2px 6px;font-family:var(--font-heading);font-size:13px;border-color:var(--color-accent)"><span style="font-size:10px;color:var(--color-neutral-500)">↵ to save</span></span><span style="font-variant-numeric:tabular-nums">00:48</span>
+            </div>
+            <p style="margin:2px 0 0">Before we spend anything, the council permit. I'll chase it this week.</p>
+            <div class="elev-md" style="margin-top:8px;padding:10px 12px;background:var(--color-bg);border:1px solid var(--color-divider);border-radius:var(--radius-md);font-size:11.5px;display:flex;flex-direction:column;gap:6px">
+              <span style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600)">Voice print · Speaker 3</span>
+              <svg viewBox="0 0 200 24" style="width:100%;height:24px" fill="none" stroke="var(--color-neutral-700)" stroke-width="1.2"><path d="M0 12 Q5 4 10 12 T20 12 T30 12 T40 12 T50 12 T60 12 T70 12 T80 12 T90 12 T100 12 T110 12 T120 12 T130 12 T140 12 T150 12 T160 12 T170 12 T180 12 T190 12 T200 12" opacity=".35"></path><path d="M0 12 Q4 2 8 12 T16 12 T24 12 Q28 20 32 12 T40 12 Q44 1 48 12 T56 12 T64 12 Q68 22 72 12 T80 12 T88 12 Q92 3 96 12 T104 12 T112 12 Q116 19 120 12 T128 12 Q132 4 136 12 T144 12 T152 12 Q156 21 160 12 T168 12 T176 12 Q180 5 184 12 T192 12 T200 12"></path></svg>
+              <div style="display:flex;justify-content:space-between;color:var(--color-neutral-600)"><span>3 turns · 41 s spoken</span><span>Applies to all past turns</span></div>
+            </div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:22px 1fr;gap:8px;opacity:.85">
+          <span style="width:22px;height:22px;border-radius:50%;border:1px dashed var(--color-neutral-500);display:grid;place-items:center;font-family:var(--font-heading);font-size:11px;font-weight:500;color:var(--color-neutral-700)">4</span>
+          <div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-neutral-600)"><span style="font-family:var(--font-heading);font-size:13px;color:var(--color-neutral-600);font-style:italic;border-bottom:1px dotted var(--color-neutral-400)">Speaker 4</span><span style="font-variant-numeric:tabular-nums">01:30</span></div><p style="margin:2px 0 0">I can do the soil test, I still have the kit from the school garden.</p></div>
+        </div>
+      </div>
+      <div style="padding:12px 18px;border-top:1px solid var(--color-divider);display:flex;align-items:center;gap:10px;font-size:11px;color:var(--color-neutral-600)">
+        <div style="display:flex;align-items:flex-end;gap:2px;height:14px"><span style="width:2px;height:8px;background:var(--color-accent)"></span><span style="width:2px;height:12px;background:var(--color-accent)"></span><span style="width:2px;height:5px;background:var(--color-accent)"></span><span style="width:2px;height:14px;background:var(--color-accent)"></span><span style="width:2px;height:7px;background:var(--color-accent)"></span><span style="width:2px;height:10px;background:var(--color-accent)"></span></div>
+        <span>Studio mic · Whisper-large · 240 ms</span>
+      </div>
+    </div>
+    <div style="background:#fff;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 0 0 1px rgba(0,0,0,.05);overflow:hidden;display:flex;flex-direction:column;min-height:0;position:relative">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;padding:16px 18px 10px">
+        <h6 style="margin:0;color:var(--color-neutral-700)">Knowledge graph</h6>
+        <span style="font-size:11px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums">4 facts · 3 relations</span>
+      </div>
+      <div style="flex:1;min-height:0;position:relative">
+        <svg ref="{{ graphSparse }}" viewBox="0 0 420 560" style="width:100%;height:100%;display:block"></svg>
+      </div>
+      <div style="padding:10px 18px 12px;border-top:1px solid var(--color-divider);font-size:11.5px;color:var(--color-neutral-700);display:flex;align-items:center;gap:8px">
+        <span style="width:6px;height:6px;border-radius:50%;background:var(--color-accent);animation:cg-pulse 1.4s ease-in-out infinite"></span>
+        <span>Episode 1 closes at ~05:00 or on a topic shift</span>
+      </div>
+    </div>
+    <div style="background:#fff;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 0 0 1px rgba(0,0,0,.05);overflow:hidden;display:flex;flex-direction:column;min-height:0">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;padding:16px 22px 10px">
+        <h6 style="margin:0;color:var(--color-neutral-700)">Graphic recording</h6>
+        <span style="font-size:11px;color:var(--color-neutral-600)">Painterly · Flux 1.1</span>
+      </div>
+      <div style="flex:1;min-height:0;padding:0 22px 12px">
+        <div class="plate" style="position:relative;width:100%;height:100%;background:var(--color-surface);display:grid;place-items:center;overflow:hidden">
+          <div style="position:absolute;inset:-6%;background:radial-gradient(ellipse 50% 40% at 30% 40%,#d9cbb0 0%,transparent 70%),radial-gradient(ellipse 50% 45% at 70% 60%,#c8c9b8 0%,transparent 70%),linear-gradient(180deg,#f0eae0,#e2dbcd);filter:blur(4px);opacity:.7;animation:cg-drift 24s ease-in-out infinite"></div>
+          <div style="position:relative;text-align:center;max-width:380px;display:flex;flex-direction:column;align-items:center;gap:14px">
+            <svg width="72" height="72" viewBox="0 0 72 72" fill="none" stroke="var(--color-accent)" stroke-width="1"><circle cx="36" cy="36" r="30" opacity=".35"></circle><circle cx="36" cy="36" r="30" stroke-dasharray="40 150" style="transform-origin:center;animation:cg-ring 3s linear infinite"></circle><circle cx="36" cy="36" r="20" opacity=".35" stroke-dasharray="2 4"></circle></svg>
+            <h3 style="margin:0;font-weight:600;font-size:22px">The first plate arrives with episode 1</h3>
+            <p style="margin:0;font-size:13px;color:var(--color-neutral-700);line-height:1.6">Once the graph holds enough to draw, Convograph composes a sketch layer in Excalidraw and paints over it. Each later episode repaints the same canvas, so the recording grows rather than restarts.</p>
+            <span style="font-size:11px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums">First render in about 3 min</span>
+          </div>
+        </div>
+      </div>
+      <div style="padding:10px 22px 12px;border-top:1px solid var(--color-divider);display:flex;align-items:center;gap:10px">
+        <span style="font-size:11px;color:var(--color-neutral-600);width:64px">Frames</span>
+        <div style="width:54px;height:36px;border:1px dashed var(--color-accent-400);display:grid;place-items:center;font-size:10px;color:var(--color-accent-700)">1 …</div>
+      </div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:300px 1fr 200px;align-items:center;padding:0 24px;gap:20px">
+    <div style="font-size:11.5px;color:var(--color-neutral-700)"><b style="font-weight:600;color:var(--color-text)">1</b> episode in progress</div>
+    <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:6px">
+      <div style="display:flex;flex-direction:column;gap:4px"><div style="display:flex;gap:2px"><span style="flex:1;height:2px;background:linear-gradient(90deg,var(--color-accent) 38%,var(--color-neutral-300) 38%)"></span><span style="flex:1;height:2px;border-top:1px dashed var(--color-neutral-400)"></span><span style="flex:1;height:2px;border-top:1px dashed var(--color-neutral-400)"></span></div><span style="font-size:10px;color:var(--color-accent-700);font-variant-numeric:tabular-nums">1 · live</span></div>
+      <div style="display:flex;flex-direction:column;gap:4px;opacity:.4"><div style="display:flex;gap:2px"><span style="flex:1;height:2px;border-top:1px dashed var(--color-neutral-400)"></span><span style="flex:1;height:2px;border-top:1px dashed var(--color-neutral-400)"></span><span style="flex:1;height:2px;border-top:1px dashed var(--color-neutral-400)"></span></div><span style="font-size:10px;color:var(--color-neutral-600)">2</span></div>
+      <div style="display:flex;flex-direction:column;gap:4px;opacity:.3"><div style="display:flex;gap:2px"><span style="flex:1;height:2px;border-top:1px dashed var(--color-neutral-400)"></span><span style="flex:1;height:2px;border-top:1px dashed var(--color-neutral-400)"></span><span style="flex:1;height:2px;border-top:1px dashed var(--color-neutral-400)"></span></div><span style="font-size:10px;color:var(--color-neutral-600)">3</span></div>
+      <div style="display:flex;flex-direction:column;gap:4px;opacity:.2"><div style="display:flex;gap:2px"><span style="flex:1;height:2px;border-top:1px dashed var(--color-neutral-400)"></span><span style="flex:1;height:2px;border-top:1px dashed var(--color-neutral-400)"></span><span style="flex:1;height:2px;border-top:1px dashed var(--color-neutral-400)"></span></div><span style="font-size:10px;color:var(--color-neutral-600)">4</span></div>
+    </div>
+    <div style="font-size:10.5px;color:var(--color-neutral-600);line-height:1.3">▬ transcribed &nbsp;▬ graphed &nbsp;▬ rendered</div>
+  </div>
+</div></div>
+
+<!-- ═══════════ 1c FACT DIFF ═══════════ -->
+<div class="dv-opt" id="1c"><div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Compare episodes — scrub two handles, see how facts were added, revised, confirmed or invalidated</div>
+<div class="dv-card" style="width:1440px;height:900px;display:grid;grid-template-rows:56px 1fr;color:var(--color-text)" data-screen-label="1c Fact diff">
+  <div style="display:flex;align-items:center;gap:22px;padding:0 24px">
+    <div style="font-family:var(--font-heading);font-weight:600;font-size:17px;letter-spacing:-.02em">Convograph</div>
+    <div style="width:1px;height:20px;background:var(--color-divider)"></div>
+    <div style="font-size:13px">Riverside allotment — planning call</div>
+    <span style="font-size:12px;color:var(--color-neutral-600)">/ Compare episodes</span>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+      <span style="font-size:12px;color:var(--color-neutral-700);display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:var(--color-accent);animation:cg-pulse 1.8s ease-in-out infinite"></span>Still listening · episode 9</span>
+      <button class="btn btn-secondary" style="height:34px">Export ledger</button>
+      <button class="btn btn-primary" style="height:34px">Back to session</button>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-rows:auto 1fr;min-height:0">
+    <!-- scrubber -->
+    <div style="padding:26px 40px 18px;border-bottom:1px solid var(--color-divider)">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px">
+        <h2 style="margin:0;font-weight:600;font-size:24px">Episode <span style="font-variant-numeric:tabular-nums">5</span> <span style="color:var(--color-neutral-500)">→</span> Episode <span style="font-variant-numeric:tabular-nums">8</span></h2>
+        <div style="display:flex;gap:18px;font-size:12px;color:var(--color-neutral-700);font-variant-numeric:tabular-nums"><span><b style="font-weight:600;color:var(--color-accent-700)">+3</b> added</span><span><b style="font-weight:600">3</b> revised</span><span><b style="font-weight:600">1</b> confirmed</span><span><b style="font-weight:600;text-decoration:line-through">1</b> invalidated</span><span>7 unchanged</span></div>
+      </div>
+      <div style="position:relative;height:56px">
+        <div style="position:absolute;left:0;right:0;top:20px;height:1px;background:var(--color-neutral-300)"></div>
+        <div style="position:absolute;left:50%;width:33.4%;top:19px;height:3px;background:var(--color-accent)"></div>
+        <div style="position:absolute;left:0;right:0;top:0;display:grid;grid-template-columns:repeat(9,1fr)">
+          <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;font-size:10.5px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums"><span style="width:7px;height:7px;border-radius:50%;background:var(--color-neutral-500);margin-top:17px"></span>1 · 12:02</div>
+          <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;font-size:10.5px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums"><span style="width:7px;height:7px;border-radius:50%;background:var(--color-neutral-500);margin-top:17px"></span>2</div>
+          <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;font-size:10.5px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums"><span style="width:7px;height:7px;border-radius:50%;background:var(--color-neutral-500);margin-top:17px"></span>3</div>
+          <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;font-size:10.5px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums"><span style="width:7px;height:7px;border-radius:50%;background:var(--color-neutral-500);margin-top:17px"></span>4</div>
+          <div style="display:flex;flex-direction:column;align-items:flex-start;gap:4px;font-size:11px;color:var(--color-text);font-variant-numeric:tabular-nums"><span style="width:15px;height:15px;border-radius:50%;background:var(--color-bg);border:1.5px solid var(--color-accent);margin-top:13px;margin-left:-4px;box-shadow:var(--shadow-sm)"></span><span style="margin-left:-4px">5 · 12:23 &nbsp;<span style="color:var(--color-neutral-500)">A</span></span></div>
+          <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;font-size:10.5px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums"><span style="width:7px;height:7px;border-radius:50%;background:var(--color-accent);margin-top:17px"></span>6</div>
+          <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;font-size:10.5px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums"><span style="width:7px;height:7px;border-radius:50%;background:var(--color-accent);margin-top:17px"></span>7</div>
+          <div style="display:flex;flex-direction:column;align-items:flex-start;gap:4px;font-size:11px;color:var(--color-text);font-variant-numeric:tabular-nums"><span style="width:15px;height:15px;border-radius:50%;background:var(--color-accent);border:1.5px solid var(--color-accent);margin-top:13px;margin-left:-4px;box-shadow:var(--shadow-sm)"></span><span style="margin-left:-4px">8 · 12:41 &nbsp;<span style="color:var(--color-neutral-500)">B</span></span></div>
+          <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;font-size:10.5px;color:var(--color-accent-700);font-variant-numeric:tabular-nums"><span style="width:7px;height:7px;border-radius:50%;border:1px dashed var(--color-accent);margin-top:17px"></span>9 · live</div>
+        </div>
+      </div>
+    </div>
+    <!-- ledger + graph -->
+    <div style="display:grid;grid-template-columns:1fr 480px;min-height:0">
+      <div style="padding:22px 40px;overflow:hidden;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="seg" style="height:28px"><label class="seg-opt" style="padding:0 12px;font-size:12px"><input type="radio" name="lf" defaultChecked="{{ true }}">Changes only</label><label class="seg-opt" style="padding:0 12px;font-size:12px"><input type="radio" name="lf">All facts</label></div>
+          <span style="font-size:12px;color:var(--color-neutral-600)">Sorted by episode of change</span>
+        </div>
+        <table class="table" style="font-size:13px">
+          <thead><tr><th style="width:26%">Fact</th><th style="width:25%">At episode 5</th><th style="width:25%">At episode 8</th><th>Change</th><th style="text-align:right">By</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:500;font-size:13px">Budget</td><td style="color:var(--color-neutral-600);text-decoration:line-through;font-variant-numeric:tabular-nums">€3,800</td><td style="font-variant-numeric:tabular-nums">€4,200</td><td><span class="tag tag-neutral">Revised · ep 7</span></td><td style="text-align:right"><span style="display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;border:1px solid var(--color-accent-800);font-family:var(--font-heading);font-size:11px;color:var(--color-accent-800)">T</span></td></tr>
+            <tr><td style="font-weight:500;font-size:13px">Council permit</td><td style="color:var(--color-neutral-600)">pending</td><td>signed, no apiaries clause</td><td><span class="tag tag-outline">Confirmed · ep 7</span></td><td style="text-align:right"><span style="display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;border:1px solid var(--color-neutral-500);font-family:var(--font-heading);font-size:11px;color:var(--color-neutral-700)">I</span></td></tr>
+            <tr><td style="font-weight:500;font-size:13px">Rainwater tank</td><td style="color:var(--color-neutral-500)">—</td><td>2,000 l, north corner</td><td><span class="tag tag-accent">Added · ep 6</span></td><td style="text-align:right"><span style="display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;border:1px solid var(--color-accent-500);font-family:var(--font-heading);font-size:11px;color:var(--color-accent-700)">M</span></td></tr>
+            <tr><td style="font-weight:500;font-size:13px">Bee hives</td><td>two hives, east side</td><td style="color:var(--color-neutral-600)"><span style="text-decoration:line-through">two hives, east side</span> — forbidden by permit</td><td><span class="tag tag-neutral" style="text-decoration:line-through">Invalidated · ep 8</span></td><td style="text-align:right"><span style="display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;border:1px solid var(--color-neutral-500);font-family:var(--font-heading);font-size:11px;color:var(--color-neutral-700)">I</span></td></tr>
+            <tr><td style="font-weight:500;font-size:13px">Soil · east side</td><td style="color:var(--color-neutral-500)">—</td><td>heavy clay → raised beds</td><td><span class="tag tag-accent">Added · ep 8</span></td><td style="text-align:right"><span style="display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;border:1px solid var(--color-neutral-900);font-family:var(--font-heading);font-size:11px;color:var(--color-neutral-900)">K</span></td></tr>
+            <tr><td style="font-weight:500;font-size:13px">Opening date</td><td style="color:var(--color-neutral-600);text-decoration:line-through">April 19</td><td>May 3</td><td><span class="tag tag-neutral">Revised · ep 6</span></td><td style="text-align:right"><span style="display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;border:1px solid var(--color-accent-500);font-family:var(--font-heading);font-size:11px;color:var(--color-accent-700)">M</span></td></tr>
+            <tr><td style="font-weight:500;font-size:13px">Tool shed</td><td style="color:var(--color-neutral-600);text-decoration:line-through">north corner</td><td>by the gate (tank takes north)</td><td><span class="tag tag-neutral">Revised · ep 6</span></td><td style="text-align:right"><span style="display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;border:1px solid var(--color-accent-800);font-family:var(--font-heading);font-size:11px;color:var(--color-accent-800)">T</span></td></tr>
+            <tr><td style="font-weight:500;font-size:13px">Workshop series</td><td style="color:var(--color-neutral-500)">—</td><td>east corner, replaces hives</td><td><span class="tag tag-accent">Added · ep 8</span></td><td style="text-align:right"><span style="display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;border:1px solid var(--color-accent-500);font-family:var(--font-heading);font-size:11px;color:var(--color-accent-700)">M</span></td></tr>
+          </tbody>
+        </table>
+        <p style="margin:auto 0 0;font-size:11.5px;color:var(--color-neutral-600);line-height:1.6">Each row links to the transcript turn that caused the change. Invalidated facts stay in the graph as dashed nodes for the rest of the session so the recording can paint them crossed out rather than erasing them.</p>
+      </div>
+      <div style="border-left:1px solid var(--color-divider);display:flex;flex-direction:column;min-height:0">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;padding:22px 24px 8px">
+          <h6 style="margin:0;color:var(--color-neutral-700)">Changed region</h6>
+          <span style="font-size:11px;color:var(--color-neutral-600)">Unchanged facts faded</span>
+        </div>
+        <div style="flex:1;min-height:0"><svg ref="{{ graphDiff }}" viewBox="0 0 480 520" style="width:100%;height:100%;display:block"></svg></div>
+        <div style="padding:12px 24px 18px;border-top:1px solid var(--color-divider);display:flex;gap:16px;font-size:11px;color:var(--color-neutral-700)">
+          <span style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:var(--color-accent)"></span>Added</span>
+          <span style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;border:1.5px solid var(--color-accent)"></span>Revised</span>
+          <span style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;border:1px dashed var(--color-neutral-700)"></span>Invalidated</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div></div>
+
+<!-- ═══════════ 1d SETTINGS ═══════════ -->
+<div class="dv-opt" id="1d"><div class="dv-olabel"><a class="dv-oid" href="#1d">1d</a>Settings — mic, models, episode cadence, recording style; opens as a sheet over the session</div>
+<div class="dv-card" style="width:1440px;height:900px;position:relative;color:var(--color-text);background:var(--color-bg)" data-screen-label="1d Settings">
+  <!-- dimmed session behind -->
+  <div style="position:absolute;inset:0;opacity:.35;filter:blur(1.5px);display:grid;grid-template-rows:56px 1fr 64px;pointer-events:none">
+    <div style="border-bottom:1px solid var(--color-divider);display:flex;align-items:center;padding:0 24px;font-family:var(--font-heading);font-weight:600;font-size:20px">Convograph</div>
+    <div style="display:grid;grid-template-columns:300px 420px 1fr">
+      <div style="border-right:1px solid var(--color-divider)"></div>
+      <div style="border-right:1px solid var(--color-divider)"></div>
+      <div style="padding:52px 22px 12px"><div class="plate" style="width:100%;height:100%;background:linear-gradient(135deg,#e6dbc6,#a7ac92)"></div></div>
+    </div>
+    <div style="border-top:1px solid var(--color-divider)"></div>
+  </div>
+  <div style="position:absolute;inset:0;background:color-mix(in srgb,var(--color-neutral-900) 22%,transparent)"></div>
+  <!-- sheet -->
+  <div class="elev-lg" style="position:absolute;top:0;right:0;bottom:0;width:560px;background:#fff;border-radius:18px 0 0 18px;display:grid;grid-template-rows:auto 1fr auto">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;padding:26px 32px 14px;border-bottom:1px solid var(--color-divider)">
+      <h2 style="margin:0;font-weight:600;font-size:24px">Session settings</h2>
+      <button class="btn btn-ghost" style="font-size:13px">Close</button>
+    </div>
+    <div style="overflow:auto;padding:8px 32px;display:flex;flex-direction:column">
+      <!-- Listening -->
+      <div style="padding:18px 0;border-bottom:1px solid var(--color-divider);display:grid;grid-template-columns:150px 1fr;gap:20px">
+        <div><h6 style="margin:0 0 4px;color:var(--color-accent)">Listening</h6><p style="margin:0;font-size:11.5px;color:var(--color-neutral-600);line-height:1.5">Input and how voices are told apart.</p></div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div class="field"><label>Microphone</label><div class="input" style="display:flex;align-items:center;justify-content:space-between"><span>Studio Condenser USB</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 9l6 6 6-6"></path></svg></div></div>
+          <div class="field"><label>Speakers expected</label><div class="seg"><label class="seg-opt"><input type="radio" name="sp">2</label><label class="seg-opt"><input type="radio" name="sp">3</label><label class="seg-opt"><input type="radio" name="sp" defaultChecked="{{ true }}">4</label><label class="seg-opt"><input type="radio" name="sp">Detect</label></div></div>
+          <div class="field"><label>Transcription model</label><div class="input" style="display:flex;align-items:center;justify-content:space-between"><span>Whisper large-v3 · English + German</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 9l6 6 6-6"></path></svg></div></div>
+        </div>
+      </div>
+      <!-- Episodes -->
+      <div style="padding:18px 0;border-bottom:1px solid var(--color-divider);display:grid;grid-template-columns:150px 1fr;gap:20px">
+        <div><h6 style="margin:0 0 4px;color:var(--color-accent)">Episodes</h6><p style="margin:0;font-size:11.5px;color:var(--color-neutral-600);line-height:1.5">How the stream is cut before it reaches the graph.</p></div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div class="field"><label>Cut an episode</label><div style="display:flex;flex-direction:column;gap:6px"><label class="radio"><input type="radio" name="cut" defaultChecked="{{ true }}"><span class="dot"></span>Every 5 minutes, or sooner on a topic shift</label><label class="radio"><input type="radio" name="cut"><span class="dot"></span>Only on a topic shift</label><label class="radio"><input type="radio" name="cut"><span class="dot"></span>Fixed length</label></div></div>
+          <div class="field"><label>Graph model</label><div class="input" style="display:flex;align-items:center;justify-content:space-between"><span>Convograph KG · v2 (entities, relations, validity)</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 9l6 6 6-6"></path></svg></div></div>
+          <label class="radio" style="font-size:13px"><input type="checkbox" defaultChecked="{{ true }}"><span class="dot" style="border-radius:3px"></span>Keep invalidated facts as dashed nodes</label>
+        </div>
+      </div>
+      <!-- Recording -->
+      <div style="padding:18px 0;display:grid;grid-template-columns:150px 1fr;gap:20px">
+        <div><h6 style="margin:0 0 4px;color:var(--color-accent)">Recording</h6><p style="margin:0;font-size:11.5px;color:var(--color-neutral-600);line-height:1.5">The graphic that grows with the graph.</p></div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div class="field"><label>Style</label>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+              <div style="border:1px solid var(--color-divider);border-radius:var(--radius-md);padding:6px;display:flex;flex-direction:column;gap:6px;font-size:11.5px"><div style="height:54px;background:repeating-linear-gradient(45deg,#f3f2f2 0 3px,#d7d3d3 3px 4px)"></div>Sketchnote</div>
+              <div style="border:1px solid var(--color-divider);border-radius:var(--radius-md);padding:6px;display:flex;flex-direction:column;gap:6px;font-size:11.5px"><div style="height:54px;background:linear-gradient(#eae9e9,#eae9e9) 50% 50%/1px 100% no-repeat,linear-gradient(#eae9e9,#eae9e9) 50% 50%/100% 1px no-repeat,#f8f4f4;outline:1px solid var(--color-neutral-300);outline-offset:-8px"></div>Diagrammatic</div>
+              <div style="border:1px solid var(--color-accent);box-shadow:inset 0 0 0 1px var(--color-accent);border-radius:var(--radius-md);padding:6px;display:flex;flex-direction:column;gap:6px;font-size:11.5px;color:var(--color-accent-700)"><div style="height:54px;background:radial-gradient(ellipse at 30% 40%,#c9a56a,transparent 60%),radial-gradient(ellipse at 70% 70%,#8d9a7a,transparent 60%),#e3d3b6;filter:blur(.5px)"></div>Painterly ✓</div>
+            </div>
+          </div>
+          <div class="field"><label>Image backend</label><div class="input" style="display:flex;align-items:center;justify-content:space-between"><span>Flux 1.1 pro · 1536×1024 · 3 passes</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 9l6 6 6-6"></path></svg></div></div>
+          <div class="field"><label>Repaint</label><div class="seg"><label class="seg-opt"><input type="radio" name="rp" defaultChecked="{{ true }}">Every episode</label><label class="seg-opt"><input type="radio" name="rp">Every 2</label><label class="seg-opt"><input type="radio" name="rp">On demand</label></div></div>
+          <div class="field"><label>Palette prompt</label><textarea class="input" style="min-height:64px;font-size:13px">Warm ochre and sage, loose oil strokes, archival paper ground, labels lettered by hand.</textarea></div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 32px;border-top:1px solid var(--color-divider)">
+      <span style="font-size:11.5px;color:var(--color-neutral-600)">Changes apply from the next episode</span>
+      <div style="display:flex;gap:10px"><button class="btn btn-secondary">Reset</button><button class="btn btn-primary">Save</button></div>
+    </div>
+  </div>
+</div></div>
+
+</div>
+<p class="dv-next">Try next: "add a hover state on a graph node in <a class="dv-oid" href="#1a">1a</a> showing its source turns" · "make <a class="dv-oid" href="#1c">1c</a> a drawer inside the live session instead of a page" · "dark colophon variant of <a class="dv-oid" href="#1a">1a</a>"</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;animate&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Knowledge graph&quot;},&quot;sessionState&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;listening&quot;,&quot;paused&quot;],&quot;default&quot;:&quot;listening&quot;,&quot;tsType&quot;:&quot;'listening'|'paused'&quot;,&quot;section&quot;:&quot;Session&quot;}}">
+class Component extends DCLogic {
+  graphs = {};
+  renderVals() {
+    const paused = (this.props.sessionState ?? 'listening') === 'paused';
+    return {
+      statusLabel: paused ? 'Paused' : 'Listening',
+      graphFull: el => this.attach('full', el),
+      graphSparse: el => this.attach('sparse', el),
+      graphDiff: el => this.attach('diff', el),
+    };
+  }
+  attach(key, el) {
+    if (!el || this.graphs[key]?.el === el) return;
+    const data = this.data()[key];
+    const W = +el.viewBox.baseVal.width, H = +el.viewBox.baseVal.height;
+    el.innerHTML = '';
+    const ns = 'http://www.w3.org/2000/svg';
+    const mk = (t, a) => { const e = document.createElementNS(ns, t); for (const k in a) e.setAttribute(k, a[k]); el.appendChild(e); return e; };
+    const n = data.nodes.length, ga = Math.PI * (3 - Math.sqrt(5));
+    data.nodes.forEach((d, i) => { const y = 1 - (i / (n - 1 || 1)) * 2; const r = Math.sqrt(1 - y * y); d.y = y; d.r = r; d.a = ga * i; });
+    const edges = data.edges.map(([a, b]) => ({ a: data.nodes[a], b: data.nodes[b], el: mk('line', { stroke: '#1d1d1f', 'stroke-width': 0.8 }) }));
+    const nodes = data.nodes.map(d => {
+      const g = mk('g', {});
+      const c = document.createElementNS(ns, 'circle');
+      const t = document.createElementNS(ns, 'text');
+      t.textContent = d.label;
+      t.setAttribute('font-family', 'Geist, system-ui, sans-serif'); t.setAttribute('font-size', '11'); t.setAttribute('fill', '#1d1d1f');
+      const stroke = d.k === 'inv' ? '#9d9da5' : d.k === 'new' || d.k === 'rev' ? '#0a66ff' : '#5b5b63';
+      c.setAttribute('stroke', stroke); c.setAttribute('stroke-width', d.k === 'rev' ? 1.6 : 1);
+      c.setAttribute('fill', d.k === 'new' ? '#0a66ff' : '#ffffff');
+      if (d.k === 'inv') { c.setAttribute('stroke-dasharray', '2 2'); t.setAttribute('text-decoration', 'line-through'); t.setAttribute('fill', '#9d9da5'); }
+      g.appendChild(c); g.appendChild(t);
+      return { d, g, c, t };
+    });
+    const R = Math.min(W, H) * (data.radius ?? 0.36), cx = W / 2, cy = H / 2, t0 = performance.now();
+    const step = (now, once) => {
+      const spin = (this.props.animate ?? true) ? (now - t0) / 1000 * 0.18 : 0.6;
+      const pos = d => { const a = d.a + spin; const x = d.r * Math.sin(a), z = d.r * Math.cos(a); const s = 1 + z * 0.35; return { x: cx + x * R * (1 + z * 0.12), y: cy + d.y * R * 0.92, s, z }; };
+      const P = new Map(nodes.map(o => [o.d, pos(o.d)]));
+      edges.forEach(e => { const a = P.get(e.a), b = P.get(e.b); const z = (a.z + b.z) / 2; e.el.setAttribute('x1', a.x); e.el.setAttribute('y1', a.y); e.el.setAttribute('x2', b.x); e.el.setAttribute('y2', b.y); e.el.setAttribute('opacity', (0.1 + (z + 1) * 0.16) * (e.a.dim && e.b.dim ? 0.35 : 1)); });
+      const pulse = 1 + Math.sin(now / 450) * 0.12;
+      nodes.forEach(o => { const p = P.get(o.d); const rad = (o.d.size ?? 5) * p.s * (o.d.k === 'new' ? pulse : 1); o.c.setAttribute('cx', p.x); o.c.setAttribute('cy', p.y); o.c.setAttribute('r', rad); o.t.setAttribute('x', p.x + rad + 5); o.t.setAttribute('y', p.y + 4); o.t.setAttribute('font-size', 9.5 + p.s * 1.6); o.g.setAttribute('opacity', (0.3 + (p.z + 1) * 0.35) * (o.d.dim ? 0.35 : 1)); });
+      nodes.slice().sort((a, b) => P.get(a.d).z - P.get(b.d).z).forEach(o => el.appendChild(o.g));
+      if (!once) this.graphs[key].raf = requestAnimationFrame(step);
+    };
+    if (this.graphs[key]?.raf) cancelAnimationFrame(this.graphs[key].raf);
+    this.graphs[key] = { el, raf: 0 };
+    step(performance.now(), true);
+    this.graphs[key].raf = requestAnimationFrame(step);
+  }
+  componentWillUnmount() { Object.values(this.graphs).forEach(g => cancelAnimationFrame(g.raf)); }
+  data() {
+    const full = [
+      ['Riverside plot', 7], ['Council permit', 6], ['Budget €4,200', 6, 'rev'], ['Opening · May 3', 5, 'rev'], ['Tool shed', 4, 'rev'],
+      ['Rainwater tank', 5], ['Bee hives', 4, 'inv'], ['Soil · clay east', 5, 'new'], ['Raised beds', 4, 'new'], ['Volunteer roster', 4],
+      ['Compost scheme', 4], ['Fencing', 3], ['Workshop series', 4, 'new'], ['School garden kit', 3],
+    ].map(([label, size, k]) => ({ label, size, k }));
+    const fullEdges = [[0, 1], [0, 2], [0, 3], [0, 4], [0, 5], [0, 6], [0, 7], [7, 8], [2, 5], [2, 4], [2, 11], [1, 6], [1, 3], [9, 10], [9, 12], [6, 12], [7, 13], [9, 3], [10, 5]];
+    const diff = full.map(d => ({ ...d, dim: !d.k && !['Council permit', 'Riverside plot'].includes(d.label) }));
+    diff[1].k = 'rev';
+    return {
+      full: { nodes: full, edges: fullEdges },
+      sparse: { nodes: [{ label: 'Riverside plot', size: 6 }, { label: 'Budget €3,800', size: 5 }, { label: 'Council permit', size: 5 }, { label: 'Soil test', size: 4, k: 'new' }], edges: [[0, 1], [0, 2], [0, 3]], radius: 0.26 },
+      diff: { nodes: diff, edges: fullEdges, radius: 0.34 },
+    };
+  }
+}
+</script>
+</body>
+</html>

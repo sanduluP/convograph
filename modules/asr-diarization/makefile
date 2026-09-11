@@ -36,7 +36,7 @@ DOCKER_PIPE = docker run --rm -i \
 	-w /work \
 	$(IMAGE)
 
-.PHONY: build verify shell diarize getexamples examples example all-examples mics live transcript transcribe
+.PHONY: build verify shell diarize getexamples examples example all-examples mics live transcript transcribe live-stt live-stt-sim
 
 build:
 	docker build -t $(IMAGE) .
@@ -97,6 +97,18 @@ ifndef FILE
 	$(error Please pass a file, e.g. make transcribe FILE=audio/meeting_16k.wav)
 endif
 	$(DOCKER_RUN) python scripts/08_transcribe_multitalker.py $(FILE)
+
+# LIVE speaker-attributed transcription: mic (or any PCM source) in, JSONL
+# sentence snapshots out. See scripts/09_live_stt.py's docstring.
+#   make live-stt                                 host mic
+#   make live-stt-sim WAV=examples/2spk.wav FAST=1   no mic needed
+live-stt:
+	@arecord -D $(MIC) -f S16_LE -r 16000 -c 1 -t raw -q | \
+	$(DOCKER_PIPE) python scripts/09_live_stt.py
+
+WAV ?= examples/2spk.wav
+live-stt-sim:
+	$(DOCKER_PIPE) python scripts/09_live_stt.py --wav $(WAV) $(if $(FAST),--fast)
 
 # Convert diarization output (RTTM) into the DiarizedTranscript JSON that the
 # rest of convograph consumes (schemas/diarized-transcript.schema.json).

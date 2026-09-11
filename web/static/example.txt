@@ -1,0 +1,10 @@
+Maya (Project Manager): Alright, let's settle the launch plan for the field robot pilot. My proposal is that we deploy at the Kaiserslautern warehouse first, starting October 15th, because the site team there already knows our hardware.
+Jonas (Engineering Lead): Agreed on Kaiserslautern. One constraint from my side: we ship with the current battery pack, the new one won't clear certification before December.
+Priya (Operations): Fine by me. I'll book the site crew for the week of October 13th and own the on-site checklist. Let's also fix that Jonas signs off safety, not the vendor.
+Maya (Project Manager): Good, so it's decided: Kaiserslautern first, October 15th, current battery, Jonas owns safety sign-off. I'll inform the customer today.
+Jonas (Engineering Lead): Quick update from this morning's test — we found thermal drift in the lidar above 30 degrees ambient. The warehouse hits that in the afternoons.
+Priya (Operations): That's a real problem, the Kaiserslautern hall has no climate control. The Mannheim site does.
+Maya (Project Manager): Then I'm reversing this morning's call: we deploy at Mannheim first, not Kaiserslautern. The October 15th date holds, but Kaiserslautern moves to phase two in November once the lidar fix lands.
+Jonas (Engineering Lead): Agreed. To be clear, the battery decision is unchanged — current pack, new one after certification in December.
+Priya (Operations): I'll rebook the crew for Mannheim, same week. Safety sign-off stays with Jonas.
+Maya (Project Manager): Locked. Mannheim on October 15th, Kaiserslautern in November, current battery, Jonas signs off safety. I'll call the customer back and explain the change.

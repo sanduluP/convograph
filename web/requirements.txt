@@ -1,0 +1,5 @@
+# web/ — async FastAPI backend + static frontend for the v2 design.
+# The pipeline talks to the modules over subprocess/HTTP; no torch, no drivers.
+fastapi>=0.110
+uvicorn>=0.29
+python-multipart>=0.0.9
