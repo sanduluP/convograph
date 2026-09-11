@@ -1,0 +1,713 @@
+{
+  "group_id": "treasury_prod_deploy_speaker_free",
+  "uri": "neo4j+s://fa42f976.databases.neo4j.io",
+  "episode_limit": 0,
+  "episode_start": 0,
+  "generated_at": "2026-09-11T16:46:09",
+  "queries": {
+    "revisions": [
+      {
+        "subject": "ProjectManager",
+        "object": "http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec",
+        "was": "ProjectManager is responsible for freezing primary, backup, rollback owner, and exact handoff trigger in the spec today.",
+        "became": "Security is to confirm access approvals by EOD Friday.",
+        "valid_from": "2026-09-08T00:00:00Z",
+        "changed_at": "2026-09-08T13:37:25Z[UTC]",
+        "span_days": 0,
+        "degree": 477,
+        "episodes_spanned": 1
+      },
+      {
+        "subject": "ProjectManager",
+        "object": "http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec",
+        "was": "ProjectManager posts the tested fallback sequence in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec today.",
+        "became": "Security is to confirm access approvals by EOD Friday.",
+        "valid_from": "2026-09-08T00:00:00Z",
+        "changed_at": "2026-09-08T13:37:25Z[UTC]",
+        "span_days": 0,
+        "degree": 477,
+        "episodes_spanned": 1
+      },
+      {
+        "subject": "ProjectManager",
+        "object": "http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec",
+        "was": "ProjectManager is responsible for booking the walkthrough this week.",
+        "became": "ProjectManager is responsible for posting the latest escalation map.",
+        "valid_from": "2026-09-08T00:00:00Z[UTC]",
+        "changed_at": "2026-09-08T13:37:25Z",
+        "span_days": 0,
+        "degree": 477,
+        "episodes_spanned": 1
+      },
+      {
+        "subject": "ProjectManager",
+        "object": "ProjectManager",
+        "was": "ProjectManager posts the primary, backup, and rollback path in the runbook today.",
+        "became": "Security is to confirm access approvals by EOD Friday.",
+        "valid_from": "2026-09-08T00:00:00Z",
+        "changed_at": "2026-09-08T13:37:25Z[UTC]",
+        "span_days": 0,
+        "degree": 458,
+        "episodes_spanned": 1
+      },
+      {
+        "subject": "Support",
+        "object": "http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec",
+        "was": "Support confirms actual names, hours, and bridge coverage to the production readiness spec by Friday.",
+        "became": "ProjectManager must confirm ownership and timing against the readiness spec.",
+        "valid_from": "2026-09-08T13:37:25Z[UTC]",
+        "changed_at": "2026-09-08T13:37:25.634425Z",
+        "span_days": 0,
+        "degree": 335,
+        "episodes_spanned": 1
+      },
+      {
+        "subject": "Support",
+        "object": "http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec",
+        "was": "Support confirms actual bridge names, hours, and backup cover by Friday in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec.",
+        "became": "ProjectManager is responsible for locking the rollback trigger in the production deployment readiness specification.",
+        "valid_from": "2026-09-08T00:00:00Z[UTC]",
+        "changed_at": "2026-09-08T13:37:25Z",
+        "span_days": 0,
+        "degree": 335,
+        "episodes_spanned": 1
+      },
+      {
+        "subject": "Ops",
+        "object": "http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec",
+        "was": "Operations confirms staffing coverage against the production deployment readiness spec.",
+        "became": "Named owners must be stamped in the production deployment readiness spec by EOD tomorrow.",
+        "valid_from": "2026-09-08T13:37:25Z[UTC]",
+        "changed_at": "2026-09-09T00:00:00Z",
+        "span_days": 0,
+        "degree": 328,
+        "episodes_spanned": 1
+      },
+      {
+        "subject": "ProjectManager",
+        "object": "Support",
+        "was": "ProjectManager locks switchover trigger in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec today.",
+        "became": "Security is to confirm access approvals by EOD Friday.",
+        "valid_from": "2026-09-08T00:00:00Z",
+        "changed_at": "2026-09-08T13:37:25Z[UTC]",
+        "span_days": 0,
+        "degree": 316,
+        "episodes_spanned": 1
+      },
+      {
+        "subject": "backup contacts",
+        "object": "http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec",
+        "was": "primary/backup contacts should be frozen in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec today",
+        "became": "The production deployment readiness specification contains the primary owner.",
+        "valid_from": "2026-09-08T00:00:00Z",
+        "changed_at": "2026-09-08T13:37:25Z[UTC]",
+        "span_days": 0,
+        "degree": 295,
+        "episodes_spanned": 1
+      },
+      {
+        "subject": "rollback authority",
+        "object": "http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec",
+        "was": "rollback path should be frozen in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec today",
+        "became": "The production deployment readiness specification contains the primary owner.",
+        "valid_from": "2026-09-08T00:00:00Z",
+        "changed_at": "2026-09-08T13:37:25Z[UTC]",
+        "span_days": 0,
+        "degree": 289,
+        "episodes_spanned": 1
+      },
+      {
+        "subject": "handoff trigger",
+        "object": "http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec",
+        "was": "The exact handoff trigger must be frozen in the production deployment readiness spec by EOD today.",
+        "became": "The production deployment readiness specification contains the primary owner.",
+        "valid_from": "2026-09-08T00:00:00Z",
+        "changed_at": "2026-09-08T13:37:25Z[UTC]",
+        "span_days": 0,
+        "degree": 287,
+        "episodes_spanned": 1
+      },
+      {
+        "subject": "handoff trigger",
+        "object": "http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec",
+        "was": "handoff trigger should be frozen in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec today",
+        "became": "The production deployment readiness specification contains the primary owner.",
+        "valid_from": "2026-09-08T00:00:00Z",
+        "changed_at": "2026-09-08T13:37:25Z[UTC]",
+        "span_days": 0,
+        "degree": 287,
+        "episodes_spanned": 1
+      },
+      {
+        "subject": "handoff chain",
+        "object": "http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec",
+        "was": "Handoff path must be stamped in the production deployment readiness spec by EOD tomorrow.",
+        "became": "Named owners must be stamped in the production deployment readiness spec by EOD tomorrow.",
+        "valid_from": "2026-09-08T13:37:25Z",
+        "changed_at": "2026-09-09T00:00:00Z",
+        "span_days": 0,
+        "degree": 283,
+        "episodes_spanned": 1
+      },
+      {
+        "subject": "ProjectManager",
+        "object": "backup contacts",
+        "was": "ProjectManager stamps backup contacts in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec today.",
+        "became": "Security is to confirm access approvals by EOD Friday.",
+        "valid_from": "2026-09-08T00:00:00Z[UTC]",
+        "changed_at": "2026-09-08T13:37:25Z[UTC]",
+        "span_days": 0,
+        "degree": 276,
+        "episodes_spanned": 2
+      },
+      {
+        "subject": "escalation map",
+        "object": "http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec",
+        "was": "The owner map is stored in the production deployment readiness spec.",
+        "became": "Named owners must be stamped in the production deployment readiness spec by EOD tomorrow.",
+        "valid_from": "2026-09-08T13:37:25Z[UTC]",
+        "changed_at": "2026-09-09T00:00:00Z",
+        "span_days": 0,
+        "degree": 270,
+        "episodes_spanned": 1
+      },
+      {
+        "subject": "ProjectManager",
+        "object": "rollback authority",
+        "was": "ProjectManager is responsible for freezing the rollback owner in the spec today.",
+        "became": "Security is to confirm access approvals by EOD Friday.",
+        "valid_from": "2026-09-08T00:00:00Z",
+        "changed_at": "2026-09-08T13:37:25Z[UTC]",
+        "span_days": 0,
+        "degree": 270,
+        "episodes_spanned": 1
+      },
+      {
+        "subject": "ProjectManager",
+        "object": "evidence owners",
+        "was": "ProjectManager posts the separate evidence owner in the runbook today.",
+        "became": "Security is to confirm access approvals by EOD Friday.",
+        "valid_from": "2026-09-08T00:00:00Z",
+        "changed_at": "2026-09-08T13:37:25Z[UTC]",
+        "span_days": 0,
+        "degree": 269,
+        "episodes_spanned": 1
+      },
+      {
+        "subject": "ProjectManager",
+        "object": "handoff trigger",
+        "was": "ProjectManager freezes exact handoff trigger today.",
+        "became": "Security is to confirm access approvals by EOD Friday.",
+        "valid_from": "2026-09-08T00:00:00Z",
+        "changed_at": "2026-09-08T13:37:25Z[UTC]",
+        "span_days": 0,
+        "degree": 268,
+        "episodes_spanned": 1
+      },
+      {
+        "subject": "ProjectManager",
+        "object": "rollback decision path",
+        "was": "ProjectManager is responsible for locking the rollback trigger.",
+        "became": "ProjectManager must lock the go/no-go rollback call in the runbook.",
+        "valid_from": "2026-09-08T13:37:25Z[UTC]",
+        "changed_at": "2026-09-08T13:37:25.634425Z",
+        "span_days": 0,
+        "degree": 267,
+        "episodes_spanned": 1
+      },
+      {
+        "subject": "ProjectManager",
+        "object": "Security",
+        "was": "ProjectManager locks rollback owner in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec today.",
+        "became": "Security is to confirm access approvals by EOD Friday.",
+        "valid_from": "2026-09-08T00:00:00Z",
+        "changed_at": "2026-09-08T13:37:25Z[UTC]",
+        "span_days": 0,
+        "degree": 267,
+        "episodes_spanned": 1
+      },
+      {
+        "subject": "ProjectManager",
+        "object": "rollback decision path",
+        "was": "ProjectManager freezes rollback path today.",
+        "became": "Security is to confirm access approvals by EOD Friday.",
+        "valid_from": "2026-09-08T00:00:00Z",
+        "changed_at": "2026-09-08T13:37:25Z[UTC]",
+        "span_days": 0,
+        "degree": 267,
+        "episodes_spanned": 1
+      },
+      {
+        "subject": "ProjectManager",
+        "object": "Security",
+        "was": "ProjectManager stamps exact handoff time in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec today.",
+        "became": "ProjectManager is responsible for posting the latest escalation map.",
+        "valid_from": "2026-09-08T00:00:00Z[UTC]",
+        "changed_at": "2026-09-08T13:37:25Z",
+        "span_days": 0,
+        "degree": 267,
+        "episodes_spanned": 1
+      },
+      {
+        "subject": "http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec",
+        "object": "primary incident commander",
+        "was": "The production deployment readiness specification contains the primary owner.",
+        "became": "ProjectManager must lock the go/no-go rollback call in the runbook.",
+        "valid_from": "2026-09-08T13:37:25Z[UTC]",
+        "changed_at": "2026-09-08T13:37:25.634425Z",
+        "span_days": 0,
+        "degree": 266,
+        "episodes_spanned": 1
+      },
+      {
+        "subject": "ProjectManager",
+        "object": "handoff chain",
+        "was": "The ProjectManager is to lock the fallback chain in the spec today.",
+        "became": "Security is to confirm access approvals by EOD Friday.",
+        "valid_from": "2026-09-08T00:00:00Z",
+        "changed_at": "2026-09-08T13:37:25Z[UTC]",
+        "span_days": 0,
+        "degree": 264,
+        "episodes_spanned": 1
+      },
+      {
+        "subject": "evidence pack completeness",
+        "object": "http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec",
+        "was": "Final evidence must be uploaded to http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec today.",
+        "became": "Named owners must be stamped in the production deployment readiness spec by EOD tomorrow.",
+        "valid_from": "2026-09-08T00:00:00Z",
+        "changed_at": "2026-09-09T00:00:00Z",
+        "span_days": 1,
+        "degree": 262,
+        "episodes_spanned": 1
+      }
+    ],
+    "topics": [
+      {
+        "topic": "Support",
+        "episodes": 42,
+        "neighbours": [
+          "support hours",
+          "bridge",
+          "24-hour roster check",
+          "coverage",
+          "evidence owners"
+        ]
+      },
+      {
+        "topic": "ProjectManager",
+        "episodes": 41,
+        "neighbours": [
+          "backup contacts",
+          "rollback authority",
+          "runbook",
+          "evidence owners",
+          "handoff trigger"
+        ]
+      },
+      {
+        "topic": "runbook",
+        "episodes": 40,
+        "neighbours": [
+          "ProjectManager",
+          "cutover rehearsal ownership",
+          "monitoring",
+          "reconciliation owners",
+          "backup contacts"
+        ]
+      },
+      {
+        "topic": "backup contacts",
+        "episodes": 37,
+        "neighbours": [
+          "ProjectManager",
+          "runbook",
+          "escalation ownership",
+          "deployment support",
+          "validation timestamp"
+        ]
+      },
+      {
+        "topic": "Ops",
+        "episodes": 36,
+        "neighbours": [
+          "monitoring",
+          "evidence pack completeness",
+          "coverage",
+          "runbook",
+          "escalation map"
+        ]
+      },
+      {
+        "topic": "handoff trigger",
+        "episodes": 28,
+        "neighbours": [
+          "ProjectManager",
+          "rollback authority",
+          "rollback decision path",
+          "July 19 go-live path",
+          "provisional thresholds"
+        ]
+      },
+      {
+        "topic": "rollback decision path",
+        "episodes": 28,
+        "neighbours": [
+          "ProjectManager",
+          "runbook",
+          "full end-to-end dry run",
+          "FRA",
+          "Support"
+        ]
+      },
+      {
+        "topic": "monitoring",
+        "episodes": 27,
+        "neighbours": [
+          "Ops",
+          "Finance",
+          "runbook",
+          "deployment support",
+          "treasury_ops"
+        ]
+      }
+    ],
+    "artifacts": [
+      {
+        "artifact": "http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec",
+        "episodes": 69
+      }
+    ],
+    "participants": [
+      {
+        "speaker": "User_1",
+        "utterances": 97,
+        "episodes": 68,
+        "share": 0.259
+      },
+      {
+        "speaker": "User_3",
+        "utterances": 93,
+        "episodes": 65,
+        "share": 0.249
+      },
+      {
+        "speaker": "User_2",
+        "utterances": 89,
+        "episodes": 67,
+        "share": 0.238
+      },
+      {
+        "speaker": "User_12",
+        "utterances": 84,
+        "episodes": 64,
+        "share": 0.225
+      },
+      {
+        "speaker": "User_13",
+        "utterances": 11,
+        "episodes": 11,
+        "share": 0.029
+      }
+    ],
+    "decisions": [
+      {
+        "verb": "CONFIRMS",
+        "subject": "ProjectManager",
+        "object": "http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec",
+        "fact": "ProjectManager confirms that the spec shows only the go/no-go owner can hold cutover.",
+        "valid_from": null,
+        "degree": 477
+      },
+      {
+        "verb": "STAMPS",
+        "subject": "ProjectManager",
+        "object": "http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec",
+        "fact": "ProjectManager stamps validator, backup contacts, and handoff time in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec",
+        "valid_from": null,
+        "degree": 477
+      },
+      {
+        "verb": "FREEZES",
+        "subject": "ProjectManager",
+        "object": "http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec",
+        "fact": "ProjectManager freezes the chain in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec today.",
+        "valid_from": "2026-09-08T00:00:00Z",
+        "degree": 477
+      },
+      {
+        "verb": "LOCKS",
+        "subject": "ProjectManager",
+        "object": "http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec",
+        "fact": "The ProjectManager is to lock the final fallback chain in the spec today.",
+        "valid_from": "2026-09-08T00:00:00Z",
+        "degree": 477
+      },
+      {
+        "verb": "FREEZES",
+        "subject": "ProjectManager",
+        "object": "http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec",
+        "fact": "ProjectManager is to freeze the control chain structure in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec today.",
+        "valid_from": "2026-09-08T00:00:00Z",
+        "degree": 477
+      },
+      {
+        "verb": "FREEZES",
+        "subject": "ProjectManager",
+        "object": "runbook",
+        "fact": "ProjectManager freezes primary, backup, and approver in the runbook.",
+        "valid_from": "2026-09-08T13:37:25Z",
+        "degree": 336
+      },
+      {
+        "verb": "LOCKS",
+        "subject": "ProjectManager",
+        "object": "runbook",
+        "fact": "ProjectManager must lock primary/backup contacts and evidence owner in the runbook.",
+        "valid_from": "2026-09-08T13:37:25Z",
+        "degree": 336
+      },
+      {
+        "verb": "FREEZES",
+        "subject": "Ops",
+        "object": "http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec",
+        "fact": "Operations is to freeze the access-control change against the spec at http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec.",
+        "valid_from": "2026-09-08T13:37:25Z",
+        "degree": 328
+      },
+      {
+        "verb": "LOCKS",
+        "subject": "Finance",
+        "object": "http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec",
+        "fact": "Finance is responsible for locking the final cutover window in the production readiness spec.",
+        "valid_from": null,
+        "degree": 302
+      },
+      {
+        "verb": "CONFIRMS",
+        "subject": "Security",
+        "object": "http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec",
+        "fact": "Security confirms access provisioning and rollback owner in the production readiness spec.",
+        "valid_from": null,
+        "degree": 286
+      },
+      {
+        "verb": "LOCKS",
+        "subject": "ProjectManager",
+        "object": "backup contacts",
+        "fact": "ProjectManager locks incident commander backup in the spec.",
+        "valid_from": null,
+        "degree": 276
+      },
+      {
+        "verb": "FREEZES",
+        "subject": "ProjectManager",
+        "object": "backup contacts",
+        "fact": "ProjectManager is responsible for freezing named backup contacts before full-run commitment.",
+        "valid_from": null,
+        "degree": 276
+      },
+      {
+        "verb": "FREEZES",
+        "subject": "ProjectManager",
+        "object": "backup contacts",
+        "fact": "ProjectManager freezes one backup per function.",
+        "valid_from": null,
+        "degree": 276
+      },
+      {
+        "verb": "FREEZES",
+        "subject": "ProjectManager",
+        "object": "backup contacts",
+        "fact": "ProjectManager is to freeze the backup in the runbook.",
+        "valid_from": "2026-09-08T13:37:25Z",
+        "degree": 276
+      },
+      {
+        "verb": "LOCKS",
+        "subject": "ProjectManager",
+        "object": "backup contacts",
+        "fact": "ProjectManager locks backup contacts in http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec today.",
+        "valid_from": "2026-09-08T00:00:00Z",
+        "degree": 276
+      },
+      {
+        "verb": "FREEZES",
+        "subject": "ProjectManager",
+        "object": "backup contacts",
+        "fact": "ProjectManager freezes backup contacts today.",
+        "valid_from": "2026-09-08T00:00:00Z",
+        "degree": 276
+      },
+      {
+        "verb": "STAMPS",
+        "subject": "ProjectManager",
+        "object": "backup contacts",
+        "fact": "ProjectManager stamps the backup contacts in the readiness spec today.",
+        "valid_from": "2026-09-08T00:00:00Z",
+        "degree": 276
+      },
+      {
+        "verb": "CONFIRMS",
+        "subject": "ProjectManager",
+        "object": "monitoring",
+        "fact": "ProjectManager confirms monitoring gaps.",
+        "valid_from": "2026-09-08T13:37:25Z",
+        "degree": 271
+      },
+      {
+        "verb": "FREEZES",
+        "subject": "ProjectManager",
+        "object": "rollback authority",
+        "fact": "ProjectManager is responsible for freezing a single rollback decision owner before full-run commitment.",
+        "valid_from": null,
+        "degree": 270
+      },
+      {
+        "verb": "STAMPS",
+        "subject": "ProjectManager",
+        "object": "rollback authority",
+        "fact": "The ProjectManager can stamp the final rollback owner in the spec once the live bridge roster is confirmed.",
+        "valid_from": null,
+        "degree": 270
+      }
+    ],
+    "open_threads": [
+      {
+        "verb": "REQUIRES",
+        "subject": "http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec",
+        "object": "runbook",
+        "fact": "The production deployment readiness spec requires the owner chain.",
+        "asked_at": null,
+        "degree": 355
+      },
+      {
+        "verb": "REQUIRES",
+        "subject": "http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec",
+        "object": "handoff chain",
+        "fact": "The production deployment readiness spec requires a handoff path.",
+        "asked_at": null,
+        "degree": 283
+      },
+      {
+        "verb": "REQUIRES",
+        "subject": "http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec",
+        "object": "access approvals",
+        "fact": "The production deployment readiness spec requires confirmation of any blocked approvals.",
+        "asked_at": "2026-09-08T13:37:25Z",
+        "degree": 274
+      },
+      {
+        "verb": "REQUIRES",
+        "subject": "http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec",
+        "object": "access approvals",
+        "fact": "The production readiness spec requires access review sign-off from Ops, Security, and Support.",
+        "asked_at": "2026-09-08T13:37:25Z",
+        "degree": 274
+      },
+      {
+        "verb": "REQUIRES",
+        "subject": "http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec",
+        "object": "validation timestamp",
+        "fact": "The readiness spec should require a timestamped fallback path to prevent soft sign-off.",
+        "asked_at": null,
+        "degree": 265
+      },
+      {
+        "verb": "REQUIRES",
+        "subject": "http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec",
+        "object": "rollback trigger",
+        "fact": "The production deployment readiness spec requires a rollback trigger.",
+        "asked_at": null,
+        "degree": 260
+      },
+      {
+        "verb": "REQUIRES",
+        "subject": "http://sharepoint/treasury_management_system_implementation/production_deployment_readiness_spec",
+        "object": "exact trigger",
+        "fact": "The production deployment readiness spec requires final reporting validation.",
+        "asked_at": "2026-09-08T13:37:25Z",
+        "degree": 256
+      },
+      {
+        "verb": "REQUIRES",
+        "subject": "runbook",
+        "object": "monitoring",
+        "fact": "Runbooks require monitoring to be tight.",
+        "asked_at": null,
+        "degree": 149
+      },
+      {
+        "verb": "REQUIRES",
+        "subject": "cutover readiness",
+        "object": "runbook",
+        "fact": "Cutover validation requires tight runbooks.",
+        "asked_at": null,
+        "degree": 132
+      },
+      {
+        "verb": "REQUIRES",
+        "subject": "July 19 go-live path",
+        "object": "Support",
+        "fact": "The July 19 cutover requires a confirmed staffed bridge roster.",
+        "asked_at": null,
+        "degree": 124
+      },
+      {
+        "verb": "REQUIRES",
+        "subject": "runbook",
+        "object": "rollback",
+        "fact": "Runbooks require rollback planning to be tight.",
+        "asked_at": null,
+        "degree": 122
+      },
+      {
+        "verb": "REQUIRES",
+        "subject": "remaining sign-offs",
+        "object": "runbook",
+        "fact": "Remaining sign-offs require tight runbooks.",
+        "asked_at": null,
+        "degree": 116
+      },
+      {
+        "verb": "REQUIRES",
+        "subject": "runbook",
+        "object": "hypercare ownership",
+        "fact": "Runbooks require hypercare ownership to be tight.",
+        "asked_at": null,
+        "degree": 114
+      },
+      {
+        "verb": "REQUIRES",
+        "subject": "support alignment",
+        "object": "runbook",
+        "fact": "Support alignment requires tight runbooks.",
+        "asked_at": null,
+        "degree": 111
+      },
+      {
+        "verb": "REQUIRES",
+        "subject": "Support",
+        "object": "24-hour roster check",
+        "fact": "Support requires a 24-hour roster check to ensure the fallback chain can execute under pressure.",
+        "asked_at": null,
+        "degree": 100
+      }
+    ]
+  },
+  "timings": {
+    "revisions": 0.081,
+    "topics": 0.027,
+    "artifacts": 0.02,
+    "participants": 0.053,
+    "decisions": 0.938,
+    "open_threads": 2.3
+  },
+  "episodes_in_group": 76,
+  "episodes_digested": 76,
+  "deduped": {
+    "revisions": 11,
+    "decisions": 15,
+    "open_threads": 8
+  }
+}

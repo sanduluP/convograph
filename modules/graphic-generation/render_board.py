@@ -525,6 +525,121 @@ def _panel(x: float, y: float, title: str, items: list[str],
     return els, total_h
 
 
+# ── who was in the room ─────────────────────────────────────────────────────
+# The participants used to be a list of "User_1 — 26%" strings on sticky notes,
+# which is a table wearing a board's clothes. A graphic recorder draws the room:
+# a face per person, sized and coloured, with how much they talked shown as a
+# bar rather than spelled out. Nothing is lost — the percentage is still written
+# — but the shape of the meeting is visible before a word is read.
+#
+# Drawn directly, never generated: FLUX is banned from drawing people (it
+# produces uncanny faces and invented lettering), and an initialled disc is both
+# cheaper and more legible than any portrait would be.
+AVATAR_D = 52           # circle diameter
+AVATAR_COLS = 4         # per row, so five people wrap to 4 + 1
+AVATAR_NAME_FS = 11
+AVATAR_BAR_H = 6        # the share bar under each name
+
+# Seaborn "deep", in a FIXED order — the house palette (global rule 6). Fixed
+# rather than cycled means the same person keeps their colour across a re-run,
+# and muted rather than primary means five of them side by side do not shout.
+AVATAR_COLORS = ("#4c72b0", "#dd8452", "#55a868", "#c44e52", "#8172b3",
+                 "#937860", "#da8bc3", "#8c8c8c", "#ccb974", "#64b5cd")
+
+
+def _initials(name: str) -> str:
+    """Up to two characters that identify a speaker on a 52 px disc.
+
+    "User_1" -> "U1", "Priya Banta" -> "PB", "ProjectManager" -> "PM". The
+    underscore/space split is what these transcripts actually use; a name that
+    splits into nothing falls back to its first two characters rather than to an
+    empty circle.
+    """
+    parts = [p for p in re.split(r"[\s_\-.]+", str(name).strip()) if p]
+    if len(parts) >= 2:
+        # A NUMERIC second part is kept whole. Taking its first character turned
+        # User_1, User_12 and User_13 into three discs all reading "U1" — three
+        # different people wearing the same badge, which is worse than no badge.
+        if parts[1].isdigit():
+            return (parts[0][0] + parts[1][:3]).upper()
+        return (parts[0][0] + parts[1][0]).upper()
+    if parts:
+        word = parts[0]
+        # A CamelCase single token still carries two capitals worth of identity.
+        caps = re.findall(r"[A-Z]", word)
+        return (caps[0] + caps[1]).upper() if len(caps) >= 2 else word[:2].upper()
+    return "?"
+
+
+def _people_panel(x: float, y: float, people: list[dict], accent: str,
+                  tint: str) -> tuple[list[dict], float]:
+    """The "in the room" panel, as a strip of avatars rather than a text list."""
+    els: list[dict] = []
+    gid = _new_id()
+    inner_w = PANEL_W - 2 * PANEL_PAD
+    cell_w = inner_w / AVATAR_COLS
+    rows = math.ceil(len(people) / AVATAR_COLS)
+
+    name_h = AVATAR_NAME_FS * LINE_H
+    cell_h = AVATAR_D + 6 + name_h + 5 + AVATAR_BAR_H + 4 + name_h
+    head_h = PANEL_TITLE_FS * LINE_H + 10
+    total_h = PANEL_PAD + head_h + rows * cell_h + PANEL_PAD
+
+    container = _base("rectangle", x, y, PANEL_W, total_h, [gid])
+    container.update({"backgroundColor": tint, "strokeColor": accent,
+                      "roundness": {"type": 3}, "boundElements": []})
+    els.append(container)
+    els.append(_text(x + PANEL_PAD, y + PANEL_PAD,
+                     [f"◆ In the room  ({len(people)})"], PANEL_TITLE_FS,
+                     accent, gid, box_w=inner_w))
+
+    # Bars are scaled to the LOUDEST speaker, not to 100%: five people sharing a
+    # meeting evenly all sit near 20%, and bars drawn against 100% would all be
+    # stubs that show nothing. Against the maximum, the shape of the room reads.
+    top = max((p.get("share") or 0) for p in people) or 1.0
+
+    for i, person in enumerate(people):
+        col, row = i % AVATAR_COLS, i // AVATAR_COLS
+        cx = x + PANEL_PAD + col * cell_w + cell_w / 2
+        cy = y + PANEL_PAD + head_h + row * cell_h
+        colour = AVATAR_COLORS[i % len(AVATAR_COLORS)]
+
+        disc = _base("ellipse", cx - AVATAR_D / 2, cy, AVATAR_D, AVATAR_D, [gid])
+        disc.update({"backgroundColor": colour, "strokeColor": colour,
+                     "fillStyle": "solid", "boundElements": []})
+        els.append(disc)
+
+        initials = _initials(person.get("speaker", ""))
+        iw, ih = _text_size([initials], 20)
+        els.append(_text(cx - AVATAR_D / 2, cy + (AVATAR_D - ih) / 2, [initials],
+                         20, "#ffffff", gid, align="center", box_w=AVATAR_D))
+
+        below = cy + AVATAR_D + 6
+        els.append(_text(cx - cell_w / 2, below,
+                         [" ".join(str(person.get("speaker", "")).split())[:12]],
+                         AVATAR_NAME_FS, INK, gid, align="center", box_w=cell_w))
+
+        share = person.get("share") or 0
+        bar_w = cell_w - 18
+        track = _base("rectangle", cx - bar_w / 2, below + name_h + 5,
+                      bar_w, AVATAR_BAR_H, [gid])
+        track.update({"backgroundColor": "#ffffff", "strokeColor": "#ced4da",
+                      "strokeWidth": 1, "roundness": {"type": 3},
+                      "boundElements": []})
+        els.append(track)
+        fill = _base("rectangle", cx - bar_w / 2, below + name_h + 5,
+                     max(3.0, bar_w * share / top), AVATAR_BAR_H, [gid])
+        fill.update({"backgroundColor": colour, "strokeColor": colour,
+                     "fillStyle": "solid", "roundness": {"type": 3},
+                     "boundElements": []})
+        els.append(fill)
+
+        els.append(_text(cx - cell_w / 2, below + name_h + 5 + AVATAR_BAR_H + 4,
+                         [f"{100 * share:.0f}%"], AVATAR_NAME_FS, NOTE_GRAY,
+                         gid, align="center", box_w=cell_w))
+    return els, total_h
+
+
 def build_scene(plan: dict, images: list[str | None],
                 digest: dict | None = None, log=None) -> dict:
     """plan + one image path per anchor (None where FLUX failed) -> a scene.
@@ -657,15 +772,6 @@ def build_scene(plan: dict, images: list[str | None],
             if rows:
                 panels.append((title, [r.get(key, "") for r in rows if r.get(key)],
                                accent, tint, cap))
-        people = q.get("participants", [])
-        if people:
-            # ◆ rather than a 🗣 emoji: the other two headings use ⚠ and ✓, which are
-            # plain symbols every font has. A colour emoji falls back to a tofu
-            # box in the PNG preview, which is the surface Faris actually looks at.
-            panels.append(("◆ In the room",
-                           [f"{p['speaker']} — {100 * p['share']:.0f}%" for p in people],
-                           "#1971c2", "#e7f5ff", 12))
-
         # ── the icons the panels will actually need ─────────────────────────
         # Resolved in ONE batch before any drawing: the concepts are known from
         # the text, so the (rare) generation of a missing one happens once, not
@@ -690,6 +796,16 @@ def build_scene(plan: dict, images: list[str | None],
                             icon_cache=icon_cache)
             panel_els += els
             py += h + PANEL_GAP
+
+        # The room goes LAST, and is drawn rather than listed — see _people_panel.
+        # ◆ rather than a 🗣 emoji: the other two headings use ⚠ and ✓, plain
+        # symbols every font has, while a colour emoji falls back to a tofu box
+        # in the PNG preview, which is the surface Faris actually looks at.
+        people = q.get("participants", [])
+        if people:
+            els, h = _people_panel(px, py, people, "#1971c2", "#e7f5ff")
+            panel_els += els
+
         if log and icon_paths:
             tagged = sum(1 for _, items, _, _, cap in panels
                          for i in items[:cap] if icon_concept(i) in icon_paths)

@@ -108,7 +108,17 @@ def render(scene: dict, out_path: str) -> dict:
                                    outline=e.get("strokeColor", "#000"),
                                    width=max(1, int(e.get("strokeWidth", 1))))
         elif kind == "ellipse":
-            draw.ellipse([x, y, x + w, y + h], outline=e.get("strokeColor", "#000"))
+            # Honour backgroundColor, exactly as the rectangle branch does. It
+            # did not, and the moment an ellipse was used for something FILLED —
+            # the speaker avatars, white initials on a coloured disc — the
+            # preview showed empty rings with invisible text, which is not what
+            # Excalidraw renders. A preview that disagrees with the real canvas
+            # is worse than no preview.
+            bg = e.get("backgroundColor", "transparent")
+            draw.ellipse([x, y, x + w, y + h],
+                         fill=None if bg == "transparent" else bg,
+                         outline=e.get("strokeColor", "#000"),
+                         width=max(1, int(e.get("strokeWidth", 1))))
         elif kind == "image":
             rec = files.get(e.get("fileId"))
             if rec and rec.get("dataURL", "").startswith("data:image"):
