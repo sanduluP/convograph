@@ -147,21 +147,21 @@ def render_excalidraw(scene: dict, height: int = 640) -> None:
 with st.sidebar:
     st.header("⚙️ Settings")
 
-    # Two board shapes, and they are genuinely different pipelines - not a
-    # display option. See orchestrator.run_content_map's header comment.
+    # THE "BOARD STYLE" RADIO IS GONE (2026-09-11).
     #
-    #   Content map   a WINDOW of the conversation -> one LLM plan -> 2-4 nodes
-    #                 joined by labelled arrows. Words are canvas text, drawings
-    #                 are wordless. This is the graphic recording.
-    #   Image grid    one fact -> one caption -> one image, laid out in a grid.
-    #                 The original shape, kept as the thing to compare against.
-    board_style = st.radio(
-        "Board style",
-        ["🧭 Content map", "🖼️ Image grid (original)"],
-        help="A content map draws relations between ideas. The image grid draws "
-             "one picture per fact with no relations — it is the baseline.",
-    )
-    is_map = board_style.startswith("🧭")
+    # It offered "content map" against "image grid (original)" — the pre-content-
+    # map renderer, one picture per fact with no relations. Two things retired it
+    # at once: its only knob was a "Max decisions to render" slider, which is the
+    # planner's job and nobody else's, and it never learned about the digest, the
+    # concept icons or the appending canvas, so it had quietly stopped being a
+    # baseline anyone would compare against.
+    #
+    # compose_board.py and orchestrator.run_board() are untouched and still on
+    # disk; this only removes the choice from the page. The board's SHAPE is now
+    # chosen where it belongs — BOARD_LAYOUT=grid|ring in render_board — and the
+    # canvas-level settings are Priyabanta's append controls in the main column,
+    # next to the run they configure.
+    is_map = True
 
     if is_map:
         # Defaults are the measured-good settings, so the auto-run needs no
@@ -232,23 +232,6 @@ with st.sidebar:
             )
             provider, planner_model = MODEL_CHOICES[choice]
         columns = 3          # unused by the content map, kept for the call site
-    else:
-        # The grid path has no planner and no digest, but run_key reads these
-        # unconditionally — leaving them undefined here is a NameError the
-        # moment someone picks the other board style.
-        provider = planner_model = None
-        use_digest = False
-        episode_limit = 0
-        windows = 2
-        max_facts = st.slider(
-            "Max decisions to render", min_value=1, max_value=12, value=6,
-            help="Caps how many decisions from the KG get turned into images. "
-                 "Superseded/revised decisions are prioritized first.",
-        )
-        columns = st.slider(
-            "Grid columns", min_value=1, max_value=6, value=3,
-            help="How many images per row on the composed canvas.",
-        )
 
 # ── header ────────────────────────────────────────────────────────────────────
 st.title("Convograph")
@@ -619,20 +602,28 @@ if st.session_state.get("last_result"):
                f"({result.get('blocks', '?')} meetings)"
                if result.get("appended_from") else "")
         )
-    # The live embed is a preview; the real artifact is the FILE, and people want
-    # it in the desktop app where they can actually edit. A browser cannot open a
-    # local path, so offer the two things that do work: a download, and the path
-    # to paste.
+    # OPENING THE BOARD, WITHOUT DOWNLOADING IT.
+    #
+    # This was a download button labelled "Open in Excalidraw", and Faris was
+    # right that it is the wrong verb: every click dropped another copy of the
+    # same board into ~/Downloads. A browser cannot hand a local file to
+    # excalidraw.com without uploading it somewhere first, and this board is
+    # meeting content — it is not going to a third-party store to earn a button.
+    #
+    # What DOES open it in place is the vscode:// URL scheme, exactly the way
+    # "Open in VS Code" works anywhere else. With the Excalidraw extension
+    # installed the file opens in the real editor, in the editor already open on
+    # this machine, and nothing is copied anywhere.
+    #
+    # The canvas below is the same scene, live and editable, for anyone who just
+    # wants to look.
     b_col, p_col = st.columns([1, 3])
     with b_col:
-        with open(result["board_path"], "rb") as fh:
-            st.download_button(
-                "⬇️ Open in Excalidraw", fh.read(),
-                file_name=os.path.basename(result["board_path"]),
-                mime="application/json",
-                help="Saves the .excalidraw file. Open it in the Excalidraw "
-                     "desktop app, the VS Code extension, or drag it onto "
-                     "excalidraw.com.")
+        st.link_button(
+            "🖊️ Open in VS Code",
+            f"vscode://file{os.path.abspath(result['board_path'])}",
+            help="Opens this .excalidraw file in VS Code — in the Excalidraw "
+                 "editor if the extension is installed. Nothing is downloaded.")
     with p_col:
         st.code(result["board_path"], language=None)
 
@@ -659,6 +650,42 @@ if st.session_state.get("last_result"):
     if log:
         with st.expander("🧾 Run log — what each stage returned", expanded=False):
             st.code("\n".join(log), language=None)
+
+    # WHAT WENT IN, next to what came out. Asked for by name: "it would be nice
+    # also to show what the planner was fed, I mean the entire prompt, both
+    # system prompt and client prompt, so that we have full traceability".
+    #
+    # This is also the answer to "what did the cypher queries return" — the
+    # digest IS the user message, formatted and numbered, so a second panel
+    # showing the query rows would print the same rows twice.
+    #
+    # Read from the run folder rather than kept in session state: it is the same
+    # bytes that went over the wire, and it survives a rerun of the page.
+    prompt_dir = os.path.join(result["run_dir"], "prompt")
+    if os.path.isdir(prompt_dir):
+        with st.expander("📥 What the planner was fed", expanded=False):
+            def _read(name: str) -> str:
+                try:
+                    with open(os.path.join(prompt_dir, name)) as fh:
+                        return fh.read()
+                except OSError:
+                    return ""
+            system, user = _read("system.txt"), _read("user.txt")
+            st.caption(
+                f"{len(system) + len(user):,} characters over the wire "
+                f"(~{(len(system) + len(user)) // 4:,} tokens) · "
+                f"📁 `{prompt_dir}`"
+            )
+            sys_tab, user_tab = st.tabs(
+                ["System — the standing instructions",
+                 "User — this run's digest, numbered"])
+            with sys_tab:
+                st.code(system or "(not written)", language=None)
+            with user_tab:
+                # The fact indices here are the ones plan.json cites in
+                # anchors[].from_facts, so a board element traces to the line
+                # the planner actually read.
+                st.code(user or "(not written)", language=None)
 
     plan = result.get("plan")
     if plan:
