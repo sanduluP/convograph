@@ -17,7 +17,7 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 set -euo pipefail
 cd "$(dirname "$0")/.."
-mkdir -p logs excalidraw/board
+mkdir -p logs ../../ui/output
 
 PY="./.venv/bin/python"; [[ -x "$PY" ]] || { echo "❌ no repo venv — see requirements.txt"; exit 1; }
 
@@ -30,5 +30,6 @@ PY="./.venv/bin/python"; [[ -x "$PY" ]] || { echo "❌ no repo venv — see requ
   echo ""
   PYTHONUNBUFFERED=1 "$PY" -u analysis/build_board.py
   echo ""
-  echo "✅ open excalidraw/board/board.excalidraw in Excalidraw or the VS Code extension"
+  echo "⚠️  SUPERSEDED by scripts/run_content_map.sh, which writes to ui/output/."
+  echo "   Boards live in ONE place now; see archive/boards-pre-ui/README.md."
 } 2>&1 | tee logs/build_board.log

@@ -1,0 +1,144 @@
+==============================================================================
+=== SYSTEM
+==============================================================================
+Plan a hand-drawn graphic-recording board from a meeting digest.
+
+The digest is what the meeting's knowledge graph says mattered: its topics, what
+it changed its mind about, what it settled, what is still open, and who was
+there. Numbered items are the facts you may cite.
+
+Reply with JSON only:
+
+{
+  "title": "at most 5 words",
+  "anchors": [
+    {"label": "at most 6 words, shown on the board",
+     "glyph": "one concrete physical object to draw",
+     "from_facts": [0, 3]}
+  ],
+  "links": [{"from": 0, "to": 1, "label": "at most 3 words"}],
+  "notes": [{"text": "at most 10 words", "anchor": 0}],
+  "dropped": [7, 9]
+}
+
+Rules:
+- 4 to 6 anchors, drawn from the TOPICS. They are what the meeting was about.
+- There are TWO kinds of number and they are not interchangeable.
+  "from_facts" and "dropped" take ITEM numbers, the [n] above.
+  "from" and "to" in links take ANCHOR POSITIONS: 0 is your first anchor, 1 the
+  second. With 4 anchors the only legal values are 0, 1, 2 and 3.
+- Base the links on "What changed" — a revision relates two anchors, and those
+  arrows are what make the board a map rather than a list. The label says HOW
+  they relate ("locked by", "blocked", "replaced"). Never write a section name.
+- "glyph" is a physical object with NO writing on it: a padlock, a shield, a
+  bridge, a split road, an anchor, a key. Never a calendar, clock, document,
+  stamp, sign or chart — an object whose markings are words or numbers cannot
+  be drawn wordless. Never people, never a scene.
+- "label", "notes" and "title" carry the words. The drawing carries none.
+- Give EVERY anchor at least one note, and write 4 to 8 notes overall. A board
+  with only labels is a diagram; the notes are what make it a record of a
+  meeting. Take them from "What was settled" and "Still open".
+- Prefix a note from "Still open" with "Open:" so the board shows what is
+  unfinished, which is the panel a graphic recording always has.
+- Every numbered item appears exactly once across from_facts, notes and dropped.
+
+==============================================================================
+=== USER
+==============================================================================
+## What this meeting was about
+
+- compliance — in 65 windows (with spec, rule-version, SAR Reporting Requirements, approved-history)
+- Operations — in 42 windows (with screenshot, timestamp, define treasury requirements spec, Monitoring)
+- data — in 37 windows (with source-defect / mixed / workflow-noise split, Risk: Inconsistent KYC Records, owner, flagged deltas)
+- owner — in 35 windows (with Ops, Finance, Legal, compliance)
+- data-engineering — in 34 windows (with source-path diff, final lineage diff, published hash, extraction pipelines)
+- Model Risk — in 34 windows (with cutoff approval, exception approver path, tolerance band, Phase 2)
+- Incomplete Regulatory Coverage — in 30 windows (with compliance, high-risk items, centralized triage path, data)
+- engineering — in 28 windows (with matrix and separate gap list, log-only gaps, 2:00 PM ET, field ID)
+
+## Documents it kept returning to
+
+- http://sharepoint/aml_(anti-money_laundering)_project/investigation_workflow_definition_spec — in 27 windows
+- http://sharepoint/aml_(anti-money_laundering)_project/sar_reporting_requirements_spec — in 22 windows
+- http://sharepoint/aml_(anti-money_laundering)_project/model_feature_engineering_spec — in 15 windows
+
+## What changed
+
+[0] User_13 requires that the controlled value set be locked by Friday.  →  User_13 demands that the Legal/Ops split be frozen in the log today to prevent audit karaoke.
+[1] User_13 agrees to publish the version ID.  →  User_13 referenced the spec at http://sharepoint/regulatory_compliance_program/internal_compliance_audit___findings_review_spec for anyone pulling the thread, as the phase remains In Progress until final items are squared away.
+[2] User_13 disagrees with User_1's suggestion to keep the fallback path loose, arguing that it risks shipping a polished narrative on wobbly evidence.  →  User_13 referenced the spec at http://sharepoint/regulatory_compliance_program/internal_compliance_audit___findings_review_spec for anyone pulling the thread, as the phase remains In Progress until final items are squared away.
+[3] User_13 uses the frozen version ID as the close-out gate.  →  User_13 referenced the spec at http://sharepoint/regulatory_compliance_program/internal_compliance_audit___findings_review_spec for anyone pulling the thread, as the phase remains In Progress until final items are squared away.
+[4] User_13 locks the clause-level map today.  →  User_13 referenced the spec at http://sharepoint/regulatory_compliance_program/internal_compliance_audit___findings_review_spec for anyone pulling the thread, as the phase remains In Progress until final items are squared away.
+[5] User_13 agrees with User_1 posting the frozen version ID now.  →  User_13 froze the master version now.
+[6] User_1 holds the frozen ID.  →  User_1 requests that the two high-risk rows remain provisional until written Ops sign-off lands.
+[7] User_13 locks the remediation sequencing to protect the July 29 target.  →  User_13 publishes the updated pack at http://sharepoint/regulatory_compliance_program/compliance_risk_assessment_spec with owner, source, due-back, decision-owner, evidence lineage, and old-wording flags locked.
+[8] User_1 posts the frozen version ID against http://sharepoint/regulatory_compliance_program/training_rollout_spec today.  →  User_13 locks the current evidence-link format to prevent traceability issues.
+[9] User_13 requires Legal, Data, and Reporting to post exact text in the design_esg_screening_criteria_spec by EOD tomorrow.  →  User_1 recommends freezing the clean set now and giving pending swaps a 48-hour revalidation window.
+[10] User_1 requires that Legal’s no-edits confirmation be logged to avoid handing IR a moving target before 4pm UTC.  →  User_13 publishes the 16:00 UTC hold rule in http://sharepoint/regulatory_compliance_program/compliance_risk_assessment_spec.
+[11] User_1 will flag any clause in http://sharepoint/sustainable_finance_strategy/define_esg_policy_requirements_spec that lacks owner, approver, evidence source, retention, or escalation trigger.  →  User_1 requires that any later wording drift after the final sign-off in the Design ESG Screening Criteria Spec goes to change control.
+[12] User_13 states that the owner of the impact sign-off should be captured to prevent drift past July 16.  →  User_13 sets July 16 as the hard line for compliance.
+[13] User_13 reports being 39% into the risk phase.  →  User_13 wants to align the control documentation to the risk:_esg_data_provider_reliability_spec based on the adopted rule set.
+[14] User_13 confirms that Ops will post the field-by-field auto-stamp vs manual mapping in the spec today.  →  User_12 requires the field-by-field gap to be posted by EOD.
+[15] User_12 requires Model Risk to post revalidation trigger wording today.  →  User_13 requests that Ops drop the live readout with owner, SLA, aged-case bands, and any manual field’s single backstop by EOD.
+[16] User_12 requests confirmation of the same-day CAB timestamp from the Change Manager.  →  User_13 requests that Ops post the three-field format (owner, reason, decision source) today.
+[17] User_13 has @source_owner post owner/fallback/source-timestamp samples in SharePoint today to close the phase as Detected before the July 18 cutoff.  →  User_13 sets July 18 as the evidence line for marking the risk as Detected.
+[18] User_12 requires that @source_owner and Data Eng achieve a same-run quarantine-log match against the exact job ID/timestamp in the spec today.  →  User_13 requires Data Engineering to prove same-run evidence in the spec by EOD.
+[19] User_12 confirms that `@source_owner` + Data Eng must post the rerun evidence, exact job ID/timestamp, and quarantine-log match in the spec today.  →  User_13 requires Data Engineering to prove same-run evidence in the spec by EOD.
+[20] User_13 is managing the ESG data provider reliability risk work, including tracking issuer coverage gaps, rating drift, and provider exceptions.  →  User_3 identifies a reliability blocker in the ESG provider feeds.
+[21] User_13 advocates freezing disputed records to prevent rework and maintain compliance integrity.  →  User_10 assigns User_13 as backup for the mandatory log.
+[22] User_13 proposed using the control-by-control matrix, which User_12 previously used in AML, to flag any control missing documented design, operating evidence, or named owner by July 18.  →  User_13 will ask Ops to validate only the exceptions they can evidence, tagged against http://sharepoint/regulatory_compliance_program/risk:_conflicting_jurisdiction_requirements_spec for reporting and retention.
+[23] User_13 requests User_3 to lock the intake checklist today and name the owner for reversal evidence.  →  User_13 wants the six-field gate to be reflected in the rerun intake checklist.
+[24] User_7 waits for Legal to post the redline in the spec today.  →  User_7 asks for late feedback on content updates, manager sign-off, or regional distribution in the training rollout spec by end of day tomorrow.
+
+## What was settled
+
+[25] User_13 confirmed that User_1's approach of keeping the clean set moving is acceptable, based on the lessons from Project Haven.
+[26] User_13 requires @Ops to lock the intake tag today.
+[27] User_13 agrees to freeze the redline if Ops cannot confirm in writing that the current revision only changes interpretation, not control logic.
+[28] User_13 advocates freezing incomplete records to prevent drift and ensure data integrity.
+[29] User_13 confirms that the stale-owner trigger must be stamped as part of the closure process.
+[30] User_7 confirmed User_13's position that the narrow redline is the right control and that Ops should remain focused on retention, escalation, and evidence-handling.
+[31] User_7 requires that @source_owner confirm field defaults and extract timing today.
+[32] User_13 states that Investment should validate issuer relevance.
+[33] User_1 states that Finance owns the fallback methods.
+[34] User_1 confirms that they are comfortable sealing on owner/ETA now, given the stronger evidence chain.
+[35] User_1 requests that Ops confirm owner and due date on each row in-thread.
+[36] User_12 asks @source_owner to confirm the top 5 fields by EOD.
+[37] User_10 confirms that the 14:30 UTC post is live and not draft-only.
+[38] User_9 acknowledges that User_13 owns the validation rule, which was the cleanest split in AML.
+[39] User_2 states that if the forecast scope confirmation lands cleanly, User_12 can lock the requirements pack and close Define Treasury Requirements as Completed.
+[40] Compliance owns final wording.
+[41] User_13 states that Compliance owns the exception log and screening-rule escalation triggers.
+[42] User_13 proposes that Compliance owns the decision threshold for flagging breaches.
+[43] User_13 assigns Compliance ownership of policy exceptions.
+[44] User_13 states that Compliance can own the validation rulebook.
+
+## Still open
+
+[45] User_13 requests User_3 to confirm the spec update is posted now.
+[46] User_13 requests User_3 to lock down the logic in the ESG screening criteria phase to prevent accidental greenwashing.
+[47] User_12 requires one verbatim mapping note to prevent drift in RCP.
+[48] User_13 requires control-impact to be included in the summary before Ops can touch anything.
+[49] User_5 requests that Legal and Risk provide one final sign-off on the precise wording before calling Define Impact Metrics Completed.
+[50] User_13 requires that the log name the exact threshold, owner, and decision date.
+[51] User_12 requests User_3 to confirm the SharePoint gate is live.
+[52] User_12 requests User_3 to confirm the spec is live today.
+[53] User_12 requests User_3 to lock the checklist today, including defect ID, reversal-path confirmation, environment ID, rerun timestamp, and exact build hash.
+[54] User_13 requires a single approval trail on the runbook version lock to avoid conflicting sources of truth on go-live day.
+[55] User_1 requires that mismatch reconciliation be in place before freezing the clean set in the Define Impact Metrics Spec.
+[56] User_1 requires Data to confirm live backup coverage plus overlap tagging in http://sharepoint/sustainable_finance_strategy/risk:_esg_data_provider_reliability_spec to be happy to freeze the core fields.
+[57] User_5 requires that User_1 reconcile only against the exact record in http://sharepoint/sustainable_finance_strategy/risk:_inconsistent_sustainability_standards_spec once the four-field stamp is posted.
+[58] User_1 states that Legal and Compliance need to confirm the policy basis against http://sharepoint/sustainable_finance_strategy/risk:_inconsistent_sustainability_standards_spec before downstream teams hard-code the wrong rules.
+[59] User_5 requests a quick ops + analyst check-in today to confirm triage order, evidence handoff timing, and who’s clearing the highest-risk cases first.
+
+## Who was in the room
+
+- User_12 — 23% of utterances
+- User_5 — 22% of utterances
+- User_9 — 21% of utterances
+- User_2 — 20% of utterances
+- User_10 — 6% of utterances
+- User_13 — 4% of utterances
+- User_1 — 2% of utterances
+- User_7 — 1% of utterances
+

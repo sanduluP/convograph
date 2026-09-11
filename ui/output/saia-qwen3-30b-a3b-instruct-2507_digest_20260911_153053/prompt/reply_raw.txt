@@ -1,0 +1,92 @@
+{
+  "title": "Compliance Lockdown",
+  "anchors": [
+    {
+      "label": "Controlled Value Set",
+      "glyph": "padlock",
+      "from_facts": [0]
+    },
+    {
+      "label": "Evidence-Link Format",
+      "glyph": "bridge",
+      "from_facts": [8]
+    },
+    {
+      "label": "ESG Screening Criteria",
+      "glyph": "shield",
+      "from_facts": [9]
+    },
+    {
+      "label": "Risk Phase Status",
+      "glyph": "stopwatch",
+      "from_facts": [13]
+    },
+    {
+      "label": "Intake Checklist",
+      "glyph": "folder",
+      "from_facts": [23]
+    },
+    {
+      "label": "Version ID Freeze",
+      "glyph": "key",
+      "from_facts": [5]
+    }
+  ],
+  "links": [
+    {
+      "from": 0,
+      "to": 5,
+      "label": "locked by"
+    },
+    {
+      "from": 1,
+      "to": 2,
+      "label": "blocked"
+    },
+    {
+      "from": 4,
+      "to": 3,
+      "label": "replaced"
+    },
+    {
+      "from": 5,
+      "to": 0,
+      "label": "gate for"
+    }
+  ],
+  "notes": [
+    {
+      "text": "Open: User_3 must confirm spec update posted now.",
+      "anchor": 0
+    },
+    {
+      "text": "Open: User_3 must lock ESG logic to prevent greenwashing.",
+      "anchor": 2
+    },
+    {
+      "text": "Open: User_12 requires verbatim mapping note in RCP.",
+      "anchor": 1
+    },
+    {
+      "text": "Open: User_13 requires control-impact in summary before Ops acts.",
+      "anchor": 3
+    },
+    {
+      "text": "Settled: User_13 confirmed clean set movement is acceptable.",
+      "anchor": 0
+    },
+    {
+      "text": "Settled: User_13 agrees to freeze redline if logic unchanged.",
+      "anchor": 5
+    },
+    {
+      "text": "Settled: Compliance owns exception log and escalation triggers.",
+      "anchor": 4
+    },
+    {
+      "text": "Settled: User_13 owns validation rulebook.",
+      "anchor": 5
+    }
+  ],
+  "dropped": [7, 9]
+}

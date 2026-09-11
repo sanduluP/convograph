@@ -48,7 +48,10 @@ import textwrap
 from collections import defaultdict
 
 CSV_IN = os.getenv("EDGES_CSV", "../../tmp/concept_edges_speaker_free.csv")
-OUT = os.getenv("MAP_OUT", "excalidraw/board/content_map.excalidraw")
+# Boards live in ONE place now: ui/output/. This generator predates the UI
+# and is kept as a historical record; if it is run, its output should not
+# recreate a second home for boards.
+OUT = os.getenv("MAP_OUT", "../../ui/output/legacy_content_map.excalidraw")
 STYLE_FILE = os.getenv("BOARD_STYLE_FILE", "styles/board_styles.json")
 STYLE_NAME = os.getenv("BOARD_STYLE", "graphic-recording")
 N_CONCEPTS = int(os.getenv("MAP_CONCEPTS", "14"))

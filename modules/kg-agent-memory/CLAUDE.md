@@ -10,7 +10,7 @@ rules for one are wrong for the other.
 
 | | Pipeline diagrams | The board (Module 3) |
 |---|---|---|
-| Files | `excalidraw/extraction/`, `excalidraw/retrieval/` | `excalidraw/board/` |
+| Files | `excalidraw/extraction/`, `excalidraw/retrieval/`, `modules/graphic-generation/excalidraw/pipeline/` | `ui/output/<run>/board.excalidraw` |
 | Purpose | explain a system in a paper or slide | **look like a graphic recording** |
 | `roughness` | **0** — straight, clean edges | **1** — sketchy, marker-drawn |
 | `fontFamily` | **6** — Nunito ("Normal") | **5** — Excalifont (hand-drawn) |
@@ -23,7 +23,9 @@ that way; it is a **poster**, and the marker look is the artifact rather than a
 defect. Same tool, opposite goal.
 
 **So:** when generating a pipeline diagram anywhere, keep the global rule. Only
-`excalidraw/board/` uses the sketchy style, and only via the preset below.
+the BOARD uses the sketchy style. Boards are written to `ui/output/<run>/`
+and nowhere else — the old `excalidraw/board/` folders are in
+`archive/boards-pre-ui/`.
 
 ## Board styling lives in a config file, never in code or in CLAUDE.md
 
