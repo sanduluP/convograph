@@ -325,10 +325,13 @@ def _node_positions(n: int, card_h: float) -> list[tuple[float, float]]:
 # So those come STRAIGHT FROM THE DIGEST, not through the model. No selection
 # step means nothing is lost to compression, and the LLM is left doing the one
 # job only it can do: deciding what relates to what.
-PANEL_W = 300
-PANEL_TITLE_FS = 16
+PANEL_W = 330
+PANEL_TITLE_FS = 17
 PANEL_ITEM_FS = 12
-PANEL_GAP = 26
+PANEL_GAP = 30
+PANEL_PAD = 14          # container edge → its contents
+NOTE_PAD = 7            # sticky-note edge → its text
+NOTE_GAP_Y = 7          # between two sticky notes
 
 
 # A SharePoint path is ~90 characters of which the last word is the only part
@@ -346,29 +349,57 @@ def _shorten_urls(text: str) -> str:
 
 
 def _panel(x: float, y: float, title: str, items: list[str],
-           accent: str, max_items: int = 10) -> tuple[list[dict], float]:
-    """One margin panel. Returns (elements, height consumed)."""
+           accent: str, tint: str, max_items: int = 10) -> tuple[list[dict], float]:
+    """One margin panel, drawn as a CARD with the items as sticky notes.
+
+    It was plain grey text, which read as a footnote rather than part of the
+    board — Faris's words were "why not show them as real graphic recording".
+    A graphic recorder does not write a list in the margin; they draw a titled
+    block and put each item on its own tinted note. So: a rounded container in
+    the panel's accent colour, a heading, and one small filled card per item.
+    """
     els: list[dict] = []
     gid = _new_id()
-    head = _text(x, y, [title], PANEL_TITLE_FS, accent, gid)
-    els.append(head)
-    cursor = y + PANEL_TITLE_FS * LINE_H + 8
 
+    # Measure first — the container has to be drawn at its final height, and
+    # that depends on how the item text wraps.
     shown = [_shorten_urls(i) for i in items[:max_items]]
+    blocks = []
+    inner_w = PANEL_W - 2 * PANEL_PAD
     for item in shown:
-        lines = _wrap(f"• {item}", PANEL_W, PANEL_ITEM_FS)
-        h = _text_size(lines, PANEL_ITEM_FS)[1]
-        els.append(_text(x, cursor, lines, PANEL_ITEM_FS, NOTE_GRAY, gid,
-                         box_w=PANEL_W))
-        cursor += h + 6
+        lines = _wrap(item, inner_w - 2 * NOTE_PAD, PANEL_ITEM_FS)
+        blocks.append((lines, _text_size(lines, PANEL_ITEM_FS)[1] + 2 * NOTE_PAD))
+
+    head_h = PANEL_TITLE_FS * LINE_H + 10
+    body_h = sum(h for _, h in blocks) + NOTE_GAP_Y * max(0, len(blocks) - 1)
+    more_h = (PANEL_ITEM_FS * LINE_H + NOTE_GAP_Y) if len(items) > max_items else 0
+    total_h = PANEL_PAD + head_h + body_h + more_h + PANEL_PAD
+
+    container = _base("rectangle", x, y, PANEL_W, total_h, [gid])
+    container.update({"backgroundColor": tint, "strokeColor": accent,
+                      "roundness": {"type": 3}, "boundElements": []})
+    els.append(container)
+    els.append(_text(x + PANEL_PAD, y + PANEL_PAD, [title], PANEL_TITLE_FS,
+                     accent, gid, box_w=inner_w))
+
+    cursor = y + PANEL_PAD + head_h
+    for lines, h in blocks:
+        note = _base("rectangle", x + PANEL_PAD, cursor, inner_w, h, [gid])
+        note.update({"backgroundColor": "#ffffff", "strokeColor": accent,
+                     "strokeWidth": 1, "roundness": {"type": 3},
+                     "opacity": 100, "boundElements": []})
+        els.append(note)
+        els.append(_text(x + PANEL_PAD + NOTE_PAD, cursor + NOTE_PAD, lines,
+                         PANEL_ITEM_FS, INK, gid, box_w=inner_w - 2 * NOTE_PAD))
+        cursor += h + NOTE_GAP_Y
+
     if len(items) > max_items:
-        # Say what was cut. A panel that silently shows 10 of 15 is a panel that
-        # lies about how much is outstanding.
-        more = [f"+ {len(items) - max_items} more in digest/"]
-        els.append(_text(x, cursor, more, PANEL_ITEM_FS, accent, gid,
-                         box_w=PANEL_W))
-        cursor += PANEL_ITEM_FS * LINE_H + 6
-    return els, cursor - y
+        # Say what was cut. A panel showing 10 of 15 without saying so is a
+        # panel that lies about how much is outstanding.
+        els.append(_text(x + PANEL_PAD, cursor,
+                         [f"+ {len(items) - max_items} more in digest/"],
+                         PANEL_ITEM_FS, accent, gid, box_w=inner_w))
+    return els, total_h
 
 
 def build_scene(plan: dict, images: list[str | None],
@@ -490,22 +521,22 @@ def build_scene(plan: dict, images: list[str | None],
         px = ring_right + PANEL_GAP * 2
         py = min(e["y"] for e in elements)
 
-        for title, rows, key, accent in (
-            ("Still open", q.get("open_threads", []), "fact", "#e8590c"),
-            ("Decided", q.get("decisions", []), "fact", "#2f9e44"),
+        for title, rows, key, accent, tint in (
+            ("⚠ Still open", q.get("open_threads", []), "fact", "#e8590c", "#fff4e6"),
+            ("✓ Decided", q.get("decisions", []), "fact", "#2f9e44", "#ebfbee"),
         ):
             if not rows:
                 continue
             items = [r.get(key, "") for r in rows if r.get(key)]
-            els, h = _panel(px, py, f"{title}  ({len(items)})", items, accent)
+            els, h = _panel(px, py, f"{title}  ({len(items)})", items, accent, tint)
             panel_els += els
             py += h + PANEL_GAP
 
         people = q.get("participants", [])
         if people:
             items = [f"{p['speaker']} — {100 * p['share']:.0f}%" for p in people]
-            els, h = _panel(px, py, f"In the room  ({len(items)})", items,
-                            "#1971c2", max_items=12)
+            els, h = _panel(px, py, f"🗣 In the room  ({len(items)})", items,
+                            "#1971c2", "#e7f5ff", max_items=12)
             panel_els += els
     elements += panel_els
 

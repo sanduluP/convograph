@@ -433,8 +433,37 @@ def validate(plan: dict, n_facts: int,
 # length. "no text" is load-bearing - without it FLUX letters the image with
 # gibberish. The word "marker" is deliberately absent: it made FLUX draw a
 # marker PEN in the frame rather than adopt a marker-drawn LOOK.
-GLYPH_STYLE = ("hand-drawn black ink pictogram, isolated on plain white, "
-               "no text, no letters, no numbers")
+# MEASURED 2026-09-11, same glyph through each style, Hasler-Susstrunk
+# colourfulness (≈0 is greyscale, >40 vivid):
+#
+#     hand-drawn black ink   1.0   ← what this used to be
+#     isometric 3d          22.5
+#     marker sketchnote     24.0
+#     flat vector colour    62.6   ← default
+#     sticker               75.6
+#
+# "hand-drawn black ink" was a STYLE CHOICE inherited from the sketchnote
+# aesthetic, never a measured constraint, and it was producing a faint grey
+# scribble on every card. Only the no-text part is load-bearing: FLUX renders
+# letters as gibberish, so "no text, no letters, no numbers" stays in every
+# variant below.
+#
+# flat is the default rather than sticker because these are drawn at 200px on a
+# card: bold flat shapes survive that size, gradients turn to mud.
+GLYPH_STYLES = {
+    "flat": "flat vector icon, bold saturated colours, thick clean outlines, "
+            "centered on white, no text, no letters, no numbers",
+    "sticker": "colourful sticker illustration, vivid flat colours, bold "
+               "outline, white background, no text, no letters, no numbers",
+    "marker": "colourful marker sketchnote icon, bright felt-tip colours, "
+              "confident outline, white background, no text, no letters, "
+              "no numbers",
+    "isometric": "friendly isometric 3d icon, vibrant colours, soft shadows, "
+                 "white background, no text, no letters, no numbers",
+    "ink": "hand-drawn black ink pictogram, isolated on plain white, no text, "
+           "no letters, no numbers",
+}
+GLYPH_STYLE = GLYPH_STYLES[os.getenv("GLYPH_STYLE", "flat")]
 
 
 # Wordless stand-ins, by what the banned object was FOR. The planner keeps
@@ -462,9 +491,8 @@ def safe_glyph(glyph: str) -> tuple[str, str | None]:
     validate() already FLAGS these, but flagging does not stop the prompt
     reaching FLUX — and an object defined by its markings comes back covered in
     invented letters, which is the one failure this whole design exists to
-    avoid. Measured 2026-09-06: "a calendar with one date circled" produced a
-    box reading "b.13". The planner keeps choosing them anyway, prompt or not,
-    so the substitution happens on OUR side where it is guaranteed.
+    avoid. The planner keeps choosing them anyway, prompt or not, so the
+    substitution happens on OUR side where it is guaranteed.
     """
     g = " ".join((glyph or "").split())
     for obj, sub in GLYPH_SUBSTITUTES.items():
