@@ -357,7 +357,82 @@ def _arrow(src: dict, dst: dict, label: str, bow: float = 0.0) -> list[dict]:
 
 
 # ── the board ───────────────────────────────────────────────────────────────
-def _node_positions(n: int, card_h: float,
+LAYOUTS = ("ring", "grid")
+LAYOUT = os.getenv("BOARD_LAYOUT", "grid")
+GRID_GAP = 90           # between two clusters in the grid layout
+
+
+GRID_TARGET = 1.3       # width / height the column count is chosen to hit
+
+
+def _grid_positions(heights: list[float], cell_w: float) -> list[tuple[float, float]]:
+    """Cluster centres on a GRID, as the alternative to the ring.
+
+    The ring's argument is that a set of linked concepts has no reading order, so
+    do not imply one. The grid's argument is that it wastes no space: clusters
+    are rectangles, and rectangles tile.
+
+    Once every digest item hangs off its own anchor the clusters are TALL and
+    UNEVEN, and that is what decides it. On a ring, spacing is set by the tallest
+    cluster in every direction at once: one anchor carrying fourteen decisions
+    pushed the canvas to 4008x3509 with voids across the middle. The same content
+    on a grid is 1220x2568 — the grid simply does not care how tall its
+    neighbour is.
+
+    Both are kept so the question stays settled by looking rather than by
+    arguing:
+
+        BOARD_LAYOUT=grid bash scripts/run_content_map.sh …   (default)
+        BOARD_LAYOUT=ring bash scripts/run_content_map.sh …
+
+    Rows are TOP-ALIGNED, not centred: every anchor card in a row starts at the
+    same y, so the pictograms read as a row and the stickies hang below them at
+    whatever length each one needs. Centring them made the cards bob up and down
+    by half the difference in their cluster heights.
+    """
+    n = len(heights)
+
+    def shape(cols: int) -> tuple[float, float, list[float]]:
+        """(width, height, row heights) for a given column count."""
+        row_h = [max(heights[r * cols:(r + 1) * cols])
+                 for r in range(math.ceil(n / cols))]
+        return (cols * cell_w + (cols - 1) * GRID_GAP,
+                sum(row_h) + (len(row_h) - 1) * GRID_GAP,
+                row_h)
+
+    # The column count is CHOSEN, not guessed at with sqrt(n): it is the one
+    # whose resulting block comes closest to a landscape page. Cluster heights
+    # vary by a factor of four here, so the arithmetic guess is routinely wrong.
+    cols = min(range(1, n + 1),
+               key=lambda c: abs(math.log((shape(c)[0] / shape(c)[1]) / GRID_TARGET)))
+    width, height, row_h = shape(cols)
+
+    # Where each row's cards start, as an offset from the block's top.
+    row_top, acc = [], 0.0
+    for h in row_h:
+        row_top.append(acc)
+        acc += h + GRID_GAP
+
+    out = []
+    for i, h in enumerate(heights):
+        c, r = i % cols, i // cols
+        # SERPENTINE: every other row runs right-to-left, the house rule for
+        # pipeline diagrams and for the same reason here — the last cluster of a
+        # row and the first of the next end up ABOVE AND BELOW each other, so the
+        # link between them is a short drop instead of a long diagonal back
+        # across the whole board.
+        if r % 2:
+            c = cols - 1 - c
+        # Centred on the origin, the same convention the ring uses, so nothing
+        # downstream has to know which layout produced the points. The y is the
+        # row's top plus half this cluster's own height, because the caller
+        # places a cluster by its centre.
+        out.append(((c - (cols - 1) / 2) * (cell_w + GRID_GAP),
+                    row_top[r] + h / 2 - height / 2))
+    return out
+
+
+def _node_positions(n: int, card_h: float, card_w: float = CARD_W,
                     min_height: float = 0.0) -> list[tuple[float, float]]:
     """Centre of each node, on an ellipse around the origin.
 
@@ -374,7 +449,9 @@ def _node_positions(n: int, card_h: float,
     """
     if n == 1:
         return [(0.0, 0.0)]
-    need = max(CARD_W, card_h) + MIN_NODE_GAP
+    # card_w is passed now that a node is a CLUSTER — its card plus the stack of
+    # digest stickies beneath it — and a cluster is wider than CARD_W.
+    need = max(card_w, card_h) + MIN_NODE_GAP   # the starting radius only
 
     # 2*R*sin(pi/n) is the adjacent separation on a CIRCLE, and we draw an
     # ELLIPSE. Dividing the vertical axis by RATIO shrinks every separation that
@@ -386,7 +463,12 @@ def _node_positions(n: int, card_h: float,
     # Rather than patch the formula with a fudge factor, place the nodes and
     # MEASURE the closest pair, then scale until it clears. One pass, exact for
     # any n and any RATIO, and it cannot drift out of agreement with the drawing.
-    rx = max(MIN_RX, need / (2 * math.sin(math.pi / n)))
+    # Start SMALL and let the clearance test below grow it. The old start,
+    # need / (2*sin(pi/n)), assumed clusters were circles of diameter `need`;
+    # once `need` became a tall cluster's height that opening guess was already
+    # past what the per-axis test would have asked for, so the loop exited on the
+    # first pass and the ring never shrank back.
+    rx = float(MIN_RX)
     if n == 2:
         # NOT 180/0. A dead-horizontal pair gives a 3.18:1 canvas — two cards in
         # a flat line, outside the readable range and a poor shape for a page.
@@ -400,15 +482,26 @@ def _node_positions(n: int, card_h: float,
         return [(rx * math.cos(math.radians(a)), ry * math.sin(math.radians(a)))
                 for a in angles]
 
-    for _ in range(12):                 # bounded: each pass scales up, so it
+    # Clearance is tested per AXIS, not as a straight-line distance. Two clusters
+    # are rectangles: they miss each other as soon as they are far enough apart
+    # HORIZONTALLY or far enough apart VERTICALLY, and requiring the diagonal to
+    # exceed the larger of the two dimensions demands far more room than that.
+    # With a tall cluster (an anchor carrying eight stickies) the difference is
+    # not academic — it blew the canvas out to 3768x3339 with voids in it.
+    def clears(pts: list[tuple[float, float]]) -> bool:
+        for i, p in enumerate(pts):
+            for q in pts[i + 1:]:
+                if (abs(p[0] - q[0]) < card_w + MIN_NODE_GAP
+                        and abs(p[1] - q[1]) < card_h + MIN_NODE_GAP):
+                    return False
+        return True
+
+    for _ in range(24):                 # bounded: each pass scales up, so it
                                         # terminates; the cap guards a bad RATIO
         pts = place(rx, rx / RATIO)
-        closest = min(math.dist(p, q)
-                      for i, p in enumerate(pts) for q in pts[i + 1:])
-        if closest >= need:
+        if clears(pts):
             break
-        rx *= need / closest * 1.02     # 2% over, so float error cannot leave it
-                                        # a hair short and loop again
+        rx *= 1.12
 
     # The height stretch is applied AFTER rx has converged, never inside the
     # loop. Inside, a tall ry separates the vertical neighbours immediately, the
@@ -420,28 +513,45 @@ def _node_positions(n: int, card_h: float,
     return place(rx, max(rx / RATIO, want_ry))
 
 
-# ── side panels ─────────────────────────────────────────────────────────────
+# ── satellites: the digest, attached to the map ─────────────────────────────
 # The planner compresses: given 60 citable items it returns 6 anchors and 8
 # notes and drops the rest. That is right for the MAP — a content map with
 # twenty nodes is unreadable — but wrong for the board, because the other 46
-# items are exactly the material a real graphic recording carries in its
-# margins: what was decided, what is still open, who was in the room.
+# items are exactly the material a real graphic recording carries.
 #
-# So those come STRAIGHT FROM THE DIGEST, not through the model. No selection
-# step means nothing is lost to compression, and the LLM is left doing the one
-# job only it can do: deciding what relates to what.
-PANEL_W = 330
+# They come STRAIGHT FROM THE DIGEST, not through the model. They used to be
+# three panels down the right-hand margin, and Faris's verdict was exact: "a
+# football field where only 11 players are playing and the others are sitting on
+# the bench". A margin IS a bench.
+#
+# So every item is now a SATELLITE of the anchor it is about — drawn in the map,
+# beneath the thing it concerns — and only the genuinely cross-cutting ones sit
+# in a band along the bottom. One field, everybody on it.
+SAT_W = 300             # one satellite sticky
+SAT_FS = 12
+SAT_PAD = 7             # sticky edge → its contents
+SAT_GAP_Y = 8           # between two satellites in a stack
+SAT_GAP_X = 22          # between two columns of satellites in a band
+CLUSTER_GAP = 16        # anchor card → its first satellite
+SAT_MAX_STACK_H = 820   # a stack taller than this wraps into another column
+BAND_GAP = 50           # the map → the bands above and below it
+BAND_TITLE_FS = 15
+
 PANEL_TITLE_FS = 17
-PANEL_ITEM_FS = 12
-PANEL_GAP = 30
 PANEL_PAD = 14          # container edge → its contents
-NOTE_PAD = 7            # sticky-note edge → its text
-NOTE_GAP_Y = 7          # between two sticky notes
 ICON_PX = 44            # the concept icon on a sticky note. Big enough to read
                         # the object at a glance, small enough that the note is
                         # still mostly its sentence — the icon is a bookmark for
                         # the eye, not the content.
 ICON_GAP = 9            # icon → its text
+
+# "Still open" against "decided" is the distinction Faris asked to be able to see
+# WITHOUT reading — so it is carried by the sticky's own colour, not by which
+# list it was filed under. (stroke, fill)
+SAT_STYLES = {
+    "open":    ("#e8590c", "#fff4e6"),
+    "decided": ("#2f9e44", "#ebfbee"),
+}
 
 
 # A SharePoint path is ~90 characters of which the last word is the only part
@@ -458,92 +568,189 @@ def _shorten_urls(text: str) -> str:
     return _URL_RE.sub(leaf, text)
 
 
-def _panel(x: float, y: float, title: str, items: list[str],
-           accent: str, tint: str, max_items: int = 10,
-           icon_paths: dict[str, str] | None = None,
-           files: dict | None = None,
-           icon_cache: dict[str, str] | None = None) -> tuple[list[dict], float]:
-    """One margin panel, drawn as a CARD with the items as sticky notes.
+def assign_to_anchors(items: list[tuple[str, str]],
+                      labels: list[str]) -> tuple[dict[int, list], list]:
+    """Which anchor each digest item belongs to. -> ({anchor index: items}, rest).
 
-    It was plain grey text, which read as a footnote rather than part of the
-    board — Faris's words were "why not show them as real graphic recording".
-    A graphic recorder does not write a list in the margin; they draw a titled
-    block and put each item on its own tinted note. So: a rounded container in
-    the panel's accent colour, a heading, and one small filled card per item.
+    Two rules, tried in order of how much they prove:
 
-    Each note also carries a CONCEPT ICON on its left where one can be inferred
-    (see icons.py). That is the difference between a board with six drawings and
-    a board with thirty: the margins used to be text only, because they were
-    never given pictures. An item whose concept is unclear gets no icon and its
-    text simply runs the full width — a blank is honest, a wrong icon is not.
+      1. the anchor's LABEL appears in the item — "Runbooks require monitoring"
+         belongs under Runbook, and nothing else needs to be said;
+      2. one of the anchor's CONCEPT keywords appears in it. "Ops" is the concept
+         `ops`, whose keywords include "operations", so "Operations is to freeze
+         the access-control change" lands on Ops even though the word "Ops" is
+         nowhere in the sentence. Rule 1 alone left a third of the board homeless.
+
+    The LONGEST match wins, so "…sign-off from Ops, Security, and Support" goes to
+    Security rather than to Ops: a longer keyword is a more specific claim.
+
+    An item that matches nothing is returned as a leftover, NOT forced onto the
+    nearest anchor. It really is about the meeting as a whole, and the band along
+    the bottom is where such an item is true.
     """
-    els: list[dict] = []
-    gid = _new_id()
-    icon_paths = icon_paths or {}
+    try:
+        from icons import VOCABULARY                            # noqa: PLC0415
+    except Exception:                                           # noqa: BLE001
+        VOCABULARY = {}
 
-    # Measure first — the container has to be drawn at its final height, and
-    # that depends on how the item text wraps AND on whether the note has an
-    # icon (an icon steals width from the text, which can add a line).
-    shown = [_shorten_urls(i) for i in items[:max_items]]
+    # What each anchor answers to: its own label, plus the keywords of whichever
+    # concept its label maps to.
+    terms: list[list[str]] = []
+    for label in labels:
+        words = {" ".join(str(label).lower().split())}
+        concept = icon_concept(label)
+        if concept and concept in VOCABULARY:
+            words |= {k.strip().lower() for k in VOCABULARY[concept][1]}
+        terms.append(sorted((w for w in words if len(w) >= 3), key=len, reverse=True))
+
+    by_anchor: dict[int, list] = {}
+    leftovers: list = []
+    for item in items:
+        low = " ".join(str(item[0]).lower().split())
+        # (score, index) for the best match that is not the sentence's subject,
+        # and separately for the subject — see why below.
+        best_i, best_len = None, 0
+        subj_i = None
+        for i, words in enumerate(terms):
+            for word in words:
+                if len(word) <= best_len:
+                    break        # sorted longest-first: nothing here can win now
+                # The same plural-tolerant word match icons.concept_for uses, so
+                # "Runbooks" finds Runbook.
+                m = re.search(rf"\b{re.escape(word)}s?\b", low)
+                if not m:
+                    continue
+                # A match at position 0 is the sentence's SUBJECT — who did it —
+                # and a graphic recording files a note under what it is ABOUT.
+                # Every one of twenty decisions starts "ProjectManager …", so
+                # taking the subject gave one anchor a column 1850 px tall and
+                # left the others nearly empty. "ProjectManager freezes primary,
+                # backup, and approver in the runbook" belongs under Runbook.
+                if m.start() <= 1:
+                    subj_i = i if subj_i is None else subj_i
+                    continue
+                best_i, best_len = i, len(word)
+                break
+        if best_i is None:
+            best_i = subj_i          # nothing but the actor — then the actor it is
+        if best_i is None:
+            leftovers.append(item)
+        else:
+            by_anchor.setdefault(best_i, []).append(item)
+
+    # Deliberately UNCAPPED. A cap sent the overflow to the band, where a sticky
+    # that says "ProjectManager must lock primary/backup contacts" sat under a
+    # heading claiming it belonged to no anchor — the heading was then a lie. The
+    # band holds items that matched NOTHING, and only those; a talkative anchor
+    # is allowed to be tall, which the grid absorbs in its row height.
+    return by_anchor, leftovers
+
+
+def measure_satellites(items: list[tuple[str, str]], icon_paths: dict[str, str],
+                       max_h: float = SAT_MAX_STACK_H
+                       ) -> tuple[list[list], float, float]:
+    """Lay out a cluster's stickies without drawing them. -> (columns, w, h).
+
+    Measured separately from drawing because the layout is sized around the
+    CLUSTERS — anchor card plus its stickies — and that size is not known until
+    the text has been wrapped.
+
+    A stack taller than `max_h` WRAPS into a second column, and a third if it has
+    to. One anchor can legitimately collect twenty items, and a single 1850 px
+    column of them made the board a cliff with a void beside it; two columns of
+    ten are the same information at half the height.
+    """
     blocks = []
-    inner_w = PANEL_W - 2 * PANEL_PAD
-    for item in shown:
+    for text, kind in items:
         # The icon is chosen from the ORIGINAL item text, not the URL-shortened
         # one: shortening throws away words the keyword match may need.
-        concept = icon_concept(item)
+        concept = icon_concept(text)
         path = icon_paths.get(concept) if concept else None
-        text_w = inner_w - 2 * NOTE_PAD - ((ICON_PX + ICON_GAP) if path else 0)
-        lines = _wrap(item, text_w, PANEL_ITEM_FS)
-        text_h = _text_size(lines, PANEL_ITEM_FS)[1]
-        # A one-line note next to a 34 px icon has to grow to the icon's height,
-        # or the icon overflows the note it sits in.
-        h = max(text_h, ICON_PX if path else 0) + 2 * NOTE_PAD
-        blocks.append((lines, h, path, text_w))
+        text_w = SAT_W - 2 * SAT_PAD - ((ICON_PX + ICON_GAP) if path else 0)
+        lines = _wrap(_shorten_urls(text), text_w, SAT_FS)
+        text_h = _text_size(lines, SAT_FS)[1]
+        # A one-line sticky beside a 44 px icon has to grow to the icon's height,
+        # or the icon overflows the sticky it sits in.
+        h = max(text_h, ICON_PX if path else 0) + 2 * SAT_PAD
+        blocks.append((lines, h, path, text_w, kind))
 
-    head_h = PANEL_TITLE_FS * LINE_H + 10
-    body_h = sum(b[1] for b in blocks) + NOTE_GAP_Y * max(0, len(blocks) - 1)
-    more_h = (PANEL_ITEM_FS * LINE_H + NOTE_GAP_Y) if len(items) > max_items else 0
-    total_h = PANEL_PAD + head_h + body_h + more_h + PANEL_PAD
+    if not blocks:
+        return [], 0.0, 0.0
 
-    container = _base("rectangle", x, y, PANEL_W, total_h, [gid])
-    container.update({"backgroundColor": tint, "strokeColor": accent,
-                      "roundness": {"type": 3}, "boundElements": []})
-    els.append(container)
-    els.append(_text(x + PANEL_PAD, y + PANEL_PAD, [title], PANEL_TITLE_FS,
-                     accent, gid, box_w=inner_w))
+    # How many columns this stack needs, then an EVEN split across them — not
+    # "fill the first column to max_h, then start the next", which leaves the
+    # last column a stub.
+    total = sum(b[1] + SAT_GAP_Y for b in blocks) - SAT_GAP_Y
+    n_cols = max(1, math.ceil(total / max_h)) if max_h > 0 else 1
+    per = math.ceil(len(blocks) / n_cols)
+    columns = [blocks[i:i + per] for i in range(0, len(blocks), per)]
 
-    cursor = y + PANEL_PAD + head_h
-    for lines, h, path, text_w in blocks:
-        note = _base("rectangle", x + PANEL_PAD, cursor, inner_w, h, [gid])
-        note.update({"backgroundColor": "#ffffff", "strokeColor": accent,
-                     "strokeWidth": 1, "roundness": {"type": 3},
-                     "opacity": 100, "boundElements": []})
-        els.append(note)
+    width = len(columns) * SAT_W + (len(columns) - 1) * SAT_GAP_X
+    height = max(sum(b[1] + SAT_GAP_Y for b in col) - SAT_GAP_Y
+                 for col in columns)
+    return columns, width, height
 
-        text_x = x + PANEL_PAD + NOTE_PAD
-        if path and files is not None:
-            file_id = _register_icon(path, files, icon_cache if icon_cache
-                                     is not None else {})
-            if file_id:
-                # Centred on the note's height so a three-line item does not
-                # leave its icon stranded at the top.
-                els.append(_image(text_x, cursor + (h - ICON_PX) / 2,
-                                  ICON_PX, ICON_PX, file_id, gid))
-                text_x += ICON_PX + ICON_GAP
-        # Text is centred too, for the same reason in reverse: a short label
-        # beside a tall icon should sit on the icon's axis, not above it.
-        text_h = _text_size(lines, PANEL_ITEM_FS)[1]
-        els.append(_text(text_x, cursor + (h - text_h) / 2, lines,
-                         PANEL_ITEM_FS, INK, gid, box_w=text_w))
-        cursor += h + NOTE_GAP_Y
 
-    if len(items) > max_items:
-        # Say what was cut. A panel showing 10 of 15 without saying so is a
-        # panel that lies about how much is outstanding.
-        els.append(_text(x + PANEL_PAD, cursor,
-                         [f"+ {len(items) - max_items} more in digest/"],
-                         PANEL_ITEM_FS, accent, gid, box_w=inner_w))
-    return els, total_h
+def draw_satellites(x: float, y: float, columns: list[list], files: dict,
+                    icon_cache: dict, gid: str | None = None) -> list[dict]:
+    """Draw measured columns with their top-left at (x, y). `gid` groups them
+    with the anchor card, so dragging the node takes its stickies with it."""
+    els: list[dict] = []
+    for c, column in enumerate(columns):
+        cx = x + c * (SAT_W + SAT_GAP_X)
+        cursor = y
+        for lines, h, path, text_w, kind in column:
+            stroke, fill = SAT_STYLES.get(kind, SAT_STYLES["open"])
+            note = _base("rectangle", cx, cursor, SAT_W, h, [gid] if gid else [])
+            note.update({"backgroundColor": fill, "strokeColor": stroke,
+                         "strokeWidth": 1, "roundness": {"type": 3},
+                         "boundElements": []})
+            els.append(note)
+
+            text_x = cx + SAT_PAD
+            if path:
+                file_id = _register_icon(path, files, icon_cache)
+                if file_id:
+                    # Centred on the sticky's height so a three-line item does
+                    # not leave its icon stranded at the top.
+                    els.append(_image(text_x, cursor + (h - ICON_PX) / 2,
+                                      ICON_PX, ICON_PX, file_id, gid))
+                    text_x += ICON_PX + ICON_GAP
+            text_h = _text_size(lines, SAT_FS)[1]
+            els.append(_text(text_x, cursor + (h - text_h) / 2, lines,
+                             SAT_FS, INK, gid, box_w=text_w))
+            cursor += h + SAT_GAP_Y
+    return els
+
+
+def band(x: float, y: float, width: float, title: str,
+         items: list[tuple[str, str]], icon_paths: dict[str, str],
+         files: dict, icon_cache: dict) -> tuple[list[dict], float]:
+    """The cross-cutting items, in COLUMNS along the full width of the board.
+
+    Not a margin panel: a margin is a bench. These are the items that belong to
+    the meeting rather than to any one anchor — "the July 19 cutover requires a
+    confirmed staffed bridge roster" names nothing on the map — so they run the
+    width of the field underneath it, in the same stickies and the same colours
+    as the ones clipped to the nodes.
+    """
+    if not items:
+        return [], 0.0
+    els: list[dict] = []
+    gid = _new_id()
+
+    # One column per SAT_W the board is wide: the band runs the width of the
+    # field, so it should use it.
+    cols = max(1, int((width + SAT_GAP_X) // (SAT_W + SAT_GAP_X)))
+    blocks, _, _ = measure_satellites(items, icon_paths, max_h=0)
+    total = sum(b[1] + SAT_GAP_Y for b in blocks[0]) if blocks else 0.0
+    columns, _, band_h = measure_satellites(
+        items, icon_paths, max_h=max(1.0, total / cols))
+
+    head_h = BAND_TITLE_FS * LINE_H + 8
+    els.append(_text(x, y, [title], BAND_TITLE_FS, NOTE_GRAY, gid, box_w=width))
+    els += draw_satellites(x, y + head_h, columns, files, icon_cache, gid)
+    return els, head_h + band_h
 
 
 # ── who was in the room ─────────────────────────────────────────────────────
@@ -557,7 +764,7 @@ def _panel(x: float, y: float, title: str, items: list[str],
 # produces uncanny faces and invented lettering), and an initialled disc is both
 # cheaper and more legible than any portrait would be.
 AVATAR_D = 52           # circle diameter
-AVATAR_COLS = 4         # per row, so five people wrap to 4 + 1
+AVATAR_CELL_W = 78      # the column one avatar and its name occupy
 AVATAR_NAME_FS = 11
 AVATAR_BAR_H = 6        # the share bar under each name
 
@@ -592,21 +799,30 @@ def _initials(name: str) -> str:
     return "?"
 
 
-def _people_panel(x: float, y: float, people: list[dict], accent: str,
-                  tint: str) -> tuple[list[dict], float]:
-    """The "in the room" panel, as a strip of avatars rather than a text list."""
+def people_strip(x: float, y: float, people: list[dict], accent: str = "#1971c2",
+                 tint: str = "#e7f5ff",
+                 cols: int | None = None) -> tuple[list[dict], float, float]:
+    """The room, as a strip of avatars. -> (elements, width, height).
+
+    It used to be a panel down the right margin, four avatars per row. It is now
+    ONE ROW across the top of the board, directly under the title: the people are
+    not a footnote to the map, they are the room the map came out of. `cols`
+    still wraps if a meeting ever has more faces than fit.
+    """
     els: list[dict] = []
     gid = _new_id()
-    inner_w = PANEL_W - 2 * PANEL_PAD
-    cell_w = inner_w / AVATAR_COLS
-    rows = math.ceil(len(people) / AVATAR_COLS)
+    cols = cols or len(people)
+    rows = math.ceil(len(people) / cols)
+    cell_w = AVATAR_CELL_W
+    inner_w = cols * cell_w
+    panel_w = inner_w + 2 * PANEL_PAD
 
     name_h = AVATAR_NAME_FS * LINE_H
     cell_h = AVATAR_D + 6 + name_h + 5 + AVATAR_BAR_H + 4 + name_h
     head_h = PANEL_TITLE_FS * LINE_H + 10
     total_h = PANEL_PAD + head_h + rows * cell_h + PANEL_PAD
 
-    container = _base("rectangle", x, y, PANEL_W, total_h, [gid])
+    container = _base("rectangle", x, y, panel_w, total_h, [gid])
     container.update({"backgroundColor": tint, "strokeColor": accent,
                       "roundness": {"type": 3}, "boundElements": []})
     els.append(container)
@@ -620,7 +836,7 @@ def _people_panel(x: float, y: float, people: list[dict], accent: str,
     top = max((p.get("share") or 0) for p in people) or 1.0
 
     for i, person in enumerate(people):
-        col, row = i % AVATAR_COLS, i // AVATAR_COLS
+        col, row = i % cols, i // cols
         cx = x + PANEL_PAD + col * cell_w + cell_w / 2
         cy = y + PANEL_PAD + head_h + row * cell_h
         colour = AVATAR_COLORS[i % len(AVATAR_COLORS)]
@@ -658,74 +874,52 @@ def _people_panel(x: float, y: float, people: list[dict], accent: str,
         els.append(_text(cx - cell_w / 2, below + name_h + 5 + AVATAR_BAR_H + 4,
                          [f"{100 * share:.0f}%"], AVATAR_NAME_FS, NOTE_GRAY,
                          gid, align="center", box_w=cell_w))
-    return els, total_h
+    return els, panel_w, total_h
 
 
-def _build_panels(digest: dict | None, files: dict,
-                  log=None) -> tuple[list[dict], float]:
-    """The whole right-hand column, drawn at the origin. Returns (elements, height).
+def digest_items(digest: dict | None) -> list[tuple[str, str]]:
+    """Every citable digest row as one (text, kind) pair, in ONE flat list.
 
-    Drawn at (0, 0) and translated later because the ring wants to know how tall
-    this column is BEFORE it sizes itself, while this column does not care where
-    the ring ends up. Measuring first and placing second is the only ordering
-    that lets each one answer the other's question.
+    Open threads and decisions used to be two separate panels, which is how they
+    came out of the cypher and not how a reader thinks: "what is still open about
+    the runbook" and "what was decided about the runbook" belong side by side,
+    under the runbook. They are one list now, and the SAME sticky colour that
+    used to be the panel's colour still says which is which.
+
+    Nothing is capped here. The old panels showed 10 of 15 and wrote "+ 5 more in
+    digest/" — a board that admits it is hiding things is still hiding them.
     """
     if not digest:
-        return [], 0.0
+        return []
     q = digest.get("queries", {})
+    out: list[tuple[str, str]] = []
+    for kind, rows in (("open", q.get("open_threads", [])),
+                       ("decided", q.get("decisions", []))):
+        for row in rows:
+            fact = row.get("fact")
+            if fact:
+                out.append((" ".join(str(fact).split()), kind))
+    return out
 
-    panels = []
-    for title, rows, key, accent, tint, cap in (
-        ("⚠ Still open", q.get("open_threads", []), "fact", "#e8590c", "#fff4e6", 10),
-        ("✓ Decided", q.get("decisions", []), "fact", "#2f9e44", "#ebfbee", 10),
-    ):
-        if rows:
-            panels.append((title, [r.get(key, "") for r in rows if r.get(key)],
-                           accent, tint, cap))
 
-    # ── the icons the panels will actually need ─────────────────────────────
-    # Resolved in ONE batch before any drawing: the concepts are known from the
-    # text, so the (rare) generation of a missing one happens once, not per
-    # panel. Everything already cached costs nothing.
-    wanted = [c for _, items, _, _, cap in panels
-              for c in (icon_concept(i) for i in items[:cap]) if c]
-    icon_paths: dict[str, str] = {}
-    if wanted:
-        try:
-            import icons as icon_vocab                          # noqa: PLC0415
-            icon_paths = icon_vocab.ensure(wanted, log=log)
-        except Exception as exc:                                # noqa: BLE001
-            if log:
-                log(f"   ⚠️  concept icons unavailable ({type(exc).__name__})"
-                    f" — the panels will be text only")
-    icon_cache: dict[str, str] = {}
+def resolve_icons(items: list[tuple[str, str]], log=None) -> dict[str, str]:
+    """The cached icon path for every concept these items need, in ONE batch.
 
-    els: list[dict] = []
-    y = 0.0
-    for title, items, accent, tint, cap in panels:
-        part, h = _panel(0, y, f"{title}  ({len(items)})", items,
-                         accent, tint, max_items=cap,
-                         icon_paths=icon_paths, files=files,
-                         icon_cache=icon_cache)
-        els += part
-        y += h + PANEL_GAP
-
-    # The room goes LAST, and is drawn rather than listed — see _people_panel.
-    people = q.get("participants", [])
-    if people:
-        part, h = _people_panel(0, y, people, "#1971c2", "#e7f5ff")
-        els += part
-        y += h
-    else:
-        y = max(0.0, y - PANEL_GAP)    # no trailing gap below the last panel
-
-    if log and icon_paths:
-        tagged = sum(1 for _, items, _, _, cap in panels
-                     for i in items[:cap] if icon_concept(i) in icon_paths)
-        shown = sum(min(len(items), cap) for _, items, _, _, cap in panels)
-        log(f"   🖼  {tagged}/{shown} margin item(s) carry a concept icon "
-            f"({len(icon_cache)} distinct)")
-    return els, y
+    Resolved before any drawing: the concepts are known from the text, so the
+    (rare) generation of a missing one happens once for the whole board rather
+    than once per cluster.
+    """
+    wanted = [c for c in (icon_concept(t) for t, _ in items) if c]
+    if not wanted:
+        return {}
+    try:
+        import icons as icon_vocab                              # noqa: PLC0415
+        return icon_vocab.ensure(wanted, log=log)
+    except Exception as exc:                                    # noqa: BLE001
+        if log:
+            log(f"   ⚠️  concept icons unavailable ({type(exc).__name__})"
+                f" — the stickies will be text only")
+        return {}
 
 
 def build_scene(plan: dict, images: list[str | None],
@@ -792,24 +986,45 @@ def build_scene(plan: dict, images: list[str | None],
             "glyph": anchor.get("glyph", ""),
         })
 
-    # ── the margin panels, built BEFORE the ring is sized ───────────────────
-    # Their height does not depend on the ring at all — only on the digest text
-    # and PANEL_W — while the ring's ideal height DOES depend on theirs (see
-    # _node_positions' min_height). So they are drawn first, at the origin, and
-    # translated into place once the ring's right edge is known.
-    panel_els, panel_h = _build_panels(digest, files, log)
+    # ── the digest, attached to the anchors ─────────────────────────────────
+    # This is the change Faris asked for in as many words: the open threads and
+    # the decisions used to be panels down the right-hand margin, and a margin is
+    # a bench. Each item is routed to the anchor it is ABOUT and becomes a sticky
+    # under that anchor's card; only the genuinely cross-cutting ones are left,
+    # and they go in a band under the whole map. One field, everybody on it.
+    items = digest_items(digest)
+    icon_paths = resolve_icons(items, log=log)
+    icon_cache: dict[str, str] = {}
+    by_anchor, leftovers = assign_to_anchors(
+        items, [a.get("label", "") for a in anchors])
 
-    tallest = max(m["card_h"] for m in measured)   # notes are inside the card
-    centres = _node_positions(len(anchors), tallest, min_height=panel_h)
+    # Measured before anything is placed: a cluster is its card plus its stack,
+    # and the layout is sized around clusters, not around cards.
+    for i, m in enumerate(measured):
+        cols, stack_w, stack_h = measure_satellites(by_anchor.get(i, []), icon_paths)
+        m["sat_cols"], m["stack_w"] = cols, stack_w
+        m["cluster_w"] = max(CARD_W, stack_w)
+        m["cluster_h"] = m["card_h"] + ((CLUSTER_GAP + stack_h) if cols else 0)
+    cluster_w = max(m["cluster_w"] for m in measured)
+    tallest = max(m["cluster_h"] for m in measured)
+
+    if LAYOUT == "grid":
+        centres = _grid_positions([m["cluster_h"] for m in measured], cluster_w)
+    else:
+        centres = _node_positions(len(anchors), tallest, card_w=cluster_w)
 
     # ── pass 2: emit the elements ───────────────────────────────────────────
     elements: list[dict] = []
     cards: list[dict] = []
     for (cx, cy), m in zip(centres, measured):
-        gid = _new_id()                       # groups card+image+label+notes so
-                                              # one drag moves the whole node
+        gid = _new_id()                       # groups card+image+label+notes AND
+                                              # the satellites, so one drag moves
+                                              # the whole cluster
         x = cx - CARD_W / 2
-        y = cy - m["card_h"] / 2
+        # The CARD sits at the top of its cluster and the stickies hang below it,
+        # so a cluster with eight satellites does not push its own card up out of
+        # line with its neighbours' — the row of pictograms stays a row.
+        y = cy - m["cluster_h"] / 2
 
         card = _card(x, y, CARD_W, m["card_h"], gid)
         cards.append(card)
@@ -834,6 +1049,11 @@ def build_scene(plan: dict, images: list[str | None],
                                   m["note_lines"], NOTE_FS, NOTE_GRAY, gid,
                                   align="center", box_w=IMG_W))
 
+        if m["sat_cols"]:
+            elements += draw_satellites(cx - m["stack_w"] / 2,
+                                        y + m["card_h"] + CLUSTER_GAP,
+                                        m["sat_cols"], files, icon_cache, gid)
+
     drawn_links = 0                           # counts arrows ACTUALLY drawn, so
                                               # a dropped one does not consume a
                                               # bow and leave a gap in the fan
@@ -848,17 +1068,45 @@ def build_scene(plan: dict, images: list[str | None],
                            bow=BOWS[drawn_links % len(BOWS)])
         drawn_links += 1
 
-    # ── margin panels ───────────────────────────────────────────────────────
-    # Built at the origin above (before the ring was sized, so the ring could be
-    # stretched to their height); moved into place now that the ring's right
-    # edge is known, which is what keeps them clear of it.
-    if panel_els:
-        ring_right = max(e["x"] + e["width"] for e in elements)
-        ring_top = min(e["y"] for e in elements)
-        for e in panel_els:
-            e["x"] = round(e["x"] + ring_right + PANEL_GAP * 2, 2)
-            e["y"] = round(e["y"] + ring_top, 2)
-    elements += panel_els
+    # ── the two bands, above and below the map ──────────────────────────────
+    # Both span the map rather than sitting beside it. Placed now, because both
+    # want the map's real bounding box and neither changes it.
+    map_left = min(e["x"] for e in elements)
+    map_right = max(e["x"] + e["width"] for e in elements)
+    map_top = min(e["y"] for e in elements)
+    map_bottom = max(e["y"] + e["height"] for e in elements)
+    map_w = map_right - map_left
+
+    band_els: list[dict] = []
+
+    # The room, as one row directly under the title — the people are not a
+    # footnote to the map, they are the room the map came out of.
+    people = (digest or {}).get("queries", {}).get("participants", [])
+    if people:
+        # Wrapped only if a meeting ever brings more faces than the map is wide.
+        cols = max(1, min(len(people), int(map_w // AVATAR_CELL_W)))
+        strip, strip_w, strip_h = people_strip(0, 0, people, cols=cols)
+        dx = map_left + (map_w - strip_w) / 2
+        dy = map_top - BAND_GAP - strip_h
+        for e in strip:
+            e["x"], e["y"] = round(e["x"] + dx, 2), round(e["y"] + dy, 2)
+        band_els += strip
+
+    # What belongs to the meeting rather than to any one anchor.
+    if leftovers:
+        rest, rest_h = band(
+            map_left, map_bottom + BAND_GAP, map_w,
+            f"◆ Across the board  ({len(leftovers)})",
+            leftovers, icon_paths, files, icon_cache)
+        band_els += rest
+
+    elements += band_els
+
+    if log:
+        placed = sum(len(v) for v in by_anchor.values())
+        log(f"   🧲 {placed}/{len(items)} digest item(s) clipped to an anchor, "
+            f"{len(leftovers)} in the band below — "
+            f"{len(icon_cache)} distinct icon(s), {LAYOUT} layout")
 
     # ── normalise: shift everything to (PAD, PAD + TITLE_BAND) ──────────────
     # Done after the fact because the ellipse is built around the origin, which
@@ -890,7 +1138,9 @@ def build_scene(plan: dict, images: list[str | None],
         "files": files,
         "_layout_debug": {
             "canvas": [round(board_w + 2 * PAD), round(max_y - min_y + 2 * PAD + TITLE_BAND)],
-            "panels": len(panel_els),
+            "satellites": sum(len(v) for v in by_anchor.values()),
+            "band": len(leftovers),
+            "layout": LAYOUT,
             "anchors": len(anchors),
             "images": sum(1 for m in measured if m["file_id"]),
             "links": sum(1 for e in elements if e["type"] == "arrow"),
