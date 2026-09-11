@@ -1,0 +1,1 @@
+{"file": "participants.jsonl", "what": "Q3 \u2014 who spoke, parsed from episode TEXT, not from the graph: on a speaker-free graph speakers are deliberately not nodes. `utterances` is participation, and is NOT a proxy for influence. Module 1's diarization replaces this.", "rows": 5, "seconds": 0.061, "group_id": "treasury_prod_deploy_speaker_free", "episodes_digested": 76}

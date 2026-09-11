@@ -1,0 +1,1 @@
+{"file": "topics.jsonl", "what": "Q2 \u2014 what the meeting was about. `episodes` counts DISTINCT windows mentioning the entity, so it measures a thread through the meeting rather than one loud moment. `neighbours` are its most-connected entities, which say what the topic IS.", "rows": 8, "seconds": 0.089, "group_id": "treasury_prod_deploy_speaker_free", "episodes_digested": 76}

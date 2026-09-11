@@ -3,7 +3,7 @@
   "uri": "neo4j+s://fa42f976.databases.neo4j.io",
   "episode_limit": 0,
   "episode_start": 0,
-  "generated_at": "2026-09-11T14:37:24",
+  "generated_at": "2026-09-11T15:17:43",
   "queries": {
     "revisions": [
       {
@@ -696,12 +696,12 @@
     ]
   },
   "timings": {
-    "revisions": 0.255,
-    "topics": 0.028,
-    "artifacts": 0.049,
-    "participants": 0.056,
-    "decisions": 1.181,
-    "open_threads": 2.319
+    "revisions": 0.245,
+    "topics": 0.089,
+    "artifacts": 0.056,
+    "participants": 0.061,
+    "decisions": 1.16,
+    "open_threads": 2.395
   },
   "episodes_in_group": 76,
   "episodes_digested": 76,

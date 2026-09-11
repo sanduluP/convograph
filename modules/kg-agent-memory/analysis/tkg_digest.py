@@ -435,12 +435,18 @@ def write_digest(result: dict, out_dir: str) -> None:
     and a single record is readable without a viewer. The readme is written in
     the same step that writes the data, never later.
     """
+    # One .jsonl per query at the top, their readmes in readme/. Rule 11 asks for
+    # a sibling readme per data file; side by side that doubled the file count
+    # and buried the six files anyone actually opens. The readmes still exist and
+    # still carry every field — they are one directory down.
     os.makedirs(out_dir, exist_ok=True)
+    readme_dir = os.path.join(out_dir, "readme")
+    os.makedirs(readme_dir, exist_ok=True)
     for key, rows in result["queries"].items():
         with open(os.path.join(out_dir, f"{key}.jsonl"), "w") as fh:
             for row in rows:
                 fh.write(json.dumps(row, default=str) + "\n")
-        with open(os.path.join(out_dir, f"{key}.readme.jsonl"), "w") as fh:
+        with open(os.path.join(readme_dir, f"{key}.readme.jsonl"), "w") as fh:
             fh.write(json.dumps({
                 "file": f"{key}.jsonl",
                 "what": README_FIELDS[key],
@@ -450,10 +456,29 @@ def write_digest(result: dict, out_dir: str) -> None:
                 "episodes_digested": result["episodes_digested"],
             }, indent=None) + "\n")
 
+    # digest.json  — ALL FIVE query result sets in one file, plus timings and
+    #                provenance. This is what board_plan.flatten_digest() reads.
+    # digest.md    — the same content rendered for a HUMAN. Nothing downstream
+    #                reads it; it exists so a person can check the digest
+    #                without opening JSON.
     with open(os.path.join(out_dir, "digest.json"), "w") as fh:
         json.dump(result, fh, indent=2, default=str)
     with open(os.path.join(out_dir, "digest.md"), "w") as fh:
         fh.write(render_markdown(result))
+    with open(os.path.join(readme_dir, "README.md"), "w") as fh:
+        fh.write(
+            "# What is in this digest directory\n\n"
+            "| file | what it is | who reads it |\n|---|---|---|\n"
+            "| `digest.json` | all five query result sets in ONE file, plus "
+            "timings | `board_plan.flatten_digest()` |\n"
+            "| `digest.md` | the same content, rendered to read | a person |\n"
+            "| `revisions.jsonl` etc. | one file per cypher query, one record "
+            "per line | `head`, `grep`, `wc -l` |\n"
+            "| `readme/*.readme.jsonl` | every field of that query, documented "
+            "| you, in three months |\n\n"
+            "Nothing here goes to FLUX. FLUX only ever receives one wordless "
+            "noun phrase per anchor, built later by "
+            "`board_plan.glyph_to_prompt()`.\n")
 
 
 def render_markdown(result: dict) -> str:

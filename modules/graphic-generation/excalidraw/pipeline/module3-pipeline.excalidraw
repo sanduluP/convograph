@@ -5,7 +5,7 @@
   "elements": [
     {
       "type": "text",
-      "id": "194309459e2c47f8",
+      "id": "36c223da121048e1",
       "x": 58,
       "y": 44,
       "width": 1324,
@@ -26,7 +26,7 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false,
       "text": "Module 3 \u2014 temporal knowledge graph to graphic recording",
@@ -41,7 +41,7 @@
     },
     {
       "type": "text",
-      "id": "051101b75f014088",
+      "id": "85290892b19c4474",
       "x": 58,
       "y": 85.6,
       "width": 1324,
@@ -62,7 +62,7 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false,
       "text": "Five cypher queries distil one meeting; an LLM plans the board; FLUX draws only wordless glyphs. Counts from the treasury phase, 2026-09-11.",
@@ -77,7 +77,7 @@
     },
     {
       "type": "rectangle",
-      "id": "c53579f8888c4164",
+      "id": "de3427909be44a18",
       "x": 58,
       "y": 176,
       "width": 292,
@@ -101,21 +101,21 @@
       "isDeleted": false,
       "boundElements": [
         {
-          "id": "3a38e0e99f744930",
+          "id": "7c51212c34f1487f",
           "type": "text"
         },
         {
-          "id": "23859de77ab342e9",
+          "id": "948ea616d583465f",
           "type": "arrow"
         }
       ],
-      "updated": 1789131371504,
+      "updated": 1789132699950,
       "link": null,
       "locked": false
     },
     {
       "type": "text",
-      "id": "3a38e0e99f744930",
+      "id": "7c51212c34f1487f",
       "x": 58,
       "y": 176,
       "width": 292,
@@ -136,7 +136,7 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371504,
+      "updated": 1789132699950,
       "link": null,
       "locked": false,
       "text": "Temporal KG\n(AuraDB)",
@@ -145,17 +145,17 @@
       "fontFamily": 6,
       "textAlign": "center",
       "verticalAlign": "middle",
-      "containerId": "c53579f8888c4164",
+      "containerId": "de3427909be44a18",
       "lineHeight": 1.25,
       "baseline": 11
     },
     {
       "type": "text",
-      "id": "f08ff1d89f324ad5",
+      "id": "5ec3279bd2be499d",
       "x": 58,
       "y": 292,
       "width": 292,
-      "height": 43.12,
+      "height": 57.5,
       "angle": 0,
       "strokeColor": "#6b7280",
       "backgroundColor": "transparent",
@@ -172,11 +172,11 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371505,
+      "updated": 1789132699950,
       "link": null,
       "locked": false,
-      "text": "group_id treasury_prod_deploy_speaker_free \u2014\nONE meeting. 76 episodes, 1,394 facts, 157\nsuperseded.",
-      "originalText": "group_id treasury_prod_deploy_speaker_free \u2014\nONE meeting. 76 episodes, 1,394 facts, 157\nsuperseded.",
+      "text": "IN: nothing \u2014 it is the source.\nOUT: group_id treasury_prod_deploy_speaker_free\n76 episodes \u00b7 1,394 facts \u00b7 157 superseded\nWHERE: AuraDB, neo4j+s://fa42f976\u2026",
+      "originalText": "IN: nothing \u2014 it is the source.\nOUT: group_id treasury_prod_deploy_speaker_free\n76 episodes \u00b7 1,394 facts \u00b7 157 superseded\nWHERE: AuraDB, neo4j+s://fa42f976\u2026",
       "fontSize": 11.5,
       "fontFamily": 6,
       "textAlign": "left",
@@ -187,7 +187,7 @@
     },
     {
       "type": "rectangle",
-      "id": "f6a0a4976ac446c7",
+      "id": "045d094b28624794",
       "x": 402,
       "y": 176,
       "width": 292,
@@ -211,25 +211,25 @@
       "isDeleted": false,
       "boundElements": [
         {
-          "id": "cda70a93db754f4f",
+          "id": "8985d747cc5746f5",
           "type": "text"
         },
         {
-          "id": "23859de77ab342e9",
+          "id": "948ea616d583465f",
           "type": "arrow"
         },
         {
-          "id": "c2190e5f639440c8",
+          "id": "44ec313f4cb049cf",
           "type": "arrow"
         }
       ],
-      "updated": 1789131371505,
+      "updated": 1789132699950,
       "link": null,
       "locked": false
     },
     {
       "type": "text",
-      "id": "cda70a93db754f4f",
+      "id": "8985d747cc5746f5",
       "x": 402,
       "y": 176,
       "width": 292,
@@ -250,7 +250,7 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371505,
+      "updated": 1789132699950,
       "link": null,
       "locked": false,
       "text": "5 cypher queries\ntkg_digest.py",
@@ -259,17 +259,17 @@
       "fontFamily": 6,
       "textAlign": "center",
       "verticalAlign": "middle",
-      "containerId": "f6a0a4976ac446c7",
+      "containerId": "045d094b28624794",
       "lineHeight": 1.25,
       "baseline": 11
     },
     {
       "type": "text",
-      "id": "b0266868a2584ec0",
+      "id": "14512f5c39b0484a",
       "x": 402,
       "y": 292,
       "width": 292,
-      "height": 28.75,
+      "height": 71.88,
       "angle": 0,
       "strokeColor": "#6b7280",
       "backgroundColor": "transparent",
@@ -286,11 +286,11 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371505,
+      "updated": 1789132699950,
       "link": null,
       "locked": false,
-      "text": "revisions \u00b7 topics \u00b7 artifacts \u00b7 participants \u00b7\nopen threads. 3.9 s for all five. No LLM.",
-      "originalText": "revisions \u00b7 topics \u00b7 artifacts \u00b7 participants \u00b7\nopen threads. 3.9 s for all five. No LLM.",
+      "text": "IN: group_id (+ optional episode cap)\nOUT: 5 result sets \u00b7 3.9 s \u00b7 no LLM\nCODE: modules/kg-agent-\nmemory/analysis/tkg_digest.py\nRUN: scripts/run_tkg_digest.sh",
+      "originalText": "IN: group_id (+ optional episode cap)\nOUT: 5 result sets \u00b7 3.9 s \u00b7 no LLM\nCODE: modules/kg-agent-\nmemory/analysis/tkg_digest.py\nRUN: scripts/run_tkg_digest.sh",
       "fontSize": 11.5,
       "fontFamily": 6,
       "textAlign": "left",
@@ -301,7 +301,7 @@
     },
     {
       "type": "rectangle",
-      "id": "c086744304ee44c9",
+      "id": "4e74a6b1c70245ce",
       "x": 746,
       "y": 176,
       "width": 292,
@@ -325,25 +325,25 @@
       "isDeleted": false,
       "boundElements": [
         {
-          "id": "2f0f35d9fedc48bf",
+          "id": "dad5448292df4fe1",
           "type": "text"
         },
         {
-          "id": "c2190e5f639440c8",
+          "id": "44ec313f4cb049cf",
           "type": "arrow"
         },
         {
-          "id": "d7ddafc0c6494848",
+          "id": "15cb28c30bd649f7",
           "type": "arrow"
         }
       ],
-      "updated": 1789131371505,
+      "updated": 1789132699950,
       "link": null,
       "locked": false
     },
     {
       "type": "text",
-      "id": "2f0f35d9fedc48bf",
+      "id": "dad5448292df4fe1",
       "x": 746,
       "y": 176,
       "width": 292,
@@ -364,26 +364,26 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371505,
+      "updated": 1789132699950,
       "link": null,
       "locked": false,
-      "text": "digest.json\n+ one .jsonl per query",
-      "originalText": "digest.json\n+ one .jsonl per query",
+      "text": "digest.json\n+ 6 .jsonl",
+      "originalText": "digest.json\n+ 6 .jsonl",
       "fontSize": 14,
       "fontFamily": 6,
       "textAlign": "center",
       "verticalAlign": "middle",
-      "containerId": "c086744304ee44c9",
+      "containerId": "4e74a6b1c70245ce",
       "lineHeight": 1.25,
       "baseline": 11
     },
     {
       "type": "text",
-      "id": "ae9f929c917e41fe",
+      "id": "b7ee1148413d4f49",
       "x": 746,
       "y": 292,
       "width": 292,
-      "height": 43.12,
+      "height": 71.88,
       "angle": 0,
       "strokeColor": "#6b7280",
       "backgroundColor": "transparent",
@@ -400,11 +400,11 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371505,
+      "updated": 1789132699950,
       "link": null,
       "locked": false,
-      "text": "What the graph says mattered, ranked and\ncapped. Written beside the board so a run stays\nauditable.",
-      "originalText": "What the graph says mattered, ranked and\ncapped. Written beside the board so a run stays\nauditable.",
+      "text": "ALL FIVE result sets combined in ONE json.\nOUT: ui/output/<run>/digest/digest.json\n     \u2026/digest/{revisions,topics,artifacts,\n     participants,decisions,open_threads}.jsonl\n     \u2026/digest/readme/*.readme.jsonl",
+      "originalText": "ALL FIVE result sets combined in ONE json.\nOUT: ui/output/<run>/digest/digest.json\n     \u2026/digest/{revisions,topics,artifacts,\n     participants,decisions,open_threads}.jsonl\n     \u2026/digest/readme/*.readme.jsonl",
       "fontSize": 11.5,
       "fontFamily": 6,
       "textAlign": "left",
@@ -415,9 +415,9 @@
     },
     {
       "type": "rectangle",
-      "id": "cb243a97f0804275",
+      "id": "6f13771e124e46a0",
       "x": 1090,
-      "y": 440,
+      "y": 476,
       "width": 292,
       "height": 104,
       "angle": 0,
@@ -439,27 +439,27 @@
       "isDeleted": false,
       "boundElements": [
         {
-          "id": "33a87aa7235b41b3",
+          "id": "a7d13874867141a3",
           "type": "text"
         },
         {
-          "id": "d7ddafc0c6494848",
+          "id": "15cb28c30bd649f7",
           "type": "arrow"
         },
         {
-          "id": "72711e5537c94843",
+          "id": "15c5f54eaa2b44be",
           "type": "arrow"
         }
       ],
-      "updated": 1789131371505,
+      "updated": 1789132699950,
       "link": null,
       "locked": false
     },
     {
       "type": "text",
-      "id": "33a87aa7235b41b3",
+      "id": "a7d13874867141a3",
       "x": 1090,
-      "y": 440,
+      "y": 476,
       "width": 292,
       "height": 35.0,
       "angle": 0,
@@ -478,7 +478,7 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371505,
+      "updated": 1789132699950,
       "link": null,
       "locked": false,
       "text": "flatten_digest()\nboard_plan.py",
@@ -487,17 +487,17 @@
       "fontFamily": 6,
       "textAlign": "center",
       "verticalAlign": "middle",
-      "containerId": "cb243a97f0804275",
+      "containerId": "6f13771e124e46a0",
       "lineHeight": 1.25,
       "baseline": 11
     },
     {
       "type": "text",
-      "id": "f420a05e665046b0",
+      "id": "f345e3f0f877410f",
       "x": 1090,
-      "y": 556,
+      "y": 592,
       "width": 292,
-      "height": 43.12,
+      "height": 57.5,
       "angle": 0,
       "strokeColor": "#6b7280",
       "backgroundColor": "transparent",
@@ -514,11 +514,11 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371505,
+      "updated": 1789132699950,
       "link": null,
       "locked": false,
-      "text": "Turns the five result sets into numbered\nsections. Every citable line gets ONE index, so\na board element traces back to a query.",
-      "originalText": "Turns the five result sets into numbered\nsections. Every citable line gets ONE index, so\na board element traces back to a query.",
+      "text": "IN: digest.json\nOUT: one user message, sections numbered\n[0],[1]\u2026\nCODE: modules/graphic-generation/board_plan.py",
+      "originalText": "IN: digest.json\nOUT: one user message, sections numbered\n[0],[1]\u2026\nCODE: modules/graphic-generation/board_plan.py",
       "fontSize": 11.5,
       "fontFamily": 6,
       "textAlign": "left",
@@ -529,9 +529,9 @@
     },
     {
       "type": "rectangle",
-      "id": "51e7a33776334a71",
+      "id": "f0ef26dd182545dc",
       "x": 746,
-      "y": 440,
+      "y": 476,
       "width": 292,
       "height": 104,
       "angle": 0,
@@ -553,27 +553,27 @@
       "isDeleted": false,
       "boundElements": [
         {
-          "id": "3721a820b8f24f3d",
+          "id": "bf355e28f5f042e4",
           "type": "text"
         },
         {
-          "id": "72711e5537c94843",
+          "id": "15c5f54eaa2b44be",
           "type": "arrow"
         },
         {
-          "id": "e905dc7c39db4f5b",
+          "id": "82054e848207421a",
           "type": "arrow"
         }
       ],
-      "updated": 1789131371505,
+      "updated": 1789132699950,
       "link": null,
       "locked": false
     },
     {
       "type": "text",
-      "id": "3721a820b8f24f3d",
+      "id": "bf355e28f5f042e4",
       "x": 746,
-      "y": 440,
+      "y": 476,
       "width": 292,
       "height": 35.0,
       "angle": 0,
@@ -592,7 +592,7 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false,
       "text": "the prompt\nsystem + user",
@@ -601,17 +601,17 @@
       "fontFamily": 6,
       "textAlign": "center",
       "verticalAlign": "middle",
-      "containerId": "51e7a33776334a71",
+      "containerId": "f0ef26dd182545dc",
       "lineHeight": 1.25,
       "baseline": 11
     },
     {
       "type": "text",
-      "id": "3c2443f2cb174c32",
+      "id": "679d3e6854474262",
       "x": 746,
-      "y": 556,
+      "y": 592,
       "width": 292,
-      "height": 28.75,
+      "height": 71.88,
       "angle": 0,
       "strokeColor": "#6b7280",
       "backgroundColor": "transparent",
@@ -628,11 +628,11 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false,
-      "text": "~8.8 KB. Saved per run under prompt/ \u2014 full.txt\nis exactly what went over the wire.",
-      "originalText": "~8.8 KB. Saved per run under prompt/ \u2014 full.txt\nis exactly what went over the wire.",
+      "text": "IN: flatten_digest output + the system file\nOUT: ui/output/<run>/prompt/full.txt (as sent)\n     \u2026/prompt/{system,user,reply_raw}.txt\nSYSTEM: prompts/board_plan_digest_system.txt\nSIZE: ~10.9 KB \u2248 2.7k tokens",
+      "originalText": "IN: flatten_digest output + the system file\nOUT: ui/output/<run>/prompt/full.txt (as sent)\n     \u2026/prompt/{system,user,reply_raw}.txt\nSYSTEM: prompts/board_plan_digest_system.txt\nSIZE: ~10.9 KB \u2248 2.7k tokens",
       "fontSize": 11.5,
       "fontFamily": 6,
       "textAlign": "left",
@@ -643,9 +643,9 @@
     },
     {
       "type": "rectangle",
-      "id": "5dcc932f62024ec7",
+      "id": "42be58e8ee9c4216",
       "x": 402,
-      "y": 440,
+      "y": 476,
       "width": 292,
       "height": 104,
       "angle": 0,
@@ -667,27 +667,27 @@
       "isDeleted": false,
       "boundElements": [
         {
-          "id": "491b953b6a704132",
+          "id": "a93a900f78d64011",
           "type": "text"
         },
         {
-          "id": "e905dc7c39db4f5b",
+          "id": "82054e848207421a",
           "type": "arrow"
         },
         {
-          "id": "e36e3c12678f4f1a",
+          "id": "b50a50ef64a04798",
           "type": "arrow"
         }
       ],
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false
     },
     {
       "type": "text",
-      "id": "491b953b6a704132",
+      "id": "a93a900f78d64011",
       "x": 402,
-      "y": 440,
+      "y": 476,
       "width": 292,
       "height": 35.0,
       "angle": 0,
@@ -706,7 +706,7 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false,
       "text": "Board Planner LLM\nSAIA qwen3-30b",
@@ -715,17 +715,17 @@
       "fontFamily": 6,
       "textAlign": "center",
       "verticalAlign": "middle",
-      "containerId": "5dcc932f62024ec7",
+      "containerId": "42be58e8ee9c4216",
       "lineHeight": 1.25,
       "baseline": 11
     },
     {
       "type": "text",
-      "id": "6ff3f358ae8c46ef",
+      "id": "0d03d1027e6049c3",
       "x": 402,
-      "y": 556,
+      "y": 592,
       "width": 292,
-      "height": 28.75,
+      "height": 71.88,
       "angle": 0,
       "strokeColor": "#6b7280",
       "backgroundColor": "transparent",
@@ -742,11 +742,11 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false,
-      "text": "One call, ~7 s. Returns JSON only: title,\nanchors, links, notes, dropped.",
-      "originalText": "One call, ~7 s. Returns JSON only: title,\nanchors, links, notes, dropped.",
+      "text": "IN: the two messages\nOUT: JSON only \u00b7 one call, 7-49 s\nWHERE: chat-ai.academiccloud.de (needs\nSAIA_API_KEY)\nRetries 4x on 5xx \u2014 SAIA hiccups.",
+      "originalText": "IN: the two messages\nOUT: JSON only \u00b7 one call, 7-49 s\nWHERE: chat-ai.academiccloud.de (needs\nSAIA_API_KEY)\nRetries 4x on 5xx \u2014 SAIA hiccups.",
       "fontSize": 11.5,
       "fontFamily": 6,
       "textAlign": "left",
@@ -757,9 +757,9 @@
     },
     {
       "type": "rectangle",
-      "id": "d61331f38bb8452a",
+      "id": "52ade93ca90c4e0c",
       "x": 58,
-      "y": 440,
+      "y": 476,
       "width": 292,
       "height": 104,
       "angle": 0,
@@ -781,31 +781,31 @@
       "isDeleted": false,
       "boundElements": [
         {
-          "id": "f509d45d642f4b0b",
+          "id": "64e0b41125094b48",
           "type": "text"
         },
         {
-          "id": "e36e3c12678f4f1a",
+          "id": "b50a50ef64a04798",
           "type": "arrow"
         },
         {
-          "id": "842863c93425493c",
+          "id": "4dbb384324fd4999",
           "type": "arrow"
         },
         {
-          "id": "b75fe48014ec4b7d",
+          "id": "6bf413df7d444dba",
           "type": "arrow"
         }
       ],
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false
     },
     {
       "type": "text",
-      "id": "f509d45d642f4b0b",
+      "id": "64e0b41125094b48",
       "x": 58,
-      "y": 440,
+      "y": 476,
       "width": 292,
       "height": 17.5,
       "angle": 0,
@@ -824,7 +824,7 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false,
       "text": "plan.json",
@@ -833,17 +833,17 @@
       "fontFamily": 6,
       "textAlign": "center",
       "verticalAlign": "middle",
-      "containerId": "d61331f38bb8452a",
+      "containerId": "52ade93ca90c4e0c",
       "lineHeight": 1.25,
       "baseline": 11
     },
     {
       "type": "text",
-      "id": "841e9d08f015439e",
+      "id": "6135a5008bd74bd6",
       "x": 58,
-      "y": 556,
+      "y": 592,
       "width": 292,
-      "height": 43.12,
+      "height": 57.5,
       "angle": 0,
       "strokeColor": "#6b7280",
       "backgroundColor": "transparent",
@@ -860,11 +860,11 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false,
-      "text": "4-6 anchors, each a LABEL (words) and a GLYPH\n(a wordless object). Plus links, notes, and\nwhich facts were dropped.",
-      "originalText": "4-6 anchors, each a LABEL (words) and a GLYPH\n(a wordless object). Plus links, notes, and\nwhich facts were dropped.",
+      "text": "OUT: ui/output/<run>/plan.json\ntitle \u00b7 anchors[label + glyph + from_facts]\nlinks \u00b7 notes \u00b7 dropped\nTHIS is where words and drawings part.",
+      "originalText": "OUT: ui/output/<run>/plan.json\ntitle \u00b7 anchors[label + glyph + from_facts]\nlinks \u00b7 notes \u00b7 dropped\nTHIS is where words and drawings part.",
       "fontSize": 11.5,
       "fontFamily": 6,
       "textAlign": "left",
@@ -875,9 +875,9 @@
     },
     {
       "type": "rectangle",
-      "id": "055db81472cb4d82",
+      "id": "c932638c81ab4562",
       "x": 58,
-      "y": 704,
+      "y": 776,
       "width": 292,
       "height": 104,
       "angle": 0,
@@ -899,27 +899,27 @@
       "isDeleted": false,
       "boundElements": [
         {
-          "id": "28163bbbd6204bb8",
+          "id": "c2ca63365aac4fc9",
           "type": "text"
         },
         {
-          "id": "842863c93425493c",
+          "id": "4dbb384324fd4999",
           "type": "arrow"
         },
         {
-          "id": "6f021ff3f4094217",
+          "id": "507d425c86e24f26",
           "type": "arrow"
         }
       ],
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false
     },
     {
       "type": "text",
-      "id": "28163bbbd6204bb8",
+      "id": "c2ca63365aac4fc9",
       "x": 58,
-      "y": 704,
+      "y": 776,
       "width": 292,
       "height": 35.0,
       "angle": 0,
@@ -938,7 +938,7 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false,
       "text": "FLUX.1-schnell\nunicorn H100",
@@ -947,17 +947,17 @@
       "fontFamily": 6,
       "textAlign": "center",
       "verticalAlign": "middle",
-      "containerId": "055db81472cb4d82",
+      "containerId": "c932638c81ab4562",
       "lineHeight": 1.25,
       "baseline": 11
     },
     {
       "type": "text",
-      "id": "4dc47f9325094328",
+      "id": "853f5da64fde448d",
       "x": 58,
-      "y": 820,
+      "y": 892,
       "width": 292,
-      "height": 43.12,
+      "height": 86.25,
       "angle": 0,
       "strokeColor": "#6b7280",
       "backgroundColor": "transparent",
@@ -974,11 +974,11 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false,
-      "text": "Sees the GLYPH ONLY \u2014 'a padlock', never a\nsentence. Warm server, ~12 s for six. Writing-\nbearing objects are swapped first.",
-      "originalText": "Sees the GLYPH ONLY \u2014 'a padlock', never a\nsentence. Warm server, ~12 s for six. Writing-\nbearing objects are swapped first.",
+      "text": "IN: the GLYPH ONLY \u2014 'a padlock', never a\nsentence\nOUT: one PNG per anchor \u00b7 ~12 s for six\nWHERE: localhost:8500 via the unicorn tunnel\nSERVER: modules/graphic-\ngeneration/serve_flux.py",
+      "originalText": "IN: the GLYPH ONLY \u2014 'a padlock', never a\nsentence\nOUT: one PNG per anchor \u00b7 ~12 s for six\nWHERE: localhost:8500 via the unicorn tunnel\nSERVER: modules/graphic-\ngeneration/serve_flux.py",
       "fontSize": 11.5,
       "fontFamily": 6,
       "textAlign": "left",
@@ -989,9 +989,9 @@
     },
     {
       "type": "rectangle",
-      "id": "2270b0d8aea64709",
+      "id": "b74bc6f8da034233",
       "x": 402,
-      "y": 704,
+      "y": 776,
       "width": 292,
       "height": 104,
       "angle": 0,
@@ -1013,27 +1013,27 @@
       "isDeleted": false,
       "boundElements": [
         {
-          "id": "e5563cc1621d49ef",
+          "id": "7d7d6af1bee54b87",
           "type": "text"
         },
         {
-          "id": "6f021ff3f4094217",
+          "id": "507d425c86e24f26",
           "type": "arrow"
         },
         {
-          "id": "9bf2aa70e9f6469b",
+          "id": "6fe5ca67813540d6",
           "type": "arrow"
         }
       ],
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false
     },
     {
       "type": "text",
-      "id": "e5563cc1621d49ef",
+      "id": "7d7d6af1bee54b87",
       "x": 402,
-      "y": 704,
+      "y": 776,
       "width": 292,
       "height": 17.5,
       "angle": 0,
@@ -1052,7 +1052,7 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false,
       "text": "one PNG per anchor",
@@ -1061,15 +1061,15 @@
       "fontFamily": 6,
       "textAlign": "center",
       "verticalAlign": "middle",
-      "containerId": "2270b0d8aea64709",
+      "containerId": "b74bc6f8da034233",
       "lineHeight": 1.25,
       "baseline": 11
     },
     {
       "type": "text",
-      "id": "92c304a9df424f59",
+      "id": "89b61e6647874a91",
       "x": 402,
-      "y": 820,
+      "y": 892,
       "width": 292,
       "height": 43.12,
       "angle": 0,
@@ -1088,11 +1088,11 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false,
-      "text": "Wordless pictograms. FLUX renders letters as\ngibberish, which is why no word is ever sent to\nit.",
-      "originalText": "Wordless pictograms. FLUX renders letters as\ngibberish, which is why no word is ever sent to\nit.",
+      "text": "OUT: ui/output/<run>/images/000.png \u2026\nWordless pictograms. FLUX renders letters as\ngibberish, which is why no word is sent to it.",
+      "originalText": "OUT: ui/output/<run>/images/000.png \u2026\nWordless pictograms. FLUX renders letters as\ngibberish, which is why no word is sent to it.",
       "fontSize": 11.5,
       "fontFamily": 6,
       "textAlign": "left",
@@ -1103,9 +1103,9 @@
     },
     {
       "type": "rectangle",
-      "id": "61e72f6d7ffa495a",
+      "id": "020181a31fbd4acf",
       "x": 746,
-      "y": 704,
+      "y": 776,
       "width": 292,
       "height": 104,
       "angle": 0,
@@ -1127,31 +1127,31 @@
       "isDeleted": false,
       "boundElements": [
         {
-          "id": "b48d63fd7f204f26",
+          "id": "1258b0364e95450a",
           "type": "text"
         },
         {
-          "id": "9bf2aa70e9f6469b",
+          "id": "6fe5ca67813540d6",
           "type": "arrow"
         },
         {
-          "id": "acbc58a879214393",
+          "id": "8315c2d1b9a5471f",
           "type": "arrow"
         },
         {
-          "id": "b75fe48014ec4b7d",
+          "id": "6bf413df7d444dba",
           "type": "arrow"
         }
       ],
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false
     },
     {
       "type": "text",
-      "id": "b48d63fd7f204f26",
+      "id": "1258b0364e95450a",
       "x": 746,
-      "y": 704,
+      "y": 776,
       "width": 292,
       "height": 17.5,
       "angle": 0,
@@ -1170,7 +1170,7 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false,
       "text": "render_board.py",
@@ -1179,17 +1179,17 @@
       "fontFamily": 6,
       "textAlign": "center",
       "verticalAlign": "middle",
-      "containerId": "61e72f6d7ffa495a",
+      "containerId": "020181a31fbd4acf",
       "lineHeight": 1.25,
       "baseline": 11
     },
     {
       "type": "text",
-      "id": "e8d3b74094c849ae",
+      "id": "66ed6e9ed72543ff",
       "x": 746,
-      "y": 820,
+      "y": 892,
       "width": 292,
-      "height": 43.12,
+      "height": 71.88,
       "angle": 0,
       "strokeColor": "#6b7280",
       "backgroundColor": "transparent",
@@ -1206,11 +1206,11 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false,
-      "text": "Anchors to nodes, links to labelled arrows,\nnotes inside cards. Arrows are BOUND so they\nfollow a card when you drag it.",
-      "originalText": "Anchors to nodes, links to labelled arrows,\nnotes inside cards. Arrows are BOUND so they\nfollow a card when you drag it.",
+      "text": "IN: plan.json + the PNGs\nOUT: anchors\u2192nodes, links\u2192labelled arrows,\n     notes\u2192text inside cards\nCODE: modules/graphic-\ngeneration/render_board.py",
+      "originalText": "IN: plan.json + the PNGs\nOUT: anchors\u2192nodes, links\u2192labelled arrows,\n     notes\u2192text inside cards\nCODE: modules/graphic-\ngeneration/render_board.py",
       "fontSize": 11.5,
       "fontFamily": 6,
       "textAlign": "left",
@@ -1221,9 +1221,9 @@
     },
     {
       "type": "rectangle",
-      "id": "3ee439d1ec7242dc",
+      "id": "5dd11e6da2dd4508",
       "x": 1090,
-      "y": 704,
+      "y": 776,
       "width": 292,
       "height": 104,
       "angle": 0,
@@ -1245,23 +1245,23 @@
       "isDeleted": false,
       "boundElements": [
         {
-          "id": "ddb14bfe0c61483c",
+          "id": "10c5c6f005974404",
           "type": "text"
         },
         {
-          "id": "acbc58a879214393",
+          "id": "8315c2d1b9a5471f",
           "type": "arrow"
         }
       ],
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false
     },
     {
       "type": "text",
-      "id": "ddb14bfe0c61483c",
+      "id": "10c5c6f005974404",
       "x": 1090,
-      "y": 704,
+      "y": 776,
       "width": 292,
       "height": 35.0,
       "angle": 0,
@@ -1280,7 +1280,7 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false,
       "text": "board.excalidraw\n+ preview.png",
@@ -1289,17 +1289,17 @@
       "fontFamily": 6,
       "textAlign": "center",
       "verticalAlign": "middle",
-      "containerId": "3ee439d1ec7242dc",
+      "containerId": "5dd11e6da2dd4508",
       "lineHeight": 1.25,
       "baseline": 11
     },
     {
       "type": "text",
-      "id": "3d4e9420d7614239",
+      "id": "9fe5d7bcaa1c4797",
       "x": 1090,
-      "y": 820,
+      "y": 892,
       "width": 292,
-      "height": 28.75,
+      "height": 57.5,
       "angle": 0,
       "strokeColor": "#6b7280",
       "backgroundColor": "transparent",
@@ -1316,11 +1316,11 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false,
-      "text": "The content map. Yours from here \u2014 edit it in\nthe app.",
-      "originalText": "The content map. Yours from here \u2014 edit it in\nthe app.",
+      "text": "OUT: ui/output/<run>/board.excalidraw\n     ui/output/<run>/preview.png\nThe content map. Yours from here \u2014 open it in\nthe app and drag things.",
+      "originalText": "OUT: ui/output/<run>/board.excalidraw\n     ui/output/<run>/preview.png\nThe content map. Yours from here \u2014 open it in\nthe app and drag things.",
       "fontSize": 11.5,
       "fontFamily": 6,
       "textAlign": "left",
@@ -1331,7 +1331,7 @@
     },
     {
       "type": "arrow",
-      "id": "23859de77ab342e9",
+      "id": "948ea616d583465f",
       "x": 350,
       "y": 228.0,
       "width": 52,
@@ -1354,7 +1354,7 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false,
       "points": [
@@ -1369,12 +1369,12 @@
       ],
       "lastCommittedPoint": null,
       "startBinding": {
-        "elementId": "c53579f8888c4164",
+        "elementId": "de3427909be44a18",
         "focus": 0,
         "gap": 6
       },
       "endBinding": {
-        "elementId": "f6a0a4976ac446c7",
+        "elementId": "045d094b28624794",
         "focus": 0,
         "gap": 6
       },
@@ -1384,7 +1384,7 @@
     },
     {
       "type": "arrow",
-      "id": "c2190e5f639440c8",
+      "id": "44ec313f4cb049cf",
       "x": 694,
       "y": 228.0,
       "width": 52,
@@ -1407,7 +1407,7 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false,
       "points": [
@@ -1422,12 +1422,12 @@
       ],
       "lastCommittedPoint": null,
       "startBinding": {
-        "elementId": "f6a0a4976ac446c7",
+        "elementId": "045d094b28624794",
         "focus": 0,
         "gap": 6
       },
       "endBinding": {
-        "elementId": "c086744304ee44c9",
+        "elementId": "4e74a6b1c70245ce",
         "focus": 0,
         "gap": 6
       },
@@ -1437,11 +1437,11 @@
     },
     {
       "type": "arrow",
-      "id": "d7ddafc0c6494848",
+      "id": "15cb28c30bd649f7",
       "x": 892.0,
       "y": 280,
       "width": 344.0,
-      "height": 160,
+      "height": 196,
       "angle": 0,
       "strokeColor": "#343a40",
       "backgroundColor": "transparent",
@@ -1460,7 +1460,7 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false,
       "points": [
@@ -1470,17 +1470,17 @@
         ],
         [
           344.0,
-          160
+          196
         ]
       ],
       "lastCommittedPoint": null,
       "startBinding": {
-        "elementId": "c086744304ee44c9",
+        "elementId": "4e74a6b1c70245ce",
         "focus": 0,
         "gap": 6
       },
       "endBinding": {
-        "elementId": "cb243a97f0804275",
+        "elementId": "6f13771e124e46a0",
         "focus": 0,
         "gap": 6
       },
@@ -1490,9 +1490,9 @@
     },
     {
       "type": "arrow",
-      "id": "72711e5537c94843",
+      "id": "15c5f54eaa2b44be",
       "x": 1090,
-      "y": 492.0,
+      "y": 528.0,
       "width": -52,
       "height": 0.0,
       "angle": 0,
@@ -1513,7 +1513,7 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false,
       "points": [
@@ -1528,12 +1528,12 @@
       ],
       "lastCommittedPoint": null,
       "startBinding": {
-        "elementId": "cb243a97f0804275",
+        "elementId": "6f13771e124e46a0",
         "focus": 0,
         "gap": 6
       },
       "endBinding": {
-        "elementId": "51e7a33776334a71",
+        "elementId": "f0ef26dd182545dc",
         "focus": 0,
         "gap": 6
       },
@@ -1543,9 +1543,9 @@
     },
     {
       "type": "arrow",
-      "id": "e905dc7c39db4f5b",
+      "id": "82054e848207421a",
       "x": 746,
-      "y": 492.0,
+      "y": 528.0,
       "width": -52,
       "height": 0.0,
       "angle": 0,
@@ -1566,7 +1566,7 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false,
       "points": [
@@ -1581,12 +1581,12 @@
       ],
       "lastCommittedPoint": null,
       "startBinding": {
-        "elementId": "51e7a33776334a71",
+        "elementId": "f0ef26dd182545dc",
         "focus": 0,
         "gap": 6
       },
       "endBinding": {
-        "elementId": "5dcc932f62024ec7",
+        "elementId": "42be58e8ee9c4216",
         "focus": 0,
         "gap": 6
       },
@@ -1596,9 +1596,9 @@
     },
     {
       "type": "arrow",
-      "id": "e36e3c12678f4f1a",
+      "id": "b50a50ef64a04798",
       "x": 402,
-      "y": 492.0,
+      "y": 528.0,
       "width": -52,
       "height": 0.0,
       "angle": 0,
@@ -1619,7 +1619,7 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false,
       "points": [
@@ -1634,12 +1634,12 @@
       ],
       "lastCommittedPoint": null,
       "startBinding": {
-        "elementId": "5dcc932f62024ec7",
+        "elementId": "42be58e8ee9c4216",
         "focus": 0,
         "gap": 6
       },
       "endBinding": {
-        "elementId": "d61331f38bb8452a",
+        "elementId": "52ade93ca90c4e0c",
         "focus": 0,
         "gap": 6
       },
@@ -1649,11 +1649,11 @@
     },
     {
       "type": "arrow",
-      "id": "842863c93425493c",
+      "id": "4dbb384324fd4999",
       "x": 204.0,
-      "y": 544,
+      "y": 580,
       "width": 0.0,
-      "height": 160,
+      "height": 196,
       "angle": 0,
       "strokeColor": "#343a40",
       "backgroundColor": "transparent",
@@ -1673,11 +1673,11 @@
       "isDeleted": false,
       "boundElements": [
         {
-          "id": "f305512c8ceb4d54",
+          "id": "75fb5357d1384a30",
           "type": "text"
         }
       ],
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false,
       "points": [
@@ -1687,17 +1687,17 @@
         ],
         [
           0.0,
-          160
+          196
         ]
       ],
       "lastCommittedPoint": null,
       "startBinding": {
-        "elementId": "d61331f38bb8452a",
+        "elementId": "52ade93ca90c4e0c",
         "focus": 0,
         "gap": 6
       },
       "endBinding": {
-        "elementId": "055db81472cb4d82",
+        "elementId": "c932638c81ab4562",
         "focus": 0,
         "gap": 6
       },
@@ -1707,7 +1707,7 @@
     },
     {
       "type": "text",
-      "id": "f305512c8ceb4d54",
+      "id": "75fb5357d1384a30",
       "x": 0,
       "y": 0,
       "width": 62.4,
@@ -1728,7 +1728,7 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false,
       "text": "glyph only",
@@ -1737,15 +1737,15 @@
       "fontFamily": 6,
       "textAlign": "center",
       "verticalAlign": "middle",
-      "containerId": "842863c93425493c",
+      "containerId": "4dbb384324fd4999",
       "lineHeight": 1.25,
       "baseline": 10
     },
     {
       "type": "arrow",
-      "id": "6f021ff3f4094217",
+      "id": "507d425c86e24f26",
       "x": 350,
-      "y": 756.0,
+      "y": 828.0,
       "width": 52,
       "height": 0.0,
       "angle": 0,
@@ -1766,7 +1766,7 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false,
       "points": [
@@ -1781,12 +1781,12 @@
       ],
       "lastCommittedPoint": null,
       "startBinding": {
-        "elementId": "055db81472cb4d82",
+        "elementId": "c932638c81ab4562",
         "focus": 0,
         "gap": 6
       },
       "endBinding": {
-        "elementId": "2270b0d8aea64709",
+        "elementId": "b74bc6f8da034233",
         "focus": 0,
         "gap": 6
       },
@@ -1796,9 +1796,9 @@
     },
     {
       "type": "arrow",
-      "id": "9bf2aa70e9f6469b",
+      "id": "6fe5ca67813540d6",
       "x": 694,
-      "y": 756.0,
+      "y": 828.0,
       "width": 52,
       "height": 0.0,
       "angle": 0,
@@ -1819,7 +1819,7 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false,
       "points": [
@@ -1834,12 +1834,12 @@
       ],
       "lastCommittedPoint": null,
       "startBinding": {
-        "elementId": "2270b0d8aea64709",
+        "elementId": "b74bc6f8da034233",
         "focus": 0,
         "gap": 6
       },
       "endBinding": {
-        "elementId": "61e72f6d7ffa495a",
+        "elementId": "020181a31fbd4acf",
         "focus": 0,
         "gap": 6
       },
@@ -1849,9 +1849,9 @@
     },
     {
       "type": "arrow",
-      "id": "acbc58a879214393",
+      "id": "8315c2d1b9a5471f",
       "x": 1038,
-      "y": 756.0,
+      "y": 828.0,
       "width": 52,
       "height": 0.0,
       "angle": 0,
@@ -1872,7 +1872,7 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false,
       "points": [
@@ -1887,12 +1887,12 @@
       ],
       "lastCommittedPoint": null,
       "startBinding": {
-        "elementId": "61e72f6d7ffa495a",
+        "elementId": "020181a31fbd4acf",
         "focus": 0,
         "gap": 6
       },
       "endBinding": {
-        "elementId": "3ee439d1ec7242dc",
+        "elementId": "5dd11e6da2dd4508",
         "focus": 0,
         "gap": 6
       },
@@ -1902,11 +1902,11 @@
     },
     {
       "type": "arrow",
-      "id": "b75fe48014ec4b7d",
+      "id": "6bf413df7d444dba",
       "x": 204.0,
-      "y": 544,
+      "y": 580,
       "width": 688.0,
-      "height": 160,
+      "height": 196,
       "angle": 0,
       "strokeColor": "#343a40",
       "backgroundColor": "transparent",
@@ -1926,11 +1926,11 @@
       "isDeleted": false,
       "boundElements": [
         {
-          "id": "98192bb8ab3d4c94",
+          "id": "89e368456129496a",
           "type": "text"
         }
       ],
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false,
       "points": [
@@ -1940,17 +1940,17 @@
         ],
         [
           688.0,
-          160
+          196
         ]
       ],
       "lastCommittedPoint": null,
       "startBinding": {
-        "elementId": "d61331f38bb8452a",
+        "elementId": "52ade93ca90c4e0c",
         "focus": 0,
         "gap": 6
       },
       "endBinding": {
-        "elementId": "61e72f6d7ffa495a",
+        "elementId": "020181a31fbd4acf",
         "focus": 0,
         "gap": 6
       },
@@ -1960,7 +1960,7 @@
     },
     {
       "type": "text",
-      "id": "98192bb8ab3d4c94",
+      "id": "89e368456129496a",
       "x": 0,
       "y": 0,
       "width": 137.28,
@@ -1981,7 +1981,7 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false,
       "text": "labels \u00b7 notes \u00b7 title",
@@ -1990,13 +1990,13 @@
       "fontFamily": 6,
       "textAlign": "center",
       "verticalAlign": "middle",
-      "containerId": "b75fe48014ec4b7d",
+      "containerId": "6bf413df7d444dba",
       "lineHeight": 1.25,
       "baseline": 10
     },
     {
       "type": "rectangle",
-      "id": "420b29a0d93d446b",
+      "id": "e412b6398f464dd6",
       "x": 58,
       "y": 128.1,
       "width": 13,
@@ -2019,13 +2019,13 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false
     },
     {
       "type": "text",
-      "id": "f90c0051d8de4f63",
+      "id": "42a29a6c30c1474b",
       "x": 77,
       "y": 127.1,
       "width": 74.88,
@@ -2046,7 +2046,7 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false,
       "text": "data on disk",
@@ -2061,7 +2061,7 @@
     },
     {
       "type": "rectangle",
-      "id": "f95f266cbde5417e",
+      "id": "b8dcd19ac2ed4494",
       "x": 177.88,
       "y": 128.1,
       "width": 13,
@@ -2084,13 +2084,13 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false
     },
     {
       "type": "text",
-      "id": "e4053f7e6b684d32",
+      "id": "387b06302b594949",
       "x": 196.88,
       "y": 127.1,
       "width": 74.88,
@@ -2111,7 +2111,7 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false,
       "text": "runs locally",
@@ -2126,7 +2126,7 @@
     },
     {
       "type": "rectangle",
-      "id": "72f4230222e7487f",
+      "id": "5989861ee0fe4ccb",
       "x": 297.76,
       "y": 128.1,
       "width": 13,
@@ -2149,13 +2149,13 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false
     },
     {
       "type": "text",
-      "id": "ffdd8c4ef62a45fa",
+      "id": "7f4a79b17b5e4f26",
       "x": 316.76,
       "y": 127.1,
       "width": 49.92,
@@ -2176,7 +2176,7 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false,
       "text": "SAIA API",
@@ -2191,7 +2191,7 @@
     },
     {
       "type": "rectangle",
-      "id": "89d86e1137a54c3c",
+      "id": "ff33c5bd8c784af4",
       "x": 392.68,
       "y": 128.1,
       "width": 13,
@@ -2214,13 +2214,13 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false
     },
     {
       "type": "text",
-      "id": "793f1bd382f6463e",
+      "id": "1adb0e6436854b8b",
       "x": 411.68,
       "y": 127.1,
       "width": 99.84,
@@ -2241,7 +2241,7 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false,
       "text": "FLUX on the H100",
@@ -2256,11 +2256,11 @@
     },
     {
       "type": "text",
-      "id": "55c4d43a491947aa",
+      "id": "18f888f817f643d5",
       "x": 58,
-      "y": 968,
+      "y": 1076,
       "width": 1324,
-      "height": 15.0,
+      "height": 45.0,
       "angle": 0,
       "strokeColor": "#7048e8",
       "backgroundColor": "transparent",
@@ -2277,11 +2277,11 @@
       "version": 1,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1789131371505,
+      "updated": 1789132699951,
       "link": null,
       "locked": false,
-      "text": "THE SPLIT.  plan.json carries two kinds of thing and they never meet again until the canvas.  GLYPH \u2192 FLUX, wordless.  LABEL, NOTE, TITLE \u2192 drawn as Excalidraw TEXT, crisp and editable.",
-      "originalText": "THE SPLIT.  plan.json carries two kinds of thing and they never meet again until the canvas.  GLYPH \u2192 FLUX, wordless.  LABEL, NOTE, TITLE \u2192 drawn as Excalidraw TEXT, crisp and editable.",
+      "text": "THE SPLIT \u2014 plan.json carries two kinds of thing and they never meet again until the canvas.   GLYPH \u2192 FLUX, wordless, one noun phrase per anchor.   LABEL \u00b7 NOTE \u00b7 TITLE \u2192 drawn straight onto Excalidraw as TEXT,\ncrisp and editable.        NOTE ON digest.md: it is the digest rendered FOR A HUMAN. Nothing downstream reads it \u2014 the planner reads digest.json, and FLUX never sees the digest at all.        EVERY <run> IS\nui/output/<provider>-<model>_digest_<timestamp>/",
+      "originalText": "THE SPLIT \u2014 plan.json carries two kinds of thing and they never meet again until the canvas.   GLYPH \u2192 FLUX, wordless, one noun phrase per anchor.   LABEL \u00b7 NOTE \u00b7 TITLE \u2192 drawn straight onto Excalidraw as TEXT,\ncrisp and editable.        NOTE ON digest.md: it is the digest rendered FOR A HUMAN. Nothing downstream reads it \u2014 the planner reads digest.json, and FLUX never sees the digest at all.        EVERY <run> IS\nui/output/<provider>-<model>_digest_<timestamp>/",
       "fontSize": 12,
       "fontFamily": 6,
       "textAlign": "left",

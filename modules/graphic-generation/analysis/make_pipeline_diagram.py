@@ -44,7 +44,7 @@ import uuid
 
 # ── geometry, matching module 2's serpentine diagrams ───────────────────────
 BOX_W, BOX_H = 292, 104
-GAP_X, GAP_Y = 52, 96          # a little more vertical room than module 2: these
+GAP_X, GAP_Y = 52, 132          # a little more vertical room than module 2: these
                                # boxes all carry a note underneath
 NOTE_GAP = 12
 MARGIN_X, TOP = 58, 176
@@ -109,9 +109,15 @@ def _box(x, y, kind, label, note) -> list[dict]:
 
     out = [rect, lab]
     if note:
+        # Wrap each authored line SEPARATELY. These notes are IN:/OUT:/WHERE:
+        # records where the line breaks carry meaning; flattening them into one
+        # paragraph and re-wrapping would run the output path into the input.
         cols = max(20, int(BOX_W / (NOTE_FS * CHAR_W)) - 1)
-        wrapped = "\n".join(textwrap.wrap(" ".join(note.split()), cols))
-        out.append(_text(x, y + BOX_H + NOTE_GAP, wrapped, NOTE_FS, MUTED, BOX_W))
+        lines = []
+        for raw in note.split("\n"):
+            lines += textwrap.wrap(raw, cols) or [""]
+        out.append(_text(x, y + BOX_H + NOTE_GAP, "\n".join(lines),
+                         NOTE_FS, MUTED, BOX_W))
     return out
 
 
@@ -161,50 +167,79 @@ ROWS = [
     # row 0 — the DIGEST: graph to five answers
     [
         ("data", "Temporal KG\n(AuraDB)",
-         "group_id treasury_prod_deploy_speaker_free — ONE meeting. 76 episodes, "
-         "1,394 facts, 157 superseded."),
+         "IN: nothing — it is the source.\n"
+         "OUT: group_id treasury_prod_deploy_speaker_free\n"
+         "76 episodes · 1,394 facts · 157 superseded\n"
+         "WHERE: AuraDB, neo4j+s://fa42f976…"),
         ("local", "5 cypher queries\ntkg_digest.py",
-         "revisions · topics · artifacts · participants · open threads. "
-         "3.9 s for all five. No LLM."),
-        ("data", "digest.json\n+ one .jsonl per query",
-         "What the graph says mattered, ranked and capped. Written beside the "
-         "board so a run stays auditable."),
+         "IN: group_id (+ optional episode cap)\n"
+         "OUT: 5 result sets · 3.9 s · no LLM\n"
+         "CODE: modules/kg-agent-memory/analysis/tkg_digest.py\n"
+         "RUN: scripts/run_tkg_digest.sh"),
+        ("data", "digest.json\n+ 6 .jsonl",
+         "ALL FIVE result sets combined in ONE json.\n"
+         "OUT: ui/output/<run>/digest/digest.json\n"
+         "     …/digest/{revisions,topics,artifacts,\n"
+         "     participants,decisions,open_threads}.jsonl\n"
+         "     …/digest/readme/*.readme.jsonl"),
     ],
     # row 1 — the PLAN: answers to a JSON board plan
     [
         ("local", "flatten_digest()\nboard_plan.py",
-         "Turns the five result sets into numbered sections. Every citable line "
-         "gets ONE index, so a board element traces back to a query."),
+         "IN: digest.json\n"
+         "OUT: one user message, sections numbered [0],[1]…\n"
+         "CODE: modules/graphic-generation/board_plan.py"),
         ("data", "the prompt\nsystem + user",
-         "~8.8 KB. Saved per run under prompt/ — full.txt is exactly what went "
-         "over the wire."),
+         "IN: flatten_digest output + the system file\n"
+         "OUT: ui/output/<run>/prompt/full.txt (as sent)\n"
+         "     …/prompt/{system,user,reply_raw}.txt\n"
+         "SYSTEM: prompts/board_plan_digest_system.txt\n"
+         "SIZE: ~10.9 KB ≈ 2.7k tokens"),
         ("remote", "Board Planner LLM\nSAIA qwen3-30b",
-         "One call, ~7 s. Returns JSON only: title, anchors, links, notes, "
-         "dropped."),
+         "IN: the two messages\n"
+         "OUT: JSON only · one call, 7-49 s\n"
+         "WHERE: chat-ai.academiccloud.de (needs SAIA_API_KEY)\n"
+         "Retries 4x on 5xx — SAIA hiccups."),
         ("data", "plan.json",
-         "4-6 anchors, each a LABEL (words) and a GLYPH (a wordless object). "
-         "Plus links, notes, and which facts were dropped."),
+         "OUT: ui/output/<run>/plan.json\n"
+         "title · anchors[label + glyph + from_facts]\n"
+         "links · notes · dropped\n"
+         "THIS is where words and drawings part."),
     ],
     # row 2 — the SPLIT and the canvas
     [
         ("gpu", "FLUX.1-schnell\nunicorn H100",
-         "Sees the GLYPH ONLY — 'a padlock', never a sentence. Warm server, "
-         "~12 s for six. Writing-bearing objects are swapped first."),
+         "IN: the GLYPH ONLY — 'a padlock', never a sentence\n"
+         "OUT: one PNG per anchor · ~12 s for six\n"
+         "WHERE: localhost:8500 via the unicorn tunnel\n"
+         "SERVER: modules/graphic-generation/serve_flux.py"),
         ("data", "one PNG per anchor",
-         "Wordless pictograms. FLUX renders letters as gibberish, which is why "
-         "no word is ever sent to it."),
+         "OUT: ui/output/<run>/images/000.png …\n"
+         "Wordless pictograms. FLUX renders letters as\n"
+         "gibberish, which is why no word is sent to it."),
         ("local", "render_board.py",
-         "Anchors to nodes, links to labelled arrows, notes inside cards. Arrows "
-         "are BOUND so they follow a card when you drag it."),
+         "IN: plan.json + the PNGs\n"
+         "OUT: anchors→nodes, links→labelled arrows,\n"
+         "     notes→text inside cards\n"
+         "CODE: modules/graphic-generation/render_board.py"),
         ("data", "board.excalidraw\n+ preview.png",
-         "The content map. Yours from here — edit it in the app."),
+         "OUT: ui/output/<run>/board.excalidraw\n"
+         "     ui/output/<run>/preview.png\n"
+         "The content map. Yours from here — open it in\n"
+         "the app and drag things."),
     ],
 ]
 
 # Where the words go. This is the arrow the diagram exists to make obvious.
-WORDS_NOTE = ("THE SPLIT.  plan.json carries two kinds of thing and they never "
-              "meet again until the canvas.  GLYPH → FLUX, wordless.  "
-              "LABEL, NOTE, TITLE → drawn as Excalidraw TEXT, crisp and editable.")
+WORDS_NOTE = (
+    "THE SPLIT — plan.json carries two kinds of thing and they never meet again "
+    "until the canvas.   GLYPH → FLUX, wordless, one noun phrase per anchor.   "
+    "LABEL · NOTE · TITLE → drawn straight onto Excalidraw as TEXT, crisp and "
+    "editable.        "
+    "NOTE ON digest.md: it is the digest rendered FOR A HUMAN. Nothing "
+    "downstream reads it — the planner reads digest.json, and FLUX never sees "
+    "the digest at all.        "
+    "EVERY <run> IS ui/output/<provider>-<model>_digest_<timestamp>/")
 
 
 def build() -> dict:

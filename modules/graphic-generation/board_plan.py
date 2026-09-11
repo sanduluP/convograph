@@ -41,6 +41,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import time
 import urllib.error
 import urllib.request
 
@@ -146,6 +147,35 @@ def _chat(messages: list[dict], provider: str, model: str,
     }).encode()
     req = urllib.request.Request(f"{cfg['base_url']}/chat/completions",
                                  data=payload, headers=headers)
+
+    # RETRY 5xx AND TIMEOUTS. SAIA is shared infrastructure and hiccups: a board
+    # died on "HTTP 500:" with an EMPTY body, and the identical prompt then
+    # succeeded 5 times out of 5 with latencies from 6.7 s to 48.8 s. A blank
+    # 500 carries no reason to act on, and one bad second should not cost a run
+    # that has already spent a digest. Only 5xx and timeouts are retried — a 4xx
+    # is our fault and will fail identically however many times we ask.
+    last = None
+    for attempt in range(4):
+        if attempt:
+            time.sleep(2 ** attempt)          # 2s, 4s, 8s
+        try:
+            return _one_call(req, timeout, provider, model)
+        except _Retryable as exc:
+            last = exc
+            continue
+    raise RuntimeError(
+        f"{provider}/{model} failed 4 times, last: {last}. "
+        f"If this is a blank 5xx the upstream is having a moment; if it repeats "
+        f"for minutes, check https://chat-ai.academiccloud.de status."
+    ) from last
+
+
+class _Retryable(RuntimeError):
+    """A failure worth asking again about: 5xx, or the socket timing out."""
+
+
+def _one_call(req, timeout: int, provider: str, model: str) -> str:
+    import socket
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
             body = json.loads(r.read())
@@ -165,7 +195,11 @@ def _chat(messages: list[dict], provider: str, model: str,
         )
     except urllib.error.HTTPError as exc:
         body = exc.read().decode(errors="replace")[:400]
+        if exc.code >= 500:
+            raise _Retryable(f"HTTP {exc.code}: {body or '(empty body)'}") from exc
         raise RuntimeError(f"{provider}/{model} HTTP {exc.code}: {body}") from exc
+    except (socket.timeout, TimeoutError, urllib.error.URLError) as exc:
+        raise _Retryable(f"{type(exc).__name__}: {exc}") from exc
 
 
 def _extract_json(text: str) -> dict:

@@ -266,14 +266,28 @@ if use_existing:
         # planner calls and 4N FLUX images. A segmented control looks the same
         # but tells us which one is selected, so exactly one board is drawn:
         # the first (most superseded) by default, another only when clicked.
+        # SCRATCH GROUPS ARE HIDDEN. Every UI run and every module 1 audio test
+        # writes a fresh ui_*/web_*/retry_* group, and there were 36 of them
+        # after two days — five rows of buttons above the one graph anyone wants
+        # to draw. They are still in Neo4j and one checkbox brings them back;
+        # they are just not the first thing on the page.
+        SCRATCH = ("ui_", "web_", "retry", "timing_probe", "test_")
+        real = [g for g in groups if not g["group_id"].startswith(SCRATCH)]
+        hidden = len(groups) - len(real)
+        if hidden and not st.checkbox(
+                f"show {hidden} scratch graph(s) from UI and audio test runs",
+                value=False,
+                help="Groups written by ad-hoc runs: ui_*, web_*, retry_*. Real "
+                     "corpora and meetings are always shown."):
+            groups = real or groups     # never leave the picker empty
+
         gids = [g["group_id"] for g in groups]
         stats = {g["group_id"]: f"{g['episodes']} episodes · {g['facts']} facts · "
                                 f"{g['superseded']} superseded" for g in groups}
         existing_group_id = st.segmented_control(
             "Knowledge graph", gids, default=gids[0], selection_mode="single",
             label_visibility="collapsed",
-            help="Every group_id in Neo4j, most superseded facts first. The "
-                 "first is drawn on load; click another to draw it.",
+            help="Most superseded facts first. Click one to draw it.",
         ) or gids[0]     # deselecting everything falls back to the default
         st.caption(stats[existing_group_id])
         # A group_id is not a description. finance_speaker_free is SIX WEEKS of
