@@ -238,6 +238,20 @@ def _register_icon(path: str, files: dict, cache: dict[str, str],
     return file_id
 
 
+def _strike(x: float, y: float, w: float, gid: str | None = None) -> dict:
+    """A horizontal rule through one line of text — Excalidraw's stand-in for a
+    strikethrough, which its text elements do not have."""
+    el = _base("line", x, y, w, 0, [gid] if gid else [])
+    el.update({
+        "strokeColor": "#868e96", "strokeWidth": 1,
+        "points": [[0, 0], [round(w, 2), 0]],
+        "lastCommittedPoint": None, "roundness": None,
+        "startBinding": None, "endBinding": None,
+        "startArrowhead": None, "endArrowhead": None,
+    })
+    return el
+
+
 def _text(x: float, y: float, lines: list[str], fs: float, color: str,
           gid: str | None = None, align: str = "left",
           box_w: float | None = None) -> dict:
@@ -549,9 +563,15 @@ ICON_GAP = 9            # icon → its text
 # WITHOUT reading — so it is carried by the sticky's own colour, not by which
 # list it was filed under. (stroke, fill)
 SAT_STYLES = {
-    "open":    ("#e8590c", "#fff4e6"),
-    "decided": ("#2f9e44", "#ebfbee"),
+    "open":       ("#e8590c", "#fff4e6"),
+    "decided":    ("#2f9e44", "#ebfbee"),
+    # A fact the meeting OVERTURNED. Recessive on purpose — it is no longer
+    # true — but present, struck through, because "this was the plan until
+    # 13:37" is the whole point of a temporal knowledge graph and the board was
+    # hiding it. See digest_items().
+    "superseded": ("#868e96", "#f8f9fa"),
 }
+STRUCK = {"superseded"}      # kinds drawn with a line through their text
 
 
 # A SharePoint path is ~90 characters of which the last word is the only part
@@ -717,8 +737,22 @@ def draw_satellites(x: float, y: float, columns: list[list], files: dict,
                                       ICON_PX, ICON_PX, file_id, gid))
                     text_x += ICON_PX + ICON_GAP
             text_h = _text_size(lines, SAT_FS)[1]
-            els.append(_text(text_x, cursor + (h - text_h) / 2, lines,
-                             SAT_FS, INK, gid, box_w=text_w))
+            text_y = cursor + (h - text_h) / 2
+            ink = NOTE_GRAY if kind in STRUCK else INK
+            els.append(_text(text_x, text_y, lines, SAT_FS, ink, gid,
+                             box_w=text_w))
+            if kind in STRUCK:
+                # Excalidraw text has no strikethrough property, so the line is
+                # drawn: one per WRAPPED LINE, at that line's own middle, and
+                # only as wide as that line's text — a single rule across the
+                # whole box would run past the last, short line into white space.
+                for n, text_line in enumerate(lines):
+                    line_w = len(text_line) * SAT_FS * CHAR_W
+                    if line_w < 4:
+                        continue
+                    els.append(_strike(text_x, text_y
+                                       + (n + 0.5) * SAT_FS * LINE_H,
+                                       line_w, gid))
             cursor += h + SAT_GAP_Y
     return els
 
@@ -899,6 +933,31 @@ def digest_items(digest: dict | None) -> list[tuple[str, str]]:
             fact = row.get("fact")
             if fact:
                 out.append((" ".join(str(fact).split()), kind))
+
+    # ── the facts the meeting OVERTURNED ────────────────────────────────────
+    # decisions and open_threads are both `invalid_at IS NULL` — still-valid
+    # only — so until now the board drew the meeting's END STATE and nothing
+    # else. Every plan that was made and then changed was invisible, which for a
+    # TEMPORAL knowledge graph is precisely the wrong thing to hide.
+    #
+    # WHAT IS DRAWN AND WHAT IS NOT. `was` and `changed_at` are solid: an edge
+    # carrying invalid_at is definitively no longer current, and that is a
+    # property of the edge, not a join. `became` is NOT drawn, because the
+    # successor join is ambiguous — many edges share one invalid_at timestamp,
+    # and in this meeting a single successor ("Security is to confirm access
+    # approvals by EOD Friday") is attached to three unrelated predecessors.
+    # Striking a fact through is true; naming what replaced it would be a guess
+    # printed in ink. See tkg_digest.py's Q1 docstring for the measurement.
+    seen = {t for t, _ in out}
+    for row in q.get("revisions", []):
+        was = row.get("was")
+        if not was:
+            continue
+        was = " ".join(str(was).split())
+        if was in seen:           # the same fact can be superseded on several
+            continue              # rows; draw the sticky once
+        seen.add(was)
+        out.append((was, "superseded"))
     return out
 
 
@@ -1054,6 +1113,7 @@ def build_scene(plan: dict, images: list[str | None],
                                         y + m["card_h"] + CLUSTER_GAP,
                                         m["sat_cols"], files, icon_cache, gid)
 
+    arrow_els: list[dict] = []
     drawn_links = 0                           # counts arrows ACTUALLY drawn, so
                                               # a dropped one does not consume a
                                               # bow and leave a gap in the fan
@@ -1064,9 +1124,16 @@ def build_scene(plan: dict, images: list[str | None],
         if not (0 <= a < len(cards) and 0 <= b < len(cards)) or a == b:
             continue                          # a bad index is a plan bug; drop
                                               # the arrow, keep the board
-        elements += _arrow(cards[a], cards[b], link.get("label", ""),
-                           bow=BOWS[drawn_links % len(BOWS)])
+        arrow_els += _arrow(cards[a], cards[b], link.get("label", ""),
+                            bow=BOWS[drawn_links % len(BOWS)])
         drawn_links += 1
+
+    # ARROWS GO TO THE BACK. Excalidraw paints in array order, so appending them
+    # last put every long diagonal ON TOP of the cards and stickies it crossed —
+    # a line straight through somebody's sentence. In front of the nodes they are
+    # decoration; behind them they are what they are, a connection that passes
+    # underneath. The bindings are by element id, so order costs nothing.
+    elements[:0] = arrow_els
 
     # ── the two bands, above and below the map ──────────────────────────────
     # Both span the map rather than sitting beside it. Placed now, because both

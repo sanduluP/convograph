@@ -94,8 +94,16 @@ def render(scene: dict, out_path: str) -> dict:
 
     by_id = {e["id"]: e for e in elements}
 
-    # Shapes and images first, then text and arrows on top — the same painting
-    # order Excalidraw uses for its default z-ordering here.
+    # STRICT ARRAY ORDER, one pass — exactly how Excalidraw paints.
+    #
+    # This used to be two passes: every shape and image, then every arrow and
+    # text on top. That was a guess about z-order, and it stopped being true the
+    # moment arrows were deliberately moved to the BACK of the scene so they pass
+    # underneath the cards they cross. The preview would have kept drawing them
+    # over the top and reported a problem the real canvas does not have. The
+    # renderer already emits each element after the thing it belongs on — a
+    # card, then its image, then its label; a sticky, then its text, then its
+    # strikethrough — so array order is all the ordering needed.
     for e in elements:
         kind = e["type"]
         x, y = sx(e["x"]), sy(e["y"])
@@ -131,16 +139,13 @@ def render(scene: dict, out_path: str) -> dict:
                 draw.rectangle([x, y, x + w, y + h], outline="#e03131", width=2)
                 draw.line([x, y, x + w, y + h], fill="#e03131", width=2)
 
-    for e in elements:
-        kind = e["type"]
-        if kind == "arrow" or kind == "line":
+        elif kind == "arrow" or kind == "line":
             pts = e.get("points") or [[0, 0], [e.get("width", 0), e.get("height", 0)]]
             abs_pts = [(sx(e["x"] + p[0]), sy(e["y"] + p[1])) for p in pts]
             col = e.get("strokeColor", "#000")
             draw.line(abs_pts, fill=col, width=max(1, int(e.get("strokeWidth", 1))))
             if kind == "arrow" and e.get("endArrowhead") and len(abs_pts) >= 2:
                 _arrowhead(draw, *abs_pts[-2], *abs_pts[-1], color=col)
-
         elif kind == "text":
             fs = e.get("fontSize", 16) * SCALE
             font = _font(fs, bold=fs >= 30)
