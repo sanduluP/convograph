@@ -108,6 +108,19 @@ CARD_BG = "#ffffff"
 ROUGHNESS = 1          # 1 = hand-drawn. This board is a sketchnote, not an
                        # architecture diagram (those use roughness 0).
 
+# ── appending one meeting after another ─────────────────────────────────────
+APPEND_GAP = 160       # white space between two MEETING blocks on one canvas,
+                       # either direction. Larger than TITLE_BAND so the next
+                       # block's title reads as a new board, not as a subtitle
+                       # of the one above it. See append_scene().
+CAPTION_FS = NOTE_FS   # a block caption is metadata: recessive gray, small
+CAPTION_KEY = "convograph_caption"
+                       # customData marker on caption elements. customData is
+                       # the ONE per-element slot Excalidraw preserves through a
+                       # hand edit and re-save; a top-level scene key is dropped
+                       # on export, after which a chained append could no longer
+                       # tell which blocks are already captioned.
+
 
 def _new_id() -> str:
     return uuid.uuid4().hex[:16]
@@ -575,6 +588,246 @@ def build_scene(plan: dict, images: list[str | None],
             "images": sum(1 for m in measured if m["file_id"]),
             "links": sum(1 for e in elements if e["type"] == "arrow"),
             "notes": sum(len(v) for v in notes_by_anchor.values()),
+        },
+    }
+
+
+# ── appending: one canvas, many meetings ────────────────────────────────────
+def _scene_bbox(elements: list[dict]) -> tuple[float, float, float, float]:
+    """Min/max over BOTH corners of every live element.
+
+    Not build_scene's own formula. That one takes min(x) and max(x + width),
+    which is wrong for arrows: _arrow() emits width = x1 - x0, so an arrow
+    pointing left or up has a NEGATIVE extent and its far end falls outside
+    the box. Harmless inside build_scene (arrow ends sit on cards, which are
+    in the box anyway), but an append offset computed from a wrong edge puts
+    the next meeting on top of this one. Same form as preview_board._bbox.
+    """
+    live = [e for e in elements if not e.get("isDeleted")]
+    xs = [e["x"] for e in live] + [e["x"] + e.get("width", 0) for e in live]
+    ys = [e["y"] for e in live] + [e["y"] + e.get("height", 0) for e in live]
+    return min(xs), min(ys), max(xs), max(ys)
+
+
+def _caption(x: float, y: float, text: str) -> dict:
+    """The small gray line above a meeting block saying which meeting it is.
+
+    append_scene() also writes the block's extent into this element's
+    customData as `bbox` (caption included) the moment the block is placed.
+    Coordinates never move afterwards — append_scene only ever shifts the NEW
+    block — so a bbox recorded on an earlier append stays true for the life
+    of the file. That record is what lets a later append centre on its
+    neighbour or continue a grid row without re-deriving which elements
+    belong to which meeting.
+    """
+    el = _text(x, y, [" ".join(str(text).split())], CAPTION_FS, NOTE_GRAY)
+    el["customData"] = {CAPTION_KEY: {"text": el["text"]}}
+    return el
+
+
+def _has_caption(elements: list[dict]) -> bool:
+    return any((e.get("customData") or {}).get(CAPTION_KEY) for e in elements)
+
+
+def block_bounds(elements: list[dict]) -> list[list[float]]:
+    """Per-block extents [x0, y0, x1, y1], from what each caption recorded.
+
+    Falls back to ONE block covering everything when there are no captions (a
+    board never appended to) or when any caption predates this bookkeeping
+    (boards generated before it existed carry text only). Degrading to a single
+    block keeps every placement rule well-defined on old files; it just means
+    "the neighbour" is the whole canvas there.
+    """
+    recs = [(e.get("customData") or {}).get(CAPTION_KEY) for e in elements]
+    recs = [m for m in recs if m]
+    if not recs or any("bbox" not in m for m in recs):
+        return [list(_scene_bbox(elements))]
+    return [list(m["bbox"]) for m in recs]
+
+
+def _rows(bounds: list[list[float]]) -> list[list[list[float]]]:
+    """Group blocks into rows by vertical overlap, top row first, left to right.
+
+    Derived from geometry rather than stored, so a canvas built with mixed
+    directions still yields sensible rows for the grid rule.
+    """
+    rows: list[list[list[float]]] = []
+    for b in sorted(bounds, key=lambda t: (t[1], t[0])):
+        for row in rows:
+            ry0, ry1 = min(r[1] for r in row), max(r[3] for r in row)
+            overlap = min(b[3], ry1) - max(b[1], ry0)
+            if overlap > 0.5 * min(b[3] - b[1], ry1 - ry0):
+                row.append(b)
+                break
+        else:
+            rows.append([b])
+    for row in rows:
+        row.sort(key=lambda t: t[0])
+    return rows
+
+
+def _target(bounds: list[list[float]], canvas: tuple[float, float, float, float],
+            nw: float, nh: float, direction: str, gap: float, align: str,
+            columns: int) -> tuple[float, float]:
+    """Top-left corner for the new block's OCCUPIED box (caption included).
+
+    Two rules, kept separate on purpose:
+
+      placement   clears the WHOLE canvas in the chosen direction, so nothing
+                  already drawn is ever overlapped;
+      alignment   follows the NEIGHBOUR — the block nearest to where the new
+                  one lands — so a column of meetings shares an edge or a
+                  spine, rather than the far edge of some block placed elsewhere.
+
+    Grid fills a row left to right, top-aligned to that row, then wraps to a
+    new row below everything, back at the first row's left margin.
+    """
+    cx0, cy0, cx1, cy1 = canvas
+    if direction == "grid":
+        rows = _rows(bounds)
+        last = rows[-1]
+        if len(last) < columns:
+            ref = max(last, key=lambda b: b[2])
+            return ref[2] + gap, min(b[1] for b in last)
+        return min(b[0] for b in rows[0]), cy1 + gap
+    if direction in ("below", "above"):
+        ref = (max(bounds, key=lambda b: b[3]) if direction == "below"
+               else min(bounds, key=lambda b: b[1]))
+        x = (ref[0] + ref[2]) / 2 - nw / 2 if align == "center" else ref[0]
+        y = cy1 + gap if direction == "below" else cy0 - gap - nh
+        return x, y
+    ref = (max(bounds, key=lambda b: b[2]) if direction == "right"
+           else min(bounds, key=lambda b: b[0]))
+    y = (ref[1] + ref[3]) / 2 - nh / 2 if align == "center" else ref[1]
+    x = cx1 + gap if direction == "right" else cx0 - gap - nw
+    return x, y
+
+
+DIRECTIONS = ("below", "above", "right", "left", "grid")
+ALIGNS = ("start", "center")
+
+
+def append_scene(base: dict, new: dict, direction: str = "below",
+                 gap: float = APPEND_GAP,
+                 base_caption: str | None = None,
+                 new_caption: str | None = None,
+                 align: str = "start", columns: int = 3) -> dict:
+    """Place `new` (one meeting's board) onto `base` (everything so far).
+
+    WHY THIS EXISTS
+    ---------------
+    build_scene() lays a board out around the origin and then normalises it to
+    a fixed top-left corner, so every board lands in exactly the same place.
+    A graphic recording is a canvas that GROWS as meetings happen; the next
+    meeting has to be placed relative to what is already drawn.
+
+    WHERE IT GOES
+    -------------
+    `direction` is below / above / right / left, or "grid": fill a row left to
+    right up to `columns` blocks, then wrap to a new row. Placement always
+    clears the whole canvas; `align` ("start" or "center") decides how the
+    block lines up with its NEIGHBOUR on the other axis. Centring is on the
+    neighbour, not on the canvas, so a column keeps a spine as it widens.
+    Grid ignores `align`: a row is top-aligned, a new row starts at the first
+    row's left margin.
+
+    WHAT IT DOES NOT DO
+    -------------------
+    No arrows between meetings, and no re-layout of anything already on the
+    canvas. Each meeting stays a separate block with its own title, plus a
+    gray caption naming the meeting and recording the block's extent, so
+    blocks stay attributable and placeable once there are ten of them.
+    Cross-meeting supersession links are a later step, once fact identity is
+    carried through to the cards.
+
+    `base` may itself be the output of an earlier append (a chain). It is
+    detected as already captioned via CAPTION_KEY and left alone; only the
+    very first block ever gets a caption retroactively.
+
+    Neither input is mutated, and no file is touched: the caller writes the
+    merged scene into the NEW run's folder, never over the base.
+    """
+    if direction not in DIRECTIONS:
+        raise ValueError(f"direction must be one of {DIRECTIONS}, got {direction!r}")
+    if align not in ALIGNS:
+        raise ValueError(f"align must be one of {ALIGNS}, got {align!r}")
+    if direction == "grid" and columns < 1:
+        raise ValueError(f"columns must be >= 1, got {columns}")
+
+    # JSON round-trip as the deep copy: a scene must be JSON anyway, and the
+    # orchestrator still holds `new` for its own debug numbers.
+    base = json.loads(json.dumps(base))
+    new = json.loads(json.dumps(new))
+
+    # Deleted elements are tombstones Excalidraw keeps for undo; carrying them
+    # would drag phantom boxes into the bbox. "index" is a fractional ordering
+    # key a hand-saved file carries; mixing indexed and unindexed elements
+    # makes Excalidraw fight the list order (the serpentine relayout hit this).
+    base_els = [e for e in base.get("elements", []) if not e.get("isDeleted")]
+    new_els = [e for e in new.get("elements", []) if not e.get("isDeleted")]
+    for e in base_els + new_els:
+        e.pop("index", None)
+    if not base_els:
+        raise ValueError("base scene has no live elements — nothing to append to")
+    if not new_els:
+        raise ValueError("new scene has no live elements — nothing to append")
+
+    cap_h = _text_size(["x"], CAPTION_FS)[1]
+    cap_gap = 6                          # caption bottom to block top
+
+    bx0, by0, bx1, by1 = _scene_bbox(base_els)
+    if base_caption and not _has_caption(base_els):
+        cap = _caption(bx0, by0 - cap_h - cap_gap, base_caption)
+        base_els.insert(0, cap)
+        # Recorded AFTER insertion, so the first block's extent includes its
+        # own caption the same way every later block's does.
+        cap["customData"][CAPTION_KEY]["bbox"] = [round(v, 2) for v in _scene_bbox(base_els)]
+    canvas = _scene_bbox(base_els)
+    bounds = block_bounds(base_els)
+
+    nx0, ny0, nx1, ny1 = _scene_bbox(new_els)
+    reserve = (cap_h + cap_gap) if new_caption else 0.0
+    # The new block is placed as its OCCUPIED box — content plus the caption
+    # line above it — so the gap and the alignment hold for what a reader sees.
+    ox, oy = _target(bounds, canvas, nx1 - nx0, (ny1 - ny0) + reserve,
+                     direction, gap, align, columns)
+    dx, dy = ox - nx0, (oy + reserve) - ny0
+    for e in new_els:
+        # Only x/y move. Arrow `points` are relative to the arrow's own x/y,
+        # and bound labels are elements in this list, so they move with it.
+        e["x"] = round(e["x"] + dx, 2)
+        e["y"] = round(e["y"] + dy, 2)
+    if new_caption:
+        cap = _caption(ox, oy, new_caption)
+        new_els.insert(0, cap)
+        cap["customData"][CAPTION_KEY]["bbox"] = [round(v, 2) for v in _scene_bbox(new_els)]
+
+    elements = base_els + new_els
+    ids = [e["id"] for e in elements]
+    dupes = sorted({i for i in ids if ids.count(i) > 1})
+    if dupes:
+        # Ids are uuid4 here, so this only fires on a foreign or hand-copied
+        # base. Refusing beats a canvas where dragging one card moves two.
+        raise ValueError(f"duplicate element ids across base and new: {dupes}")
+
+    files = {**(base.get("files") or {}), **(new.get("files") or {})}
+    mx0, my0, mx1, my1 = _scene_bbox(elements)
+    return {
+        "type": "excalidraw", "version": 2,
+        "source": new.get("source") or "convograph/modules/graphic-generation/render_board.py",
+        "elements": elements,
+        "appState": base.get("appState") or new.get("appState")
+                    or {"gridSize": None, "viewBackgroundColor": "#ffffff"},
+        "files": files,
+        "_layout_debug": {
+            "canvas": [round(mx1 - mx0 + 2 * PAD), round(my1 - my0 + 2 * PAD)],
+            "blocks": sum(1 for e in elements
+                          if (e.get("customData") or {}).get(CAPTION_KEY)),
+            "direction": direction,
+            "align": align if direction != "grid" else None,
+            "columns": columns if direction == "grid" else None,
+            "elements": len(elements),
+            "files": len(files),
         },
     }
 

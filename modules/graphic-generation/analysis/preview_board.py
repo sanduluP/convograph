@@ -193,8 +193,15 @@ def render(scene: dict, out_path: str) -> dict:
 
 
 # ── structural + geometric checks ───────────────────────────────────────────
-def check(scene: dict) -> list[str]:
-    """Problems a rendering cannot show but a reader would hit. Empty = clean."""
+def check(scene: dict, aspect: tuple[float, float] | None = (0.4, 3.0)) -> list[str]:
+    """Problems a rendering cannot show but a reader would hit. Empty = clean.
+
+    `aspect` is the readable width:height range for the WHOLE canvas. It is a
+    property of one board: a strip of three meetings appended side by side is
+    legitimately 4:1, and each block already passed this test on its own run.
+    Pass None to skip it — the structural checks (ids, bindings, file refs,
+    overlaps) still run across the union, which is exactly what an append needs.
+    """
     problems: list[str] = []
     elements = [e for e in scene.get("elements", []) if not e.get("isDeleted")]
     ids = [e["id"] for e in elements]
@@ -273,11 +280,13 @@ def check(scene: dict) -> list[str]:
                     f"by {ox:.0f}x{oy:.0f}px — unreadable")
                 break
 
-    min_x, min_y, max_x, max_y = _bbox(elements)
-    w, h = max_x - min_x, max_y - min_y
-    if h and not 0.4 <= w / h <= 3.0:
-        problems.append(f"canvas aspect {w / h:.2f}:1 ({w:.0f}x{h:.0f}) — "
-                        f"outside the readable 0.4-3.0 range")
+    if aspect is not None:
+        lo, hi = aspect
+        min_x, min_y, max_x, max_y = _bbox(elements)
+        w, h = max_x - min_x, max_y - min_y
+        if h and not lo <= w / h <= hi:
+            problems.append(f"canvas aspect {w / h:.2f}:1 ({w:.0f}x{h:.0f}) — "
+                            f"outside the readable {lo}-{hi} range")
     return problems
 
 
