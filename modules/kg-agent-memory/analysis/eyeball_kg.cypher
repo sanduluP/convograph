@@ -141,6 +141,68 @@ RETURN superseded,
 
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 3d. ONE MEETING — the phase graph on AuraDB.
+//
+//     Every query above scans whatever database you are connected to. AuraDB
+//     holds SEVERAL graphs side by side, so on it you almost always want a
+//     group filter:
+//
+//       treasury_prod_deploy_speaker_free   ONE meeting (76 episodes) — this one
+//       gmb_finance_full                    6 weeks, speakers as nodes
+//       ui_* / web_*                        scratch runs from the UI
+//
+//     FILTER ON THE EDGE, NOT ALL THREE. Both work — Entity nodes do carry
+//     group_id — but Graphiti creates a SEPARATE node per group, so an edge in
+//     this group can only ever join nodes in this group. Checking a.group_id and
+//     b.group_id as well returns the identical 1,394 facts and just reads
+//     heavier. (Verified 2026-09-11: edge-only 1394, all-three 1394.)
+// ─────────────────────────────────────────────────────────────────────────────
+:param g => 'treasury_prod_deploy_speaker_free';
+
+// 3d-i. Is it there, and how big?
+MATCH (e:Episodic) WHERE e.group_id = $g
+WITH count(*) AS episodes
+MATCH ()-[r:RELATES_TO]->() WHERE r.group_id = $g
+RETURN episodes, count(r) AS facts,
+       sum(CASE WHEN r.invalid_at IS NOT NULL THEN 1 ELSE 0 END) AS superseded;
+
+// 3d-ii. 25 random facts — judge the extraction yourself.
+MATCH (a:Entity)-[r:RELATES_TO]->(b:Entity)
+WHERE r.group_id = $g
+RETURN a.name AS subject, r.fact AS fact, b.name AS object, r.valid_at AS since
+ORDER BY rand()
+LIMIT 25;
+
+// 3d-iii. What this meeting was ABOUT — the same ranking the digest's Q2 uses.
+//     Episode SPREAD, not mention count: an entity named in 40 different windows
+//     was a thread through the meeting; one named 40 times in a single window
+//     was one person on a tangent.
+MATCH (ep:Episodic)-[:MENTIONS]->(e:Entity)
+WHERE ep.group_id = $g
+RETURN e.name AS topic, count(DISTINCT ep.uuid) AS windows
+ORDER BY windows DESC
+LIMIT 15;
+
+// 3d-iv. What CHANGED, with the fact that replaced it.
+MATCH (a:Entity)-[r:RELATES_TO]->(b:Entity)
+WHERE r.group_id = $g AND r.invalid_at IS NOT NULL
+OPTIONAL CALL (r, a, b) {
+    MATCH (x:Entity)-[s:RELATES_TO]->(y:Entity)
+    WHERE s.valid_at = r.invalid_at AND s.uuid <> r.uuid AND s.group_id = r.group_id
+      AND (x.uuid IN [a.uuid, b.uuid] OR y.uuid IN [a.uuid, b.uuid])
+    RETURN s.fact AS successor ORDER BY s.created_at LIMIT 1
+}
+RETURN r.fact AS was, successor AS became, r.invalid_at AS changed_at
+ORDER BY r.invalid_at DESC
+LIMIT 25;
+
+// 3d-v. The graph as a PICTURE. Neo4j Browser renders this one.
+MATCH path = (a:Entity)-[r:RELATES_TO]->(b:Entity)
+WHERE r.group_id = $g
+RETURN path LIMIT 200;
+
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 4. A PICTURE — the neighbourhood of the busiest entity.
 //    Neo4j Browser renders this as an actual graph, which is the closest thing
 //    we currently have to "graphic recording".

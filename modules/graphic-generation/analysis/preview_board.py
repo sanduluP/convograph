@@ -137,6 +137,20 @@ def render(scene: dict, out_path: str) -> dict:
             lines = e.get("text", "").split("\n")
             col = e.get("strokeColor", "#000")
             container = by_id.get(e.get("containerId"))
+            if container is not None and container.get("type") != "arrow":
+                # A label bound to a SHAPE is centred inside it, both axes.
+                # Without this branch the arrow path below ran for rectangles
+                # too, read a `points` key they do not have, and drew every box
+                # label at the box's top-left corner — which looked like a
+                # layout bug in the diagram rather than one in this previewer.
+                cx = sx(container["x"] + container.get("width", 0) / 2)
+                cy = sy(container["y"] + container.get("height", 0) / 2)
+                th = len(lines) * fs * 1.25
+                for i, line in enumerate(lines):
+                    lw = draw.textlength(line, font=font)
+                    draw.text((cx - lw / 2, cy - th / 2 + i * fs * 1.25), line,
+                              font=font, fill=col)
+                continue
             if container is not None:
                 # A bound label: Excalidraw centres it on its container. For an
                 # arrow that is the midpoint of the polyline.
